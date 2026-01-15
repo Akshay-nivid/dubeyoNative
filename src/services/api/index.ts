@@ -10,11 +10,12 @@ async function request(method: string, url: string, options: any = {}) {
     });
 
     return {
-      data: response.data,
+      data:response.data.data,
       status: response.status,
     };
   } catch (err: any) {
     const error = normalizeError(err);
+    console.log(err)
     return {
       data: null,
       status: error.status ?? 400,
