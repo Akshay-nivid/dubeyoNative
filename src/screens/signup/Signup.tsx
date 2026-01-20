@@ -262,12 +262,12 @@ export default function SignupScreen() {
 
       if (hasCompletedPreferences) {
         router.replace("/home" as any);
-      } else if (isFirstLogin) {
-        router.replace("/home" as any);
       } else {
-        router.replace("/home");
+        // New users should go to preferences page
+        router.replace("/preferences" as any);
       }
     } catch (err: any) {
+      console.log(err); 
       const msg =
         err?.response?.data?.message ||
         err?.message ||
