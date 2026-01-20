@@ -8,11 +8,13 @@ async function request(method: string, url: string, options: any = {}) {
       url,
       ...options,
     });
-
-    return {
-      data:response.data.data,
+    let res={
+      data:response.data?.data||response.data,
+      token: response.data?.token,
       status: response.status,
-    };
+    }
+    
+    return res
   } catch (err: any) {
     const error = normalizeError(err);
     console.log(err)
