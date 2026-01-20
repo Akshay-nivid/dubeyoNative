@@ -93,7 +93,7 @@ export default function LoginScreen() {
                     </Text>
 
                     {/* Email Login */}
-                    
+
                         <View className="w-full max-w-md">
                             {/* Email */}
                             <View className="mb-4 w-full">
@@ -140,7 +140,7 @@ export default function LoginScreen() {
                             <Pressable
                                 onPress={handleEmailLogin}
                                 disabled={loading}
-                                className={`mb-8 w-full rounded-xl py-4 ${loading ? "bg-gray-400" : "bg-blue-900"
+                                className={`mb-8 w-full rounded-xl py-4 ${loading ? "bg-gray-400" : "bg-primary_btn"
                                     }`}
                                 style={{
                                     shadowColor: "#000",
@@ -224,7 +224,7 @@ export default function LoginScreen() {
                                 </Text>
                             </View>
                         </View>
-                    
+
                 </View>
             </ScrollView>
         </View>

@@ -222,7 +222,7 @@ export default function SignupScreen() {
         setLoading(false);
         return;
       }
-      
+
 
       const token = (res.data as any)?.token ?? (res as any)?.token ?? null;
       const user = (res.data as any)?.data ?? (res.data as any)?.user ?? (res as any)?.user ?? null;
@@ -387,7 +387,7 @@ export default function SignupScreen() {
                 <Pressable
                   onPress={handleVerifyOTP}
                   disabled={verifyingOTP}
-                  className={`px-5 py-3.5 rounded-xl ${verifyingOTP ? "bg-gray-400" : "bg-green-600"
+                  className={`px-5 py-3.5 rounded-xl ${verifyingOTP ? "bg-gray-400" : "bg-success_btn"
                     } justify-center items-center min-w-[100px]`}
                   style={{
                     shadowColor: "#000",
@@ -548,7 +548,7 @@ export default function SignupScreen() {
               !data.address ||
               !data.country
               ? "bg-gray-400"
-              : "bg-blue-900"
+              : "bg-primary_btn"
               }`}
             style={{
               shadowColor: "#000",
