@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -18,12 +19,10 @@ import { Api } from "./api";
 
 export default function LoginScreen() {
     const router = useRouter();
-
-    const [activeTab, setActiveTab] = useState<"email" | "mobile">("email");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [mobile, setMobile] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleEmailLogin = async () => {
         if (!email || !password) {
@@ -50,7 +49,7 @@ export default function LoginScreen() {
                 Toast.show({
                     type: "error",
                     text1: "Login failed",
-                    text2: res.message || "Invalid credentials",
+                    text2: res.data?.message || "Invalid credentials",
                 });
             }
         } catch {
@@ -71,15 +70,16 @@ export default function LoginScreen() {
     return (
         <View className="flex-1 bg-white">
             <ScrollView
-                contentContainerStyle={{ flexGrow: 1 }}
+                contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
             >
                 <View className="flex-1 items-center justify-center px-6 py-8">
-                    <View className="items-center mb-6">
+                    {/* Logo */}
+                    <View className="items-center mb-8">
                         <Image
                             source={Logo}
-                            style={{ width: 256, height: 256 }}
+                            style={{ width: 200, height: 200 }}
                             contentFit="contain"
                             priority="high"
                             cachePolicy="memory-disk"
@@ -88,51 +88,66 @@ export default function LoginScreen() {
                     </View>
 
                     {/* Title */}
-                    <Text className="mb-3 text-center text-lg font-medium text-gray-700">
+                    <Text className="mb-8 text-center text-xl font-semibold text-gray-800">
                         Login to your Account
                     </Text>
 
                     {/* Email Login */}
-                    {activeTab === "email" && (
-                        <>
+                    
+                        <View className="w-full max-w-md">
                             {/* Email */}
-                            <View className="mb-4 w-full rounded-xl bg-gray-100 px-4 py-3">
+                            <View className="mb-4 w-full">
                                 <TextInput
-                                    placeholder="Enter your email"
+                                    placeholder="Email"
                                     placeholderTextColor="#9CA3AF"
                                     autoCapitalize="none"
+                                    keyboardType="email-address"
                                     value={email}
                                     onChangeText={setEmail}
                                     editable={!loading}
-                                    className="text-base text-gray-900"
+                                    className="w-full rounded-xl bg-white border border-gray-300 px-4 py-3.5 text-base text-gray-900"
+                                    style={{ outline: "none" }}
                                 />
                             </View>
 
                             {/* Password */}
-                            <View className="mb-6 w-full rounded-xl bg-gray-100 px-4 py-3">
-                                <TextInput
-                                    placeholder="Enter your password"
-                                    placeholderTextColor="#9CA3AF"
-                                    secureTextEntry
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    editable={!loading}
-                                    className="text-base text-gray-900"
-                                />
+                            <View className="mb-6 w-full">
+                                <View className="w-full rounded-xl bg-white border border-gray-300 px-4 py-3.5 flex-row items-center">
+                                    <TextInput
+                                        placeholder="Password"
+                                        placeholderTextColor="#9CA3AF"
+                                        secureTextEntry={!showPassword}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        editable={!loading}
+                                        className="flex-1 text-base text-gray-900"
+                                        style={{ outline: "none" }}
+                                    />
+                                    <Pressable
+                                        onPress={() => setShowPassword(!showPassword)}
+                                        className="ml-2"
+                                    >
+                                        <Ionicons
+                                            name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                            size={20}
+                                            color="#6B7280"
+                                        />
+                                    </Pressable>
+                                </View>
                             </View>
 
                             {/* Submit Button */}
                             <Pressable
                                 onPress={handleEmailLogin}
                                 disabled={loading}
-                                className={`mb-6 w-full rounded-xl py-4 shadow-md ${loading ? "bg-gray-400" : "bg-blue-900"
+                                className={`mb-8 w-full rounded-xl py-4 ${loading ? "bg-gray-400" : "bg-blue-900"
                                     }`}
                                 style={{
                                     shadowColor: "#000",
                                     shadowOffset: { width: 0, height: 2 },
-                                    shadowOpacity: 0.1,
+                                    shadowOpacity: 0.15,
                                     shadowRadius: 4,
-                                    elevation: 3,
+                                    elevation: 4,
                                 }}
                             >
                                 {loading ? (
@@ -152,10 +167,10 @@ export default function LoginScreen() {
                             </View>
 
                             {/* Social Login Buttons */}
-                            <View className="mb-6 flex-row justify-center">
+                            <View className="mb-8 flex-row justify-center gap-3">
                                 {/* Google */}
                                 <Pressable
-                                    className="h-12 w-12 items-center justify-center rounded-xl bg-white border border-gray-200 mr-3"
+                                    className="h-12 w-12 items-center justify-center rounded-xl bg-white border border-gray-300"
                                     style={{
                                         shadowColor: "#000",
                                         shadowOffset: { width: 0, height: 1 },
@@ -169,7 +184,7 @@ export default function LoginScreen() {
 
                                 {/* Facebook */}
                                 <Pressable
-                                    className="h-12 w-12 items-center justify-center rounded-xl bg-blue-600 mr-3"
+                                    className="h-12 w-12 items-center justify-center rounded-xl bg-blue-600"
                                     style={{
                                         shadowColor: "#000",
                                         shadowOffset: { width: 0, height: 1 },
@@ -183,7 +198,7 @@ export default function LoginScreen() {
 
                                 {/* Twitter */}
                                 <Pressable
-                                    className="h-12 w-12 items-center justify-center rounded-xl bg-white border border-gray-200"
+                                    className="h-12 w-12 items-center justify-center rounded-xl bg-white border border-gray-300"
                                     style={{
                                         shadowColor: "#000",
                                         shadowOffset: { width: 0, height: 1 },
@@ -197,14 +212,19 @@ export default function LoginScreen() {
                             </View>
 
                             {/* Footer Sign Up */}
-                            <View className="flex-row justify-center mb-4">
-                                <Text className="text-sm text-gray-600">
+                            <View className="flex-row justify-center">
+                                <Text className="text-sm text-gray-500">
                                     Don't have an account?{" "}
-                                    <Text className="text-blue-600 font-medium">Sign up</Text>
+                                    <Text
+                                        className="text-gray-700 font-semibold"
+                                        onPress={() => router.push("/signup")}
+                                    >
+                                        Sign up
+                                    </Text>
                                 </Text>
                             </View>
-                        </>
-                    )}
+                        </View>
+                    
                 </View>
             </ScrollView>
         </View>

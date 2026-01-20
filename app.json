@@ -3,7 +3,7 @@
     "name": "dubeyoApp",
     "slug": "dubeyoApp",
     "extra": {
-      "API_BASE_URL": "http://localhost:5000",
+      "API_BASE_URL": "http://192.168.68.100:5000",
       "googleAndroidClientId": "625043254314-72ufajmtpp5p15rh4knj1kaql29n2t3n.apps.googleusercontent.com",
       "googleIosClientId": "625043254314-sashl32jjblvo1benf1t6guod2l32ch1.apps.googleusercontent.com",
       "googleWebClientId": "625043254314-0asniuveu6m5b9k91o3g53dmfao3bhp1.apps.googleusercontent.com",
@@ -58,7 +58,9 @@
           "iosUrlScheme": "com.googleusercontent.apps._some_id_here_"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-location",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
