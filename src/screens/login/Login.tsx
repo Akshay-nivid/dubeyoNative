@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Google from "expo-auth-session/providers/google";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import {
     ActivityIndicator,
@@ -7,15 +9,22 @@ import {
     ScrollView,
     Text,
     TextInput,
-    View
+    View,
 } from "react-native";
 import Toast from "react-native-toast-message";
 
 import Logo from "@/assets/images/logo.svg";
+import {
+    googleAndroidClientId,
+    googleIosClientId,
+    googleWebClientId,
+} from "@/src/constants/env";
 import { post } from "@/src/services/api";
 import { setToken } from "@/src/services/storage/tokenStorage";
 import { Image } from "expo-image";
 import { Api } from "./api";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -23,6 +32,14 @@ export default function LoginScreen() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
+
+    const [googleRequest, , promptGoogleLogin] = Google.useAuthRequest({
+        androidClientId: googleAndroidClientId,
+        iosClientId: googleIosClientId,
+        webClientId: googleWebClientId,
+        
+    });
 
     const handleEmailLogin = async () => {
         if (!email || !password) {
@@ -63,6 +80,43 @@ export default function LoginScreen() {
         }
     };
 
+    const handleGoogleLogin = async () => {
+        if (!googleRequest) {
+            Toast.show({
+                type: "error",
+                text1: "Google Sign-In not ready",
+                text2: "Please try again in a moment",
+            });
+            return;
+        }
+
+        try {
+            setGoogleLoading(true);
+            const result = await promptGoogleLogin();
+
+            if (result?.type === "success") {
+                Toast.show({
+                    type: "success",
+                    text1: "Logged in with Google",
+                });
+                router.replace("/home");
+            } else if (result?.type !== "dismiss") {
+                Toast.show({
+                    type: "error",
+                    text1: "Google Sign-In cancelled",
+                });
+            }
+        } catch {
+            Toast.show({
+                type: "error",
+                text1: "Google Sign-In failed",
+                text2: "Please try again",
+            });
+        } finally {
+            setGoogleLoading(false);
+        }
+    };
+
     const handleGuestLogin = () => {
         router.replace("/home");
     };
@@ -75,7 +129,6 @@ export default function LoginScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 <View className="flex-1 items-center justify-center px-6 py-8">
-                    {/* Logo */}
                     <View className="items-center mb-8">
                         <Image
                             source={Logo}
@@ -86,16 +139,10 @@ export default function LoginScreen() {
                             transition={200}
                         />
                     </View>
-
-                    {/* Title */}
                     <Text className="mb-8 text-center text-xl font-semibold text-gray-800">
                         Login to your Account
                     </Text>
-
-                    {/* Email Login */}
-
-                        <View className="w-full max-w-md">
-                            {/* Email */}
+                    <View className="w-full max-w-md">
                             <View className="mb-4 w-full">
                                 <TextInput
                                     placeholder="Email"
@@ -109,8 +156,6 @@ export default function LoginScreen() {
                                     style={{ outline: "none" }}
                                 />
                             </View>
-
-                            {/* Password */}
                             <View className="mb-6 w-full">
                                 <View className="w-full rounded-xl bg-white border border-gray-300 px-4 py-3.5 flex-row items-center">
                                     <TextInput
@@ -135,8 +180,6 @@ export default function LoginScreen() {
                                     </Pressable>
                                 </View>
                             </View>
-
-                            {/* Submit Button */}
                             <Pressable
                                 onPress={handleEmailLogin}
                                 disabled={loading}
@@ -158,18 +201,15 @@ export default function LoginScreen() {
                                     </Text>
                                 )}
                             </Pressable>
-
-                            {/* Divider */}
                             <View className="mb-6">
                                 <Text className="text-center text-sm text-gray-400">
                                     — Or sign in with —
                                 </Text>
                             </View>
-
-                            {/* Social Login Buttons */}
                             <View className="mb-8 flex-row justify-center gap-3">
-                                {/* Google */}
                                 <Pressable
+                                    onPress={handleGoogleLogin}
+                                    disabled={googleLoading || !googleRequest}
                                     className="h-12 w-12 items-center justify-center rounded-xl bg-white border border-gray-300"
                                     style={{
                                         shadowColor: "#000",
@@ -179,10 +219,12 @@ export default function LoginScreen() {
                                         elevation: 2,
                                     }}
                                 >
-                                    <Text className="text-xl font-bold text-gray-700">G</Text>
+                                    {googleLoading ? (
+                                        <ActivityIndicator size="small" color="#4B5563" />
+                                    ) : (
+                                        <Text className="text-xl font-bold text-gray-700">G</Text>
+                                    )}
                                 </Pressable>
-
-                                {/* Facebook */}
                                 <Pressable
                                     className="h-12 w-12 items-center justify-center rounded-xl bg-blue-600"
                                     style={{
@@ -195,8 +237,6 @@ export default function LoginScreen() {
                                 >
                                     <Text className="text-base font-bold text-white">f</Text>
                                 </Pressable>
-
-                                {/* Twitter */}
                                 <Pressable
                                     className="h-12 w-12 items-center justify-center rounded-xl bg-white border border-gray-300"
                                     style={{
@@ -210,8 +250,6 @@ export default function LoginScreen() {
                                     <Text className="text-base font-bold text-blue-400">𝕏</Text>
                                 </Pressable>
                             </View>
-
-                            {/* Footer Sign Up */}
                             <View className="flex-row justify-center">
                                 <Text className="text-sm text-gray-500">
                                     Don't have an account?{" "}
