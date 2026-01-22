@@ -1,10 +1,14 @@
+import Home from '@/src/screens/home/Home'
 import React from 'react'
 import { Text, View } from 'react-native'
 
 const about = () => {
   return (
-    <View className="flex-1 items-center justify-center bg-white px-6"><Text className='text-cyan-800'>Welcome Home!</Text></View>
-  )
+    < View className = "flex-1">
+        <Home/>
+    </View> 
+    
+     )
 }
 
 export default about

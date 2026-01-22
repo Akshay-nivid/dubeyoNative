@@ -60,7 +60,7 @@ export default function LoginScreen() {
             });
 
             if (res.status === 200 && res.data) {
-                await setToken(res.data.token);
+                await setToken(res.token);
                 router.replace("/home");
             } else {
                 Toast.show({

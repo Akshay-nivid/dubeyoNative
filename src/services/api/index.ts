@@ -21,6 +21,7 @@ async function request(method: string, url: string, options: any = {}) {
     return {
       data: null,
       status: error.status ?? 400,
+      token:null,
       message: error.message,
     };
   }
