@@ -1,7 +1,7 @@
-import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { post } from "@/src/services/api";
+import { colors } from "@/theme";
 import { Api } from "./Api";
 
 interface ClassifiedShowCardProps {
@@ -18,7 +18,6 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({ open, onClose, 
         divisionId: "",
     });
     const [loading, setLoading] = useState(false);
-    const router = useRouter();
 
     useEffect(() => {
         if (category?.id && open) {
@@ -73,30 +72,34 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({ open, onClose, 
             <View className="flex-1 bg-black/60 justify-end">
                 <TouchableOpacity className="flex-1" onPress={onClose} activeOpacity={1} />
 
-                <View className="bg-white rounded-t-[30px] h-[70%] w-full overflow-hidden">
-                    <View className="p-6 border-b border-gray-100 flex-row justify-between items-center bg-gray-50">
-                        <Text className="text-xl font-bold text-gray-800">{category?.name || "Category"}</Text>
-                        <TouchableOpacity onPress={onClose} className="bg-gray-200 rounded-full p-2">
-                            <Text className="text-gray-600 font-bold px-2">X</Text>
+                <View className="rounded-t-[30px] h-[70%] w-full overflow-hidden" style={{ backgroundColor: colors.bg_white }}>
+                    <View className="p-6 border-b flex-row justify-between items-center" style={{ borderColor: colors.border_primary, backgroundColor: colors.bg_secondary }}>
+                        <Text className="text-xl font-bold" style={{ color: colors.text_primary }}>{category?.name || "Category"}</Text>
+                        <TouchableOpacity onPress={onClose} className="rounded-full p-2" style={{ backgroundColor: colors.bg_secondary }}>
+                            <Text className="font-bold px-2" style={{ color: colors.text_secondary }}>X</Text>
                         </TouchableOpacity>
                     </View>
 
                     {loading ? (
                         <View className="flex-1 justify-center items-center">
-                            <ActivityIndicator size="large" color="#0891b2" />
+                            <ActivityIndicator size="large" color={colors.primary} />
                         </View>
                     ) : subcategories.length > 0 ? (
                         <View className="flex-1 flex-row">
                             {/* Sidebar for Subcategories */}
-                            <View className="w-[35%] bg-gray-50 h-full border-r border-gray-100">
+                            <View className="w-[35%] h-full border-r" style={{ backgroundColor: colors.bg_secondary, borderColor: colors.border_primary }}>
                                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 10 }}>
                                     {subcategories.map(sub => (
                                         <TouchableOpacity
                                             key={sub.id}
                                             onPress={() => handleChangeSubCategory(sub)}
-                                            className={`p-4 border-l-4 ${selectedSubcategory?.id === sub.id ? 'border-cyan-600 bg-white' : 'border-transparent'}`}
+                                            className="p-4 border-l-4"
+                                            style={{
+                                                borderLeftColor: selectedSubcategory?.id === sub.id ? colors.primary : 'transparent',
+                                                backgroundColor: selectedSubcategory?.id === sub.id ? colors.bg_white : 'transparent'
+                                            }}
                                         >
-                                            <Text className={`text-sm ${selectedSubcategory?.id === sub.id ? 'font-bold text-cyan-700' : 'text-gray-500'}`}>
+                                            <Text className={`text-sm ${selectedSubcategory?.id === sub.id ? 'font-bold' : ''}`} style={{ color: selectedSubcategory?.id === sub.id ? colors.primary : colors.text_secondary }}>
                                                 {sub.name}
                                             </Text>
                                         </TouchableOpacity>
@@ -105,21 +108,25 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({ open, onClose, 
                             </View>
 
                             {/* Main Content for Divisions */}
-                            <View className="flex-1 p-5 bg-white">
-                                <Text className="text-base font-semibold text-gray-800 mb-4">Select Type</Text>
+                            <View className="flex-1 p-5" style={{ backgroundColor: colors.bg_white }}>
+                                <Text className="text-base font-semibold mb-4" style={{ color: colors.text_primary }}>Select Type</Text>
                                 <View className="flex-row flex-wrap gap-3">
                                     {selectedSubcategory?.division_type?.length > 0 ? (
                                         selectedSubcategory.division_type.map((d: any) => (
                                             <TouchableOpacity
                                                 key={d.id}
                                                 onPress={() => handleSelectDivision(d)}
-                                                className={`px-4 py-2 rounded-full border ${data.divisionId === d.id ? 'bg-cyan-600 border-cyan-600' : 'border-gray-200 bg-white'}`}
+                                                className="px-4 py-2 rounded-full border"
+                                                style={{
+                                                    backgroundColor: data.divisionId === d.id ? colors.primary : colors.bg_white,
+                                                    borderColor: data.divisionId === d.id ? colors.primary : colors.border_primary
+                                                }}
                                             >
-                                                <Text className={`${data.divisionId === d.id ? 'text-white' : 'text-gray-600'} text-xs font-medium`}>{d.name}</Text>
+                                                <Text className="text-xs font-medium" style={{ color: data.divisionId === d.id ? colors.text_light : colors.text_secondary }}>{d.name}</Text>
                                             </TouchableOpacity>
                                         ))
                                     ) : (
-                                        <Text className="text-gray-400 italic">No types available</Text>
+                                        <Text className="italic" style={{ color: colors.text_tertiary }}>No types available</Text>
                                     )}
                                 </View>
                             </View>
@@ -130,12 +137,13 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({ open, onClose, 
                         </View>
                     )}
 
-                    <View className="p-4 border-t border-gray-100 bg-white shadow-lg">
+                    <View className="p-4 border-t shadow-lg" style={{ borderColor: colors.border_primary, backgroundColor: colors.bg_white }}>
                         <TouchableOpacity
-                            className="bg-cyan-600 items-center justify-center py-4 rounded-xl shadow-md active:bg-cyan-700"
+                            className="items-center justify-center py-4 rounded-xl shadow-md"
+                            style={{ backgroundColor: colors.primary }}
                             onPress={handleViewItems}
                         >
-                            <Text className="text-white font-bold text-base tracking-wide">VIEW ITEMS</Text>
+                            <Text className="font-bold text-base tracking-wide" style={{ color: colors.text_light }}>VIEW ITEMS</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

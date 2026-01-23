@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { colors } from "@/theme";
 
 interface Option {
   value: string;
@@ -41,20 +42,18 @@ export default function Dropdown({
     <View className="mb-5">
       <Pressable
         onPress={() => setIsOpen(true)}
-        className="w-full rounded-xl bg-white border border-gray-300 px-4 py-3.5 flex-row items-center justify-between"
+        className="w-full rounded-xl px-4 py-3.5 flex-row items-center justify-between"
+        style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary, borderWidth: 1 }}
       >
         <Text
-          className={`flex-1 text-base ${
-            selectedOption && selectedOption.value !== ""
-              ? "text-gray-900"
-              : "text-gray-400"
-          }`}
+          className="flex-1 text-base"
+          style={{ color: selectedOption && selectedOption.value !== "" ? colors.text_primary : colors.text_secondary }}
         >
           {selectedOption && selectedOption.value !== ""
             ? selectedOption.label
             : labelText}
         </Text>
-        <Ionicons name="chevron-down" size={20} color="#6B7280" />
+        <Ionicons name="chevron-down" size={20} color={colors.icon_secondary} />
       </Pressable>
 
       <Modal
@@ -67,13 +66,13 @@ export default function Dropdown({
           className="flex-1 bg-black/50 justify-end"
           onPress={() => setIsOpen(false)}
         >
-          <Pressable className="bg-white rounded-t-3xl max-h-[80%]">
+          <Pressable className="rounded-t-3xl max-h-[80%]" style={{ backgroundColor: colors.bg_white }}>
             <View className="py-4 px-6">
-              <Text className="text-lg font-semibold text-gray-700">
+              <Text className="text-lg font-semibold" style={{ color: colors.text_primary }}>
                 {typeof label === "string" ? label : "Select"}
               </Text>
             </View>
-            <View className="h-px bg-gray-200 mx-6" />
+            <View className="h-px mx-6" style={{ backgroundColor: colors.border_primary }} />
             <ScrollView className="max-h-96">
               {options
                 .filter((option) => option.value !== "")
@@ -81,16 +80,12 @@ export default function Dropdown({
                   <Pressable
                     key={option.value}
                     onPress={() => handleSelect(option.value)}
-                    className={`px-6 py-4 ${
-                      value === option.value ? "bg-blue-50" : "bg-white"
-                    }`}
+                    className="px-6 py-4"
+                    style={{ backgroundColor: value === option.value ? colors.bg_secondary : colors.bg_white }}
                   >
                     <Text
-                      className={`text-base ${
-                        value === option.value
-                          ? "text-blue-900 font-medium"
-                          : "text-gray-900"
-                      }`}
+                      className={`text-base ${value === option.value ? "font-medium" : ""}`}
+                      style={{ color: value === option.value ? colors.primary : colors.text_primary }}
                     >
                       {option.label}
                     </Text>

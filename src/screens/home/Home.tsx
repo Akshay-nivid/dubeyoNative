@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { RefreshControl, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "@/theme";
 
 import CategoryList from "./CategoryList";
 import ClassifiedShowCard from "./ClassifiedShowCard";
@@ -32,13 +33,15 @@ const HomeScreen = () => {
   const [subcategoriesOpen, setSubcategoriesOpen] = useState(false);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg_primary }}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.bg_primary} />
 
       {/* ✅ Header handles profile navigation internally */}
       <Header place={place} profile={profile} />
 
       <ScrollView
+        className="flex-1"
+        style={{ backgroundColor: colors.bg_primary }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={refresh} />

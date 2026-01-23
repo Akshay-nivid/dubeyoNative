@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import Toast from "react-native-toast-message";
+import { colors } from "@/theme";
 
 import DatePicker from "@/src/components/DatePicker";
 import Dropdown from "@/src/components/Dropdown";
@@ -282,19 +283,20 @@ export default function SignupScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{ backgroundColor: colors.bg_primary }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         className="flex-1"
+        style={{ backgroundColor: colors.bg_primary }}
         showsVerticalScrollIndicator={false}
       >
         <View className="px-6 pt-8 pb-4">
           {/* Title */}
           <View className="mb-8">
-            <Text className="mb-2 text-3xl font-bold text-gray-900">
+            <Text className="mb-2 text-3xl font-bold" style={{ color: colors.text_primary }}>
               Create Account
             </Text>
-            <Text className="text-base text-gray-600">
+            <Text className="text-base" style={{ color: colors.text_secondary }}>
               Fill in your details to get started
             </Text>
           </View>
@@ -304,24 +306,36 @@ export default function SignupScreen() {
             <View className="flex-1">
               <TextInput
                 placeholder="First Name *"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text_secondary}
                 value={data.firstName || ""}
                 onChangeText={(text) => handleChange("firstName", text)}
                 editable={!loading}
-                className="rounded-xl bg-white border border-gray-300 px-4 py-3.5 text-base text-gray-900"
-                style={{ outline: "none" }}
+                className="rounded-xl px-4 py-3.5 text-base"
+                style={{ 
+                  outline: "none",
+                  backgroundColor: colors.bg_white,
+                  borderColor: colors.border_primary,
+                  borderWidth: 1,
+                  color: colors.text_primary
+                }}
               />
             </View>
 
             <View className="flex-1">
               <TextInput
                 placeholder="Last Name"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text_secondary}
                 value={data.lastName || ""}
                 onChangeText={(text) => handleChange("lastName", text)}
                 editable={!loading}
-                className="rounded-xl bg-white border border-gray-300 px-4 py-3.5 text-base text-gray-900"
-                style={{ outline: "none" }}
+                className="rounded-xl px-4 py-3.5 text-base"
+                style={{ 
+                  outline: "none",
+                  backgroundColor: colors.bg_white,
+                  borderColor: colors.border_primary,
+                  borderWidth: 1,
+                  color: colors.text_primary
+                }}
               />
             </View>
           </View>
@@ -331,25 +345,31 @@ export default function SignupScreen() {
             <View className="flex-row gap-2 items-center">
               <TextInput
                 placeholder="Email *"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text_secondary}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={data.email || ""}
                 onChangeText={(text) => handleChange("email", text)}
                 editable={!loading && !otpSent}
-                className="flex-1 rounded-xl bg-white border border-gray-300 px-4 py-3.5 text-base text-gray-900"
-                style={{ outline: "none" }}
+                className="flex-1 rounded-xl px-4 py-3.5 text-base"
+                style={{ 
+                  outline: "none",
+                  backgroundColor: colors.bg_white,
+                  borderColor: colors.border_primary,
+                  borderWidth: 1,
+                  color: colors.text_primary
+                }}
               />
               {!otpSent && data.email && (
                 <Pressable
                   onPress={handleSendOTP}
                   disabled={sendingOTP}
-                  className={`rounded-xl ${sendingOTP ? "bg-gray-400" : "bg-blue-600"
-                    } justify-center items-center`}
+                  className="rounded-xl justify-center items-center"
                   style={{
                     paddingHorizontal: 16,
                     paddingVertical: 14,
                     minHeight: 50,
+                    backgroundColor: sendingOTP ? colors.bg_gray_400 : colors.primary,
                     shadowColor: "#000",
                     shadowOffset: { width: 0, height: 1 },
                     shadowOpacity: 0.1,
@@ -358,9 +378,9 @@ export default function SignupScreen() {
                   }}
                 >
                   {sendingOTP ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={colors.text_light} size="small" />
                   ) : (
-                    <Text className="text-white text-sm font-semibold">
+                    <Text className="text-sm font-semibold" style={{ color: colors.text_light }}>
                       Send OTP
                     </Text>
                   )}
@@ -375,21 +395,27 @@ export default function SignupScreen() {
               <View className="flex-row gap-2">
                 <TextInput
                   placeholder="Email OTP *"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.text_secondary}
                   keyboardType="number-pad"
                   maxLength={6}
                   value={data.email_otp || ""}
                   onChangeText={(text) => handleChange("email_otp", text)}
                   editable={!loading}
-                  className="flex-1 rounded-xl bg-white border border-gray-300 px-4 py-3.5 text-base text-gray-900"
-                  style={{ outline: "none" }}
+                  className="flex-1 rounded-xl px-4 py-3.5 text-base"
+                  style={{ 
+                    outline: "none",
+                    backgroundColor: colors.bg_white,
+                    borderColor: colors.border_primary,
+                    borderWidth: 1,
+                    color: colors.text_primary
+                  }}
                 />
                 <Pressable
                   onPress={handleVerifyOTP}
                   disabled={verifyingOTP}
-                  className={`px-5 py-3.5 rounded-xl ${verifyingOTP ? "bg-gray-400" : "bg-success_btn"
-                    } justify-center items-center min-w-[100px]`}
+                  className="px-5 py-3.5 rounded-xl justify-center items-center min-w-[100px]"
                   style={{
+                    backgroundColor: verifyingOTP ? colors.bg_gray_400 : colors.success_btn,
                     shadowColor: "#000",
                     shadowOffset: { width: 0, height: 1 },
                     shadowOpacity: 0.1,
@@ -398,9 +424,9 @@ export default function SignupScreen() {
                   }}
                 >
                   {verifyingOTP ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={colors.text_light} size="small" />
                   ) : (
-                    <Text className="text-white text-sm font-semibold">
+                    <Text className="text-sm font-semibold" style={{ color: colors.text_light }}>
                       Verify
                     </Text>
                   )}
@@ -424,13 +450,19 @@ export default function SignupScreen() {
           <View className="w-full mb-5">
             <TextInput
               placeholder="Phone *"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text_secondary}
               keyboardType="phone-pad"
               value={data.phone || ""}
               onChangeText={(text) => handleChange("phone", text)}
               editable={!loading}
-              className="rounded-xl bg-white border border-gray-300 px-4 py-3.5 text-base text-gray-900"
-              style={{ outline: "none" }}
+              className="rounded-xl px-4 py-3.5 text-base"
+              style={{ 
+                outline: "none",
+                backgroundColor: colors.bg_white,
+                borderColor: colors.border_primary,
+                borderWidth: 1,
+                color: colors.text_primary
+              }}
             />
           </View>
 
@@ -463,15 +495,21 @@ export default function SignupScreen() {
           <View className="w-full mb-5">
             <TextInput
               placeholder="Address *"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text_secondary}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
               value={data.address || ""}
               onChangeText={(text) => handleChange("address", text)}
               editable={!loading}
-              className="rounded-xl bg-white border border-gray-300 px-4 py-3.5 text-base text-gray-900 min-h-[100px]"
-              style={{ outline: "none" }}
+              className="rounded-xl px-4 py-3.5 text-base min-h-[100px]"
+              style={{ 
+                outline: "none",
+                backgroundColor: colors.bg_white,
+                borderColor: colors.border_primary,
+                borderWidth: 1,
+                color: colors.text_primary
+              }}
             />
           </View>
 
@@ -501,13 +539,14 @@ export default function SignupScreen() {
               className="mr-3 mt-1"
             >
               <View
-                className={`h-5 w-5 rounded border-2 items-center justify-center ${acceptedTerms
-                  ? "bg-blue-900 border-blue-900"
-                  : "border-gray-300 bg-white"
-                  }`}
+                className="h-5 w-5 rounded border-2 items-center justify-center"
+                style={{
+                  backgroundColor: acceptedTerms ? colors.primary : colors.bg_white,
+                  borderColor: acceptedTerms ? colors.primary : colors.border_primary
+                }}
               >
                 {acceptedTerms && (
-                  <Text className="text-white text-xs font-bold">✓</Text>
+                  <Text className="text-xs font-bold" style={{ color: colors.text_light }}>✓</Text>
                 )}
               </View>
             </Pressable>
@@ -515,11 +554,11 @@ export default function SignupScreen() {
               onPress={() => setAcceptedTerms(!acceptedTerms)}
               className="flex-1"
             >
-              <Text className="text-xs leading-5 text-gray-600">
-                By signing up, you agree to Dubeyo's{" "}
-                <Text className="text-blue-600 underline">Terms of Service</Text>{" "}
+              <Text className="text-xs leading-5" style={{ color: colors.text_secondary }}>
+                By signing up, you agree to Dubeyo&apos;s{" "}
+                <Text className="underline" style={{ color: colors.primary }}>Terms of Service</Text>{" "}
                 and{" "}
-                <Text className="text-blue-600 underline">Privacy Policy</Text>
+                <Text className="underline" style={{ color: colors.primary }}>Privacy Policy</Text>
               </Text>
             </Pressable>
           </View>
@@ -538,19 +577,17 @@ export default function SignupScreen() {
               !data.address ||
               !data.country
             }
-            className={`mb-6 w-full rounded-xl py-4 ${loading ||
-              !acceptedTerms ||
-              !data.firstName ||
-              !data.email ||
-              !otpVerified ||
-              !data.password ||
-              !data.phone ||
-              !data.address ||
-              !data.country
-              ? "bg-gray-400"
-              : "bg-primary_btn"
-              }`}
+            className="mb-6 w-full rounded-xl py-4"
             style={{
+              backgroundColor: (loading ||
+                !acceptedTerms ||
+                !data.firstName ||
+                !data.email ||
+                !otpVerified ||
+                !data.password ||
+                !data.phone ||
+                !data.address ||
+                !data.country) ? colors.bg_gray_400 : colors.primary,
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.15,
@@ -559,9 +596,9 @@ export default function SignupScreen() {
             }}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.text_light} />
             ) : (
-              <Text className="text-center text-base font-semibold text-white">
+              <Text className="text-center text-base font-semibold" style={{ color: colors.text_light }}>
                 Register
               </Text>
             )}
@@ -569,10 +606,11 @@ export default function SignupScreen() {
 
           {/* Footer Sign In */}
           <View className="flex-row justify-center pb-4">
-            <Text className="text-sm text-gray-600">
+            <Text className="text-sm" style={{ color: colors.text_secondary }}>
               Already have an account?{" "}
               <Text
-                className="text-blue-600 font-semibold"
+                className="font-semibold"
+                style={{ color: colors.primary }}
                 onPress={() => router.push("/")}
               >
                 Sign In

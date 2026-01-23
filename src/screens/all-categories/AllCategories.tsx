@@ -5,6 +5,7 @@ import { ActivityIndicator, ScrollView, StatusBar, Text, TouchableOpacity, View 
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { get } from "@/src/services/api";
+import { colors } from "@/theme";
 import { Api, categoryIcons } from "../home/Api";
 import ClassifiedShowCard from "../home/ClassifiedShowCard";
 
@@ -76,29 +77,30 @@ const AllCategories = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-            <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg_primary }} edges={['top']}>
+            <StatusBar barStyle="dark-content" backgroundColor={colors.bg_primary} />
 
             {/* Header */}
-            <View className="px-4 py-3 flex-row items-center justify-between bg-white border-b border-gray-100">
+            <View className="px-4 py-3 flex-row items-center justify-between border-b" style={{ backgroundColor: colors.bg_primary, borderColor: colors.border_primary }}>
                 <TouchableOpacity
                     onPress={() => router.back()}
                     className="w-10 h-10 items-center justify-center"
                 >
-                    <Ionicons name="arrow-back" size={24} color="#000" />
+                    <Ionicons name="arrow-back" size={24} color={colors.icon_primary} />
                 </TouchableOpacity>
-                <Text className="text-lg font-bold text-gray-900">All Categories</Text>
+                <Text className="text-lg font-bold" style={{ color: colors.text_primary }}>All Categories</Text>
                 <View className="w-10" />
             </View>
 
             {loading ? (
                 <View className="flex-1 justify-center items-center">
-                    <ActivityIndicator size="large" color="#0891b2" />
-                    <Text className="text-gray-500 mt-4">Loading categories...</Text>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text className="mt-4" style={{ color: colors.text_secondary }}>Loading categories...</Text>
                 </View>
             ) : (
                 <ScrollView
-                    className="flex-1 bg-white"
+                    className="flex-1"
+                    style={{ backgroundColor: colors.bg_primary }}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ padding: 16 }}
                 >
@@ -112,14 +114,14 @@ const AllCategories = () => {
                                     style={{ width: '23%' }}
                                     onPress={() => handleCategoryClick(c)}
                                 >
-                                    <View className="w-16 h-16 bg-white rounded-2xl items-center justify-center mb-2 shadow-sm border border-gray-100">
+                                    <View className="w-16 h-16 rounded-2xl items-center justify-center mb-2 shadow-sm border" style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary }}>
                                         {IconComponent ? (
-                                            <IconComponent size={28} color="#1f2937" />
+                                            <IconComponent size={28} color={colors.icon_primary} />
                                         ) : (
                                             <Text className="text-2xl">📦</Text>
                                         )}
                                     </View>
-                                    <Text className="text-xs text-center text-gray-700 font-medium leading-4" numberOfLines={2}>
+                                    <Text className="text-xs text-center font-medium leading-4" style={{ color: colors.text_primary }} numberOfLines={2}>
                                         {c.name}
                                     </Text>
                                 </TouchableOpacity>

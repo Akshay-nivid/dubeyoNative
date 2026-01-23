@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { colors } from "@/theme";
 
 interface ProductSectionProps {
   title: string;
@@ -21,10 +22,10 @@ const ProductSection: React.FC<ProductSectionProps> = ({
   return (
     <View className="mb-6">
       <View className="flex-row justify-between items-center px-4 mb-3">
-        <Text className="text-lg font-bold text-gray-900">{title}</Text>
+        <Text className="text-lg font-bold" style={{ color: colors.text_primary }}>{title}</Text>
         <TouchableOpacity>
-          <Text className="text-gray-500 font-medium text-sm flex-row items-center">
-            See all <Ionicons name="arrow-forward" size={14} />
+          <Text className="font-medium text-sm flex-row items-center" style={{ color: colors.text_secondary }}>
+            See all <Ionicons name="arrow-forward" size={14} color={colors.text_secondary} />
           </Text>
         </TouchableOpacity>
       </View>
@@ -60,13 +61,15 @@ const ProductSection: React.FC<ProductSectionProps> = ({
               />
               <View className="pt-2">
                 <Text
-                  className="text-sm font-bold text-gray-900 mb-0.5"
+                  className="text-sm font-bold mb-0.5"
+                  style={{ color: colors.text_primary }}
                   numberOfLines={1}
                 >
                   {productPrice ? `AED ${productPrice}` : "Price on request"}
                 </Text>
                 <Text
-                  className="text-xs text-gray-500 font-medium mb-1"
+                  className="text-xs font-medium mb-1"
+                  style={{ color: colors.text_secondary }}
                   numberOfLines={1}
                 >
                   {productTitle}
@@ -74,7 +77,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
               </View>
               {/* Heart Icon Overlay */}
               <TouchableOpacity className="absolute top-2 right-2 bg-white/70 p-1.5 rounded-full">
-                <Ionicons name="heart-outline" size={16} color="#000" />
+                <Ionicons name="heart-outline" size={16} color={colors.icon_primary} />
               </TouchableOpacity>
             </TouchableOpacity>
           );

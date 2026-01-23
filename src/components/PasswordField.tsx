@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable } from "react-native";
+import { View, TextInput, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "@/theme";
 
 interface Props {
   id?: string;
@@ -24,24 +25,20 @@ export default function PasswordField({
   editable = true,
 }: Props) {
   const [showPassword, setShowPassword] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-  const hasValue = value && value.length > 0;
 
   return (
     <View className="mb-5">
-      <View className="w-full rounded-xl bg-white border border-gray-300 px-4 py-3.5 flex-row items-center">
+      <View className="w-full rounded-xl px-4 py-3.5 flex-row items-center" style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary, borderWidth: 1 }}>
         <TextInput
           id={id}
           placeholder={label}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.text_secondary}
           secureTextEntry={!showPassword}
           value={value}
           onChangeText={(text) => onChange(name, text)}
           editable={editable}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          className="flex-1 text-base text-gray-900"
-          style={{ outline: "none" }}
+          className="flex-1 text-base"
+          style={{ outline: "none", color: colors.text_primary }}
         />
         <Pressable
           onPress={() => setShowPassword(!showPassword)}
@@ -50,7 +47,7 @@ export default function PasswordField({
           <Ionicons
             name={showPassword ? "eye-off-outline" : "eye-outline"}
             size={20}
-            color="#6B7280"
+            color={colors.icon_secondary}
           />
         </Pressable>
       </View>

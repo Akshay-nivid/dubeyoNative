@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEffect, useState } from "react";
 import { Modal, Platform, Pressable, Text, View } from "react-native";
+import { colors } from "@/theme";
 
 interface Props {
   label: string | React.ReactNode;
@@ -81,16 +82,16 @@ export default function DatePicker({
     <View className="mb-5">
       <Pressable
         onPress={() => setShowPicker(true)}
-        className="w-full rounded-xl bg-white border border-gray-300 px-4 py-3.5 flex-row items-center justify-between"
+        className="w-full rounded-xl px-4 py-3.5 flex-row items-center justify-between"
+        style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary, borderWidth: 1 }}
       >
         <Text
-          className={`flex-1 text-base ${
-            value ? "text-gray-900" : "text-gray-400"
-          }`}
+          className="flex-1 text-base"
+          style={{ color: value ? colors.text_primary : colors.text_secondary }}
         >
           {value ? formatDisplayDate(value) : labelText}
         </Text>
-        <Ionicons name="calendar-outline" size={20} color="#6B7280" />
+        <Ionicons name="calendar-outline" size={20} color={colors.icon_secondary} />
       </Pressable>
 
       {showPicker && Platform.OS === "android" && (
@@ -114,16 +115,16 @@ export default function DatePicker({
             className="flex-1 bg-black/50 justify-end"
             onPress={() => setShowPicker(false)}
           >
-            <Pressable className="bg-white rounded-t-3xl">
-              <View className="py-4 px-6 border-b border-gray-200 flex-row justify-between items-center">
+            <Pressable className="rounded-t-3xl" style={{ backgroundColor: colors.bg_white }}>
+              <View className="py-4 px-6 border-b flex-row justify-between items-center" style={{ borderColor: colors.border_primary }}>
                 <Pressable onPress={() => setShowPicker(false)}>
-                  <Text className="text-blue-600 text-base">Cancel</Text>
+                  <Text className="text-base" style={{ color: colors.primary }}>Cancel</Text>
                 </Pressable>
-                <Text className="text-lg font-semibold text-gray-900">
+                <Text className="text-lg font-semibold" style={{ color: colors.text_primary }}>
                   Select Date
                 </Text>
                 <Pressable onPress={handleConfirm}>
-                  <Text className="text-blue-600 text-base font-semibold">
+                  <Text className="text-base font-semibold" style={{ color: colors.primary }}>
                     Done
                   </Text>
                 </Pressable>

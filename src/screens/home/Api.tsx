@@ -75,8 +75,6 @@ export const categoryIcons: Record<string, (props: IconProps) => React.JSX.Eleme
     "Mobiles Tablets": ({ size, color }) => <Ionicons name="phone-portrait-outline" size={size} color={color} />,
     "Furniture Garden": ({ size, color }) => <Ionicons name="leaf-outline" size={size} color={color} />,
     "Job": ({ size, color }) => <Ionicons name="briefcase-outline" size={size} color={color} />,
-
-    "Job": ({ size, color }) => <Ionicons name="briefcase-outline" size={size} color={color} />,
     "Services": ({ size, color }) => <Ionicons name="construct-outline" size={size} color={color} />,
     "Classifieds": ({ size, color }) => <Ionicons name="time-outline" size={size} color={color} />,
     "Professional For Hire": ({ size, color }) => <Ionicons name="people-outline" size={size} color={color} />,

@@ -12,6 +12,7 @@ import {
     View,
 } from "react-native";
 import Toast from "react-native-toast-message";
+import { colors } from "@/theme";
 
 import Logo from "@/assets/images/logo.svg";
 import {
@@ -122,10 +123,11 @@ export default function LoginScreen() {
     };
 
     return (
-        <View className="flex-1 bg-white">
+        <View className="flex-1" style={{ backgroundColor: colors.bg_primary }}>
             <ScrollView
                 contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
                 className="flex-1"
+                style={{ backgroundColor: colors.bg_primary }}
                 showsVerticalScrollIndicator={false}
             >
                 <View className="flex-1 items-center justify-center px-6 py-8">
@@ -139,34 +141,40 @@ export default function LoginScreen() {
                             transition={200}
                         />
                     </View>
-                    <Text className="mb-8 text-center text-xl font-semibold text-gray-800">
+                    <Text className="mb-8 text-center text-xl font-semibold" style={{ color: colors.text_primary }}>
                         Login to your Account
                     </Text>
                     <View className="w-full max-w-md">
                             <View className="mb-4 w-full">
                                 <TextInput
                                     placeholder="Email"
-                                    placeholderTextColor="#9CA3AF"
+                                    placeholderTextColor={colors.text_secondary}
                                     autoCapitalize="none"
                                     keyboardType="email-address"
                                     value={email}
                                     onChangeText={setEmail}
                                     editable={!loading}
-                                    className="w-full rounded-xl bg-white border border-gray-300 px-4 py-3.5 text-base text-gray-900"
-                                    style={{ outline: "none" }}
+                                    className="w-full rounded-xl px-4 py-3.5 text-base"
+                                    style={{ 
+                                        outline: "none",
+                                        backgroundColor: colors.bg_white,
+                                        borderColor: colors.border_primary,
+                                        borderWidth: 1,
+                                        color: colors.text_primary
+                                    }}
                                 />
                             </View>
                             <View className="mb-6 w-full">
-                                <View className="w-full rounded-xl bg-white border border-gray-300 px-4 py-3.5 flex-row items-center">
+                                <View className="w-full rounded-xl px-4 py-3.5 flex-row items-center" style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary, borderWidth: 1 }}>
                                     <TextInput
                                         placeholder="Password"
-                                        placeholderTextColor="#9CA3AF"
+                                        placeholderTextColor={colors.text_secondary}
                                         secureTextEntry={!showPassword}
                                         value={password}
                                         onChangeText={setPassword}
                                         editable={!loading}
-                                        className="flex-1 text-base text-gray-900"
-                                        style={{ outline: "none" }}
+                                        className="flex-1 text-base"
+                                        style={{ outline: "none", color: colors.text_primary }}
                                     />
                                     <Pressable
                                         onPress={() => setShowPassword(!showPassword)}
@@ -175,7 +183,7 @@ export default function LoginScreen() {
                                         <Ionicons
                                             name={showPassword ? "eye-off-outline" : "eye-outline"}
                                             size={20}
-                                            color="#6B7280"
+                                            color={colors.icon_secondary}
                                         />
                                     </Pressable>
                                 </View>
@@ -183,9 +191,9 @@ export default function LoginScreen() {
                             <Pressable
                                 onPress={handleEmailLogin}
                                 disabled={loading}
-                                className={`mb-8 w-full rounded-xl py-4 ${loading ? "bg-gray-400" : "bg-primary_btn"
-                                    }`}
+                                className="mb-8 w-full rounded-xl py-4"
                                 style={{
+                                    backgroundColor: loading ? colors.bg_gray_400 : colors.primary,
                                     shadowColor: "#000",
                                     shadowOffset: { width: 0, height: 2 },
                                     shadowOpacity: 0.15,
@@ -194,15 +202,15 @@ export default function LoginScreen() {
                                 }}
                             >
                                 {loading ? (
-                                    <ActivityIndicator color="#fff" />
+                                    <ActivityIndicator color={colors.text_light} />
                                 ) : (
-                                    <Text className="text-center text-base font-semibold text-white">
+                                    <Text className="text-center text-base font-semibold" style={{ color: colors.text_light }}>
                                         Sign in
                                     </Text>
                                 )}
                             </Pressable>
                             <View className="mb-6">
-                                <Text className="text-center text-sm text-gray-400">
+                                <Text className="text-center text-sm" style={{ color: colors.text_secondary }}>
                                     — Or sign in with —
                                 </Text>
                             </View>
@@ -210,8 +218,10 @@ export default function LoginScreen() {
                                 <Pressable
                                     onPress={handleGoogleLogin}
                                     disabled={googleLoading || !googleRequest}
-                                    className="h-12 w-12 items-center justify-center rounded-xl bg-white border border-gray-300"
+                                    className="h-12 w-12 items-center justify-center rounded-xl border"
                                     style={{
+                                        backgroundColor: colors.bg_white,
+                                        borderColor: colors.border_primary,
                                         shadowColor: "#000",
                                         shadowOffset: { width: 0, height: 1 },
                                         shadowOpacity: 0.05,
@@ -220,14 +230,15 @@ export default function LoginScreen() {
                                     }}
                                 >
                                     {googleLoading ? (
-                                        <ActivityIndicator size="small" color="#4B5563" />
+                                        <ActivityIndicator size="small" color={colors.icon_primary} />
                                     ) : (
-                                        <Text className="text-xl font-bold text-gray-700">G</Text>
+                                        <Text className="text-xl font-bold" style={{ color: colors.text_primary }}>G</Text>
                                     )}
                                 </Pressable>
                                 <Pressable
-                                    className="h-12 w-12 items-center justify-center rounded-xl bg-blue-600"
+                                    className="h-12 w-12 items-center justify-center rounded-xl"
                                     style={{
+                                        backgroundColor: colors.primary,
                                         shadowColor: "#000",
                                         shadowOffset: { width: 0, height: 1 },
                                         shadowOpacity: 0.05,
@@ -235,11 +246,13 @@ export default function LoginScreen() {
                                         elevation: 2,
                                     }}
                                 >
-                                    <Text className="text-base font-bold text-white">f</Text>
+                                    <Text className="text-base font-bold" style={{ color: colors.text_light }}>f</Text>
                                 </Pressable>
                                 <Pressable
-                                    className="h-12 w-12 items-center justify-center rounded-xl bg-white border border-gray-300"
+                                    className="h-12 w-12 items-center justify-center rounded-xl border"
                                     style={{
+                                        backgroundColor: colors.bg_white,
+                                        borderColor: colors.border_primary,
                                         shadowColor: "#000",
                                         shadowOffset: { width: 0, height: 1 },
                                         shadowOpacity: 0.05,
@@ -247,14 +260,15 @@ export default function LoginScreen() {
                                         elevation: 2,
                                     }}
                                 >
-                                    <Text className="text-base font-bold text-blue-400">𝕏</Text>
+                                    <Text className="text-base font-bold" style={{ color: colors.primary }}>𝕏</Text>
                                 </Pressable>
                             </View>
                             <View className="flex-row justify-center">
-                                <Text className="text-sm text-gray-500">
-                                    Don't have an account?{" "}
+                                <Text className="text-sm" style={{ color: colors.text_secondary }}>
+                                    Don&apos;t have an account?{" "}
                                     <Text
-                                        className="text-gray-700 font-semibold"
+                                        className="font-semibold"
+                                        style={{ color: colors.text_primary }}
                                         onPress={() => router.push("/signup")}
                                     >
                                         Sign up

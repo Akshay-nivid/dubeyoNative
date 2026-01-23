@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { colors } from "@/theme";
 import { categoryIcons } from "./Api";
 
 interface Category {
@@ -36,15 +37,15 @@ const CategoryList: React.FC<CategoryListProps> = ({
               className="w-[23%] mb-4"
               onPress={() => onSelect(c)}
             >
-              <View className="w-full aspect-square bg-gray-100 rounded-3xl items-center justify-center p-1">
+              <View className="w-full aspect-square rounded-3xl items-center justify-center p-1" style={{ backgroundColor: colors.bg_secondary }}>
                 {isOthers ? (
-                  <Ionicons name="grid-outline" size={24} color="#1f2937" />
+                  <Ionicons name="grid-outline" size={24} color={colors.icon_primary} />
                 ) : (
                   IconComponent && (
-                    <IconComponent size={24} color="#1f2937" />
+                    <IconComponent size={24} color={colors.icon_primary} />
                   )
                 )}
-                <Text className="text-[10px] text-center text-gray-900 font-bold mt-1.5 leading-3" numberOfLines={2}>
+                <Text className="text-[10px] text-center font-bold mt-1.5 leading-3" style={{ color: colors.text_primary }} numberOfLines={2}>
                   {c.name}
                 </Text>
               </View>
