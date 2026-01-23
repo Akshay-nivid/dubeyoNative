@@ -1,9 +1,8 @@
-import axios from "axios";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { Api } from "../Api";
 import { post } from "@/src/services/api";
+import { Api } from "./Api";
 
 interface ClassifiedShowCardProps {
     open: boolean;
@@ -27,20 +26,17 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({ open, onClose, 
         }
     }, [category?.id, open]);
 
-    // Axios instance matching Home.tsx
-
     const fetchSubcategories = async (categoryId: any) => {
         try {
             setLoading(true);
             const res = await post(Api.SubcategoriesByCategory, { categoryId });
             if (res?.status === 200) {
-                const list = res.data.data || [];
+                const list = res.data?.data || res.data || [];
                 setSubcategories(list);
                 if (list.length > 0) {
                     setSelectedSubcategory(list[0]);
                     setData((d) => ({ ...d, subcategoryId: list[0]?.id ?? "" }));
                 } else {
-                    // Reset if no subcategories
                     setSelectedSubcategory(null);
                 }
             }
@@ -63,15 +59,13 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({ open, onClose, 
         setData((prev) => ({
             ...prev,
             subcategoryId: sub?.id,
-            divisionId: "", // reset division
+            divisionId: "",
         }));
     };
 
     const handleViewItems = () => {
         onClose();
-        // navigate logic
         console.log("View items", data);
-        // router.push(...)
     };
 
     return (
