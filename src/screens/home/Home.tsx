@@ -14,6 +14,7 @@ import { useHomeData } from "./useHomeData";
 
 const HomeScreen = () => {
   const router = useRouter();
+
   const {
     loading,
     place,
@@ -34,6 +35,7 @@ const HomeScreen = () => {
     <SafeAreaView className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" />
 
+      {/* ✅ Header handles profile navigation internally */}
       <Header place={place} profile={profile} />
 
       <ScrollView
