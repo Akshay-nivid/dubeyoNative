@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
     Image,
+    ImageBackground,
     RefreshControl,
     ScrollView,
     Text,
@@ -76,26 +77,34 @@ export default function ProfileScreen() {
             >
                 {/* Header Section */}
                 <View className="bg-white pb-6 relative">
-                    {/* Cover Image / Top Background - Using a placeholder pattern or gray if no cover */}
-                    <View className="h-40 bg-gray-200 w-full overflow-hidden">
-                        {/* Using a static placeholder for cover as per design reference feeling */}
-                        <Image
-                            source={{ uri: "https://c0.wallpaperflare.com/preview/200/328/948/mockup-packaging-box-product.jpg" }}
-                            className="w-full h-full opacity-50"
+                    {/* Banner Background */}
+                    <View className="w-full overflow-hidden" style={{ height: 160 }}>
+                        <ImageBackground
+                            source={require("../../../assets/images/banner.png")}
                             resizeMode="cover"
-                        />
-                        <TouchableOpacity
-                            className="absolute top-12 left-4 bg-white/80 p-2 rounded-full z-10"
-                            onPress={() => router.back()}
+                            style={{ 
+                                width: '100%', 
+                                height: '100%',
+                                justifyContent: 'flex-start',
+                                alignItems: 'flex-start'
+                            }}
                         >
-                            <Ionicons name="arrow-back" size={24} color="#000" />
-                        </TouchableOpacity>
+                            <TouchableOpacity
+                                className="absolute top-12 left-4 bg-white/80 p-2 rounded-full z-10"
+                                onPress={() => router.back()}
+                            >
+                                <Ionicons name="arrow-back" size={24} color="#000" />
+                            </TouchableOpacity>
+                        </ImageBackground>
                     </View>
 
                     {/* Profile Card Overlay */}
                     <View className="px-4 -mt-12 flex-row items-end">
                         {/* Avatar */}
-                        <View className="rounded-full p-1 bg-white shadow-sm">
+                        <View 
+                            className="rounded-full p-1 bg-white shadow-sm"
+                            style={{ borderWidth: 4, borderColor: 'white' }}
+                        >
                             <Image
                                 source={{
                                     uri: user?.profilePic || "https://randomuser.me/api/portraits/men/32.jpg",
@@ -109,10 +118,10 @@ export default function ProfileScreen() {
                         <View className="flex-1 ml-4 mb-2">
                             <View className="flex-row justify-between items-start">
                                 <View>
-                                    <Text className="text-xl font-bold text-gray-900">
+                                    <Text className="text-xxxl font-bold text-gray-900">
                                         {user?.name || user?.firstName ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.name : "User Name"}
                                     </Text>
-                                    <Text className="text-orange-500 text-sm font-medium">
+                                    <Text className="text-blue-900 text-sm font-medium">
                                         {user?.email || "user@example.com"}
                                     </Text>
                                     <Text className="text-gray-400 text-xs mt-0.5">
@@ -133,7 +142,7 @@ export default function ProfileScreen() {
                     {/* Action Pills */}
                     <View className="mt-6 px-4 flex-row space-x-3">
                         <TouchableOpacity className="flex-1 bg-white border border-gray-100 rounded-full py-2 px-1 flex-row items-center justify-center shadow-sm">
-                            <View className="w-4 h-4 rounded-full bg-orange-100 items-center justify-center mr-2">
+                            <View className="w-4 h-4 rounded-full bg-blue-00 items-center justify-center mr-2">
                                 <Ionicons name="add" size={10} color="#F97316" />
                             </View>
                             <Text className="text-gray-700 text-xs font-medium">Add Mobile Number</Text>
@@ -159,10 +168,19 @@ export default function ProfileScreen() {
                 <View className="mt-6 px-4">
                     <Text className="text-lg font-bold text-gray-900 mb-3 ml-1">Personal</Text>
                     <View className="bg-white rounded-3xl p-4 shadow-sm">
-                        <MenuItem icon="person-outline" label="Profile Setting" />
+                        <MenuItem 
+                            icon="person-outline" 
+                            label="Profile Setting" 
+                            onPress={() => router.push("/profile/edit" as any)}
+                        />
                         <MenuItem icon="settings-outline" label="Account Setting" />
                         <MenuItem icon="notifications-outline" label="Notification Setting" />
-                        <MenuItem icon="lock-closed-outline" label="Security" isLast />
+                        <MenuItem 
+                            icon="lock-closed-outline" 
+                            label="Security" 
+                            isLast 
+                            onPress={() => router.push("/profile/security" as any)}
+                        />
                     </View>
                 </View>
 
@@ -187,7 +205,7 @@ export default function ProfileScreen() {
                 {/* Logout Button */}
                 <View className="px-4 mt-8 mb-10">
                     <TouchableOpacity
-                        className="w-full bg-orange-500 py-4 rounded-2xl items-center shadow-sm active:bg-orange-600"
+                        className="w-full bg-blue-900 py-4 rounded-2xl items-center shadow-sm active:bg-blue-900"
                         onPress={handleLogout}
                     >
                         <Text className="text-white text-lg font-bold">Log out</Text>
