@@ -12,7 +12,14 @@ import {
 } from "@/src/screens/home/Api";
 
 export const useHomeData = () => {
-  const { place, coordinates } = useUserLocation();
+  const {
+    place,
+    coordinates,
+    updateLocation,
+    useCurrentLocation,
+    getPlaceName,
+    getCoordinatesFromName,
+  } = useUserLocation();
 
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
@@ -139,5 +146,15 @@ export const useHomeData = () => {
     newAdsProducts: newAds,
     categoriesToRender,
     refresh: fetchHome,
+    locationPickerProps: {
+      currentLocation: {
+        coordinates: { lat: coordinates?.lat || 0, lon: coordinates?.lon || 0 },
+        place: place || "Your location",
+      },
+      onSelectLocation: updateLocation,
+      onUseCurrentLocation: useCurrentLocation,
+      getPlaceName,
+      getCoordinatesFromName,
+    },
   };
 };

@@ -1,9 +1,10 @@
+import { colors } from "@/theme";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { RefreshControl, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors } from "@/theme";
 
+import LocationPicker from "@/src/components/LocationPicker";
 import CategoryList from "./CategoryList";
 import ClassifiedShowCard from "./ClassifiedShowCard";
 import Header from "./Header";
@@ -27,17 +28,26 @@ const HomeScreen = () => {
     newAdsProducts,
     categoriesToRender,
     refresh,
+    locationPickerProps,
   } = useHomeData();
 
   const [category, setCategory] = useState<any>(null);
   const [subcategoriesOpen, setSubcategoriesOpen] = useState(false);
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg_primary }}>
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: colors.bg_primary }}
+    >
       <StatusBar barStyle="dark-content" backgroundColor={colors.bg_primary} />
 
       {/* ✅ Header handles profile navigation internally */}
-      <Header place={place} profile={profile} />
+      <Header
+        place={place}
+        profile={profile}
+        onLocationPress={() => setLocationPickerVisible(true)}
+      />
 
       <ScrollView
         className="flex-1"
@@ -90,6 +100,18 @@ const HomeScreen = () => {
         category={category}
         onClose={() => setSubcategoriesOpen(false)}
       />
+
+      {locationPickerProps && (
+        <LocationPicker
+          visible={locationPickerVisible}
+          onClose={() => setLocationPickerVisible(false)}
+          currentLocation={locationPickerProps.currentLocation}
+          onSelectLocation={locationPickerProps.onSelectLocation}
+          onUseCurrentLocation={locationPickerProps.onUseCurrentLocation}
+          getPlaceName={locationPickerProps.getPlaceName}
+          getCoordinatesFromName={locationPickerProps.getCoordinatesFromName}
+        />
+      )}
     </SafeAreaView>
   );
 };
