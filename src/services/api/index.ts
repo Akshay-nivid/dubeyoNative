@@ -8,20 +8,24 @@ async function request(method: string, url: string, options: any = {}) {
       url,
       ...options,
     });
-    let res={
-      data:response.data?.data||response.data,
+    let res = {
+      data: response.data?.data || response.data,
       token: response.data?.token,
       status: response.status,
+      message: response.data?.message,
     }
-    
+
     return res
   } catch (err: any) {
     const error = normalizeError(err);
-    console.log(err)
+    console.log("API Error:", JSON.stringify(err.response?.data || err.message, null, 2));
+    if (err.response?.status === 400) {
+      console.log("Validation Errors:", JSON.stringify(err.response?.data, null, 2));
+    }
     return {
       data: null,
       status: error.status ?? 400,
-      token:null,
+      token: null,
       message: error.message,
     };
   }

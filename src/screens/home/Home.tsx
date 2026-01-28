@@ -68,7 +68,7 @@ const HomeScreen = () => {
           onSeeAll={() => router.push("/all-categories" as any)}
         />
 
-        <PostAdButton onPress={() => router.push("/post-ad" as any)} />
+        <PostAdButton onPress={() => router.push("/postAd" as any)} />
 
         <ProductSection
           title="Popular near you"
