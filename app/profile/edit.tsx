@@ -374,7 +374,16 @@ export default function ProfileSettingsScreen() {
                     </View>
 
                     {/* Form */}
-                    <View className="bg-white rounded-2xl p-4 shadow-sm">
+                    <View 
+                        className="bg-white rounded-2xl p-4"
+                        style={{
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 1 },
+                            shadowOpacity: 0.05,
+                            shadowRadius: 2,
+                            elevation: 2,
+                        }}
+                    >
                         {/* First Name & Last Name Row */}
                         <View className="flex-row gap-3 mb-5">
                             <View className="flex-1">
@@ -595,26 +604,26 @@ export default function ProfileSettingsScreen() {
                         <ScrollView
                             showsVerticalScrollIndicator={false}
                             className="max-h-[90%]"
-                            contentContainerStyle={{ paddingBottom: 20 }}
+                            contentContainerStyle={{ paddingBottom: 12 }}
                         >
                             {/* Modal Header */}
-                            <View className="flex-row items-center justify-between px-6 pt-6 pb-4 border-b border-gray-200">
+                            <View className="flex-row items-center justify-between px-5 pt-3 pb-2.5 border-b border-gray-200">
                                 <Text className="text-lg font-bold text-gray-900">
                                     Identity Verification
                                 </Text>
                                 <TouchableOpacity
                                     onPress={() => setShowVerificationModal(false)}
-                                    className="p-2"
+                                    className="p-1.5 -mr-1.5"
                                     activeOpacity={0.7}
                                 >
-                                    <Ionicons name="close" size={24} color="#000" />
+                                    <Ionicons name="close" size={22} color="#000" />
                                 </TouchableOpacity>
                             </View>
 
-                            <View className="px-6 pt-6">
+                            <View className="px-5 pt-3">
                                 {/* Emirates ID Number */}
-                                <View className="mb-4">
-                                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                                <View className="mb-2.5">
+                                    <Text className="text-sm font-medium text-gray-700 mb-1">
                                         Emirates ID Number <Text className="text-red-500">*</Text>
                                     </Text>
                                     <TextInput
@@ -622,23 +631,25 @@ export default function ProfileSettingsScreen() {
                                         placeholderTextColor={colors.text_secondary}
                                         value={verificationForm.emiratesId}
                                         onChangeText={(text) => handleVerificationChange("emiratesId", text)}
-                                        className="bg-gray-50 rounded-xl px-4 py-3 text-sm"
+                                        className="rounded-xl px-4 py-3 text-base"
                                         style={{
-                                            color: colors.text_primary,
+                                            outline: "none",
+                                            backgroundColor: colors.bg_white,
                                             borderColor: verificationErrors.emiratesId ? colors.error : colors.border_primary,
                                             borderWidth: 1,
+                                            color: colors.text_primary,
                                         }}
                                     />
                                     {verificationErrors.emiratesId && (
-                                        <Text className="text-xs text-red-500 mt-1">
+                                        <Text className="text-xs text-red-500 mt-0.5">
                                             {verificationErrors.emiratesId}
                                         </Text>
                                     )}
                                 </View>
 
                                 {/* Full Name */}
-                                <View className="mb-4">
-                                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                                <View className="mb-2.5">
+                                    <Text className="text-sm font-medium text-gray-700 mb-1">
                                         Full Name <Text className="text-red-500">*</Text>
                                     </Text>
                                     <TextInput
@@ -646,23 +657,25 @@ export default function ProfileSettingsScreen() {
                                         placeholderTextColor={colors.text_secondary}
                                         value={verificationForm.fullName}
                                         onChangeText={(text) => handleVerificationChange("fullName", text)}
-                                        className="bg-gray-50 rounded-xl px-4 py-3 text-sm"
+                                        className="rounded-xl px-4 py-3 text-base"
                                         style={{
-                                            color: colors.text_primary,
+                                            outline: "none",
+                                            backgroundColor: colors.bg_white,
                                             borderColor: verificationErrors.fullName ? colors.error : colors.border_primary,
                                             borderWidth: 1,
+                                            color: colors.text_primary,
                                         }}
                                     />
                                     {verificationErrors.fullName && (
-                                        <Text className="text-xs text-red-500 mt-1">
+                                        <Text className="text-xs text-red-500 mt-0.5">
                                             {verificationErrors.fullName}
                                         </Text>
                                     )}
                                 </View>
 
                                 {/* Date of Birth */}
-                                <View className="mb-4">
-                                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                                <View className="mb-2.5">
+                                    <Text className="text-sm font-medium text-gray-700 mb-1">
                                         Date of Birth (DOB) <Text className="text-red-500">*</Text>
                                     </Text>
                                     <DatePicker
@@ -674,15 +687,15 @@ export default function ProfileSettingsScreen() {
                                         required={true}
                                     />
                                     {verificationErrors.dob && (
-                                        <Text className="text-xs text-red-500 mt-1">
+                                        <Text className="text-xs text-red-500 mt-0.5">
                                             {verificationErrors.dob}
                                         </Text>
                                     )}
                                 </View>
 
                                 {/* Expiry Date */}
-                                <View className="mb-4">
-                                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                                <View className="mb-2.5">
+                                    <Text className="text-sm font-medium text-gray-700 mb-1">
                                         Expiry Date <Text className="text-red-500">*</Text>
                                     </Text>
                                     <DatePicker
@@ -694,25 +707,25 @@ export default function ProfileSettingsScreen() {
                                         required={true}
                                     />
                                     {verificationErrors.expiryDate && (
-                                        <Text className="text-xs text-red-500 mt-1">
+                                        <Text className="text-xs text-red-500 mt-0.5">
                                             {verificationErrors.expiryDate}
                                         </Text>
                                     )}
                                 </View>
 
                                 {/* Image Upload Section */}
-                                <View className="mb-6">
-                                    <View className="flex-row gap-3">
+                                <View className="mb-3">
+                                    <View className="flex-row gap-2.5">
                                         {/* Front Image */}
                                         <View className="flex-1">
-                                            <Text className="text-sm font-medium text-gray-700 mb-2">
+                                            <Text className="text-sm font-medium text-gray-700 mb-1">
                                                 (Emirates ID - Front image) <Text className="text-red-500">*</Text>
                                             </Text>
                                             <TouchableOpacity
                                                 onPress={() => handleImageUpload("front")}
-                                                className="border-2 border-dashed border-gray-300 rounded-xl p-6 items-center justify-center"
+                                                className="border-2 border-dashed border-gray-300 rounded-xl p-3 items-center justify-center"
                                                 style={{
-                                                    minHeight: 120,
+                                                    minHeight: 90,
                                                     backgroundColor: verificationForm.frontImage ? "#F9FAFB" : "#FAFAFA",
                                                     borderColor: verificationErrors.frontImage ? colors.error : colors.border_primary,
                                                 }}
@@ -721,18 +734,18 @@ export default function ProfileSettingsScreen() {
                                                 {verificationForm.frontImage ? (
                                                     <Image
                                                         source={{ uri: verificationForm.frontImage }}
-                                                        className="w-full h-24 rounded-lg"
+                                                        className="w-full h-18 rounded-lg"
                                                         resizeMode="cover"
                                                     />
                                                 ) : (
                                                     <>
-                                                        <Ionicons name="arrow-up-circle-outline" size={32} color={colors.icon_secondary} />
-                                                        <Text className="text-sm text-gray-600 mt-2">Upload</Text>
+                                                        <Ionicons name="arrow-up-circle-outline" size={24} color={colors.icon_secondary} />
+                                                        <Text className="text-xs text-gray-600 mt-1">Upload</Text>
                                                     </>
                                                 )}
                                             </TouchableOpacity>
                                             {verificationErrors.frontImage && (
-                                                <Text className="text-xs text-red-500 mt-1">
+                                                <Text className="text-xs text-red-500 mt-0.5">
                                                     {verificationErrors.frontImage}
                                                 </Text>
                                             )}
@@ -740,14 +753,14 @@ export default function ProfileSettingsScreen() {
 
                                         {/* Back Image */}
                                         <View className="flex-1">
-                                            <Text className="text-sm font-medium text-gray-700 mb-2">
+                                            <Text className="text-sm font-medium text-gray-700 mb-1">
                                                 (Emirates ID - Back image) <Text className="text-red-500">*</Text>
                                             </Text>
                                             <TouchableOpacity
                                                 onPress={() => handleImageUpload("back")}
-                                                className="border-2 border-dashed border-gray-300 rounded-xl p-6 items-center justify-center"
+                                                className="border-2 border-dashed border-gray-300 rounded-xl p-3 items-center justify-center"
                                                 style={{
-                                                    minHeight: 120,
+                                                    minHeight: 90,
                                                     backgroundColor: verificationForm.backImage ? "#F9FAFB" : "#FAFAFA",
                                                     borderColor: verificationErrors.backImage ? colors.error : colors.border_primary,
                                                 }}
@@ -756,18 +769,18 @@ export default function ProfileSettingsScreen() {
                                                 {verificationForm.backImage ? (
                                                     <Image
                                                         source={{ uri: verificationForm.backImage }}
-                                                        className="w-full h-24 rounded-lg"
+                                                        className="w-full h-18 rounded-lg"
                                                         resizeMode="cover"
                                                     />
                                                 ) : (
                                                     <>
-                                                        <Ionicons name="arrow-up-circle-outline" size={32} color={colors.icon_secondary} />
-                                                        <Text className="text-sm text-gray-600 mt-2">Upload</Text>
+                                                        <Ionicons name="arrow-up-circle-outline" size={24} color={colors.icon_secondary} />
+                                                        <Text className="text-xs text-gray-600 mt-1">Upload</Text>
                                                     </>
                                                 )}
                                             </TouchableOpacity>
                                             {verificationErrors.backImage && (
-                                                <Text className="text-xs text-red-500 mt-1">
+                                                <Text className="text-xs text-red-500 mt-0.5">
                                                     {verificationErrors.backImage}
                                                 </Text>
                                             )}
@@ -779,7 +792,7 @@ export default function ProfileSettingsScreen() {
                                 <TouchableOpacity
                                     onPress={handleVerificationSubmit}
                                     disabled={submittingVerification}
-                                    className="bg-black py-4 rounded-xl items-center"
+                                    className="bg-black py-3 rounded-xl items-center"
                                     style={{ opacity: submittingVerification ? 0.6 : 1 }}
                                     activeOpacity={0.7}
                                 >
@@ -788,7 +801,7 @@ export default function ProfileSettingsScreen() {
                                     ) : (
                                         <Text className="text-white font-bold text-base">Submit</Text>
                                     )}
-                                </TouchableOpacity>
+            </TouchableOpacity>
                             </View>
                         </ScrollView>
                     </Pressable>

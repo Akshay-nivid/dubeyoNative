@@ -2,12 +2,11 @@ import { get, post } from "@/src/services/api";
 import { colors } from "@/theme";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Modal,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Modal,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { Api } from "./Api";
 
@@ -147,18 +146,18 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
         <TouchableOpacity
           className="flex-1"
           onPress={onClose}
-          activeOpacity={1}
+          activeOpacity={0.7}
         />
 
         <View
-          className="rounded-t-[30px] h-[70%] w-full overflow-hidden"
+          className="rounded-t-[30px] h-[65%] w-full overflow-hidden"
           style={{ backgroundColor: colors.bg_white }}
         >
           <View
             className="p-6 border-b flex-row justify-between items-center"
             style={{
               borderColor: colors.border_primary,
-              backgroundColor: colors.bg_secondary,
+              // backgroundColor: colors.bg_secondary,
             }}
           >
             <Text
@@ -174,7 +173,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
             >
               <Text
                 className="font-bold px-2"
-                style={{ color: colors.text_secondary }}
+                style={{ color: colors.text_primary }}
               >
                 X
               </Text>
@@ -193,61 +192,64 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
               <Text style={{ color: colors.error }}>{error}</Text>
             </View>
           ) : subcategories.length > 0 ? (
-            <View className="flex-1 flex-row">
-              {/* Sidebar for Subcategories */}
-              <View
-                className="w-[35%] h-full border-r"
-                style={{
-                  backgroundColor: colors.bg_secondary,
-                  borderColor: colors.border_primary,
-                }}
-              >
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ paddingVertical: 10 }}
+            <View className="flex-1">
+              {/* Subcategories Section - Top */}
+              <View className="p-4 pb-3" style={{ backgroundColor: colors.bg_white }}>
+                <Text
+                  className="text-base font-semibold mb-4"
+                  style={{ color: colors.text_primary }}
                 >
+                  Sub Category
+                </Text>
+                <View className="flex-row flex-wrap gap-3">
                   {subcategories.map((sub) => (
                     <TouchableOpacity
                       key={sub.id}
                       onPress={() => handleChangeSubCategory(sub)}
-                      className="p-4 border-l-4"
+                      className="px-4 py-2 rounded-full border"
                       style={{
-                        borderLeftColor:
-                          selectedSubcategory?.id === sub.id
-                            ? colors.primary
-                            : "transparent",
                         backgroundColor:
                           selectedSubcategory?.id === sub.id
-                            ? colors.bg_white
-                            : "transparent",
+                            ? colors.primary
+                            : colors.bg_white,
+                        borderColor:
+                          selectedSubcategory?.id === sub.id
+                            ? colors.primary
+                            : colors.border_primary,
                       }}
                     >
                       <Text
-                        className={`text-sm ${selectedSubcategory?.id === sub.id ? "font-bold" : ""}`}
+                        className="text-md font-normal"
                         style={{
                           color:
                             selectedSubcategory?.id === sub.id
-                              ? colors.primary
-                              : colors.text_secondary,
+                              ? colors.text_light
+                              : colors.text_primary,
                         }}
                       >
                         {sub.name}
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </ScrollView>
+                </View>
               </View>
 
-              {/* Main Content for Divisions */}
+              {/* Divider */}
               <View
-                className="flex-1 p-5"
+                className="h-px w-full"
+                style={{ backgroundColor: colors.border_primary }}
+              />
+
+              {/* Type/Division Section - Bottom */}
+              <View
+                className="p-4 pt-3 pb-0"
                 style={{ backgroundColor: colors.bg_white }}
               >
                 <Text
                   className="text-base font-semibold mb-4"
                   style={{ color: colors.text_primary }}
                 >
-                  Select Type
+                  Type
                 </Text>
                 <View className="flex-row flex-wrap gap-3">
                   {selectedSubcategory?.division_type?.length > 0 ? (
@@ -268,12 +270,12 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                         }}
                       >
                         <Text
-                          className="text-xs font-medium"
+                          className="text-md font-normal"
                           style={{
                             color:
                               data.divisionId === d.id
                                 ? colors.text_light
-                                : colors.text_secondary,
+                                : colors.text_primary,
                           }}
                         >
                           {d.name}

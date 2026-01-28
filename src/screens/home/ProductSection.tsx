@@ -1,8 +1,8 @@
+import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { colors } from "@/theme";
 
 interface ProductSectionProps {
   title: string;
@@ -24,7 +24,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
       <View className="flex-row justify-between items-center px-4 mb-3">
         <Text className="text-lg font-bold" style={{ color: colors.text_primary }}>{title}</Text>
         <TouchableOpacity>
-          <Text className="font-medium text-sm flex-row items-center" style={{ color: colors.text_secondary }}>
+          <Text className="font-medium text-sm flex-row items-center" style={{ color: colors.text_primary }}>
             See all <Ionicons name="arrow-forward" size={14} color={colors.text_secondary} />
           </Text>
         </TouchableOpacity>
@@ -50,35 +50,55 @@ const ProductSection: React.FC<ProductSectionProps> = ({
           return (
             <TouchableOpacity
               key={productId || index}
-              className="mr-3 w-40 bg-white rounded-xl overflow-hidden mb-1"
+              className="mr-3 bg-white rounded-xl overflow-hidden"
+              style={{ width: 180 }}
               activeOpacity={0.8}
               onPress={() => router.push(`/product/${productId}` as any)}
             >
-              <Image
-                source={{ uri: img }}
-                className="w-full h-32 bg-gray-200 rounded-xl"
-                resizeMode="cover"
-              />
-              <View className="pt-2">
+              <View className="relative">
+                <Image
+                  source={{ uri: img }}
+                  className="w-full bg-gray-200 rounded-t-xl"
+                  style={{ height: 120 }}
+                  resizeMode="cover"
+                />
+                {/* Heart Icon Overlay */}
+                <TouchableOpacity 
+                  className="absolute top-2 right-2"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    // TODO: Handle favorite toggle
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ 
+                    backgroundColor: '#fff',
+                    borderRadius: 12,
+                    width: 24,
+                    height: 23,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Ionicons name="heart-outline" size={16} color="#000" />
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <View className="p-3">
                 <Text
-                  className="text-sm font-bold mb-0.5"
+                  className="text-base font-bold mb-1"
                   style={{ color: colors.text_primary }}
                   numberOfLines={1}
                 >
-                  {productPrice ? `AED ${productPrice}` : "Price on request"}
+                  {productPrice ? `AED ${productPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Price on request"}
                 </Text>
                 <Text
-                  className="text-xs font-medium mb-1"
-                  style={{ color: colors.text_secondary }}
-                  numberOfLines={1}
+                  className="text-sm font-normal"
+                  style={{ color: colors.text_primary }}
+                  numberOfLines={2}
                 >
                   {productTitle}
                 </Text>
               </View>
-              {/* Heart Icon Overlay */}
-              <TouchableOpacity className="absolute top-2 right-2 bg-white/70 p-1.5 rounded-full">
-                <Ionicons name="heart-outline" size={16} color={colors.icon_primary} />
-              </TouchableOpacity>
             </TouchableOpacity>
           );
         })}
