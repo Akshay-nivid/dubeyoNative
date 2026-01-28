@@ -1,10 +1,10 @@
-import Welcome from "@/src/screens/welcome/Welcome";
+import LoginForm from "@/src/screens/login/Login";
 import { View } from "react-native";
 
-export default function Index() {
-  return (
-    <View className="flex-1">
-      <Welcome />
-    </View>
-  );
+export default function Login() {
+    return (
+        <View className="flex-1">
+            <LoginForm />
+        </View>
+    );
 }
