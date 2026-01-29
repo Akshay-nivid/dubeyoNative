@@ -1,15 +1,12 @@
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { Text, View } from 'react-native';
+import ProductDetailScreen from '@/src/screens/product/ProductDetail';
 
 const ProductDetails = () => {
     const { id } = useLocalSearchParams();
-    return (
-        <View className="flex-1 items-center justify-center bg-white">
-            <Text className="text-xl font-bold">Product Details</Text>
-            <Text className="text-gray-500 mt-2">ID: {id}</Text>
-        </View>
-    );
+    const productId = Array.isArray(id) ? id[0] : id || '';
+    
+    return <ProductDetailScreen productId={productId} />;
 };
 
 export default ProductDetails;
