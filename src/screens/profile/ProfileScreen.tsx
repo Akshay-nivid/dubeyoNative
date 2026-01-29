@@ -11,6 +11,8 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
+import { Api } from "../home/Api";
+import { get } from "../../services/api";
 import { UserService } from "../../services/user/userService";
 
 export default function ProfileScreen() {
@@ -21,9 +23,42 @@ export default function ProfileScreen() {
     const fetchProfile = async () => {
         setLoading(true);
         try {
-            const response = await UserService.getProfile();
-            if (response?.data) {
-                setUser(response.data);
+            // Use /user/me API endpoint
+            const response = await get(Api.profile);
+            const userData = response?.data?.data || response?.data || response;
+
+            if (userData) {
+                // Handle profile picture URL
+                let profileImageUrl = "";
+                if (userData?.profilePic && userData.profilePic !== "null" && userData.profilePic !== "undefined") {
+                    if (userData.profilePic.includes("googleusercontent") || userData.profilePic.startsWith("http")) {
+                        profileImageUrl = userData.profilePic;
+                    } else {
+                        try {
+                            const imageResponse = await get(`${Api.Image}?key=${userData.profilePic}`);
+                            profileImageUrl = imageResponse?.data?.url || imageResponse?.data || "";
+                        } catch {
+                            profileImageUrl = userData.profilePic;
+                        }
+                    }
+                }
+
+                // Format joined date if available
+                let joinedDate = null;
+                if (userData.createdAt || userData.created_at || userData.joinedDate) {
+                    joinedDate = userData.createdAt || userData.created_at || userData.joinedDate;
+                }
+
+                // Set user data with all fields
+                setUser({
+                    ...userData,
+                    profilePic: profileImageUrl || userData.profilePic,
+                    joinedDate: joinedDate,
+                    // Ensure name fields are available
+                    firstName: userData.firstName || userData.first_name || "",
+                    lastName: userData.lastName || userData.last_name || "",
+                    email: userData.email || "",
+                });
             }
         } catch (error) {
             console.error("Failed to fetch profile", error);
@@ -117,16 +152,20 @@ export default function ProfileScreen() {
                         {/* Info */}
                         <View className="flex-1 ml-4 mb-2">
                             <View className="flex-row justify-between items-start">
-                                <View>
-                                    <Text className="text-xxxl font-bold text-gray-900">
-                                        {user?.name || user?.firstName ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.name : "User Name"}
+                                <View className="flex-1">
+                                    <Text className="text-xl font-bold text-gray-900" numberOfLines={1}>
+                                        {user?.firstName || user?.lastName
+                                            ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
+                                            : user?.name || "User Name"}
                                     </Text>
-                                    <Text className="text-blue-900 text-sm font-medium">
+                                    <Text className="text-blue-900 text-sm font-medium mt-1" numberOfLines={1}>
                                         {user?.email || "user@example.com"}
                                     </Text>
-                                    <Text className="text-gray-400 text-xs mt-0.5">
-                                        Joined on {user?.joinedDate ? new Date(user.joinedDate).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : "September 2026"}
-                                    </Text>
+                                    {user?.joinedDate && (
+                                        <Text className="text-gray-400 text-xs mt-0.5">
+                                            Joined on {new Date(user.joinedDate).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                                        </Text>
+                                    )}
                                 </View>
 
                                 <TouchableOpacity

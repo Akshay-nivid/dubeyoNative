@@ -16,7 +16,7 @@ import Toast from "react-native-toast-message";
 import DatePicker from "../../src/components/DatePicker";
 import Dropdown from "../../src/components/Dropdown";
 import { Api } from "../../src/screens/home/Api";
-import { get } from "../../src/services/api";
+import { get, post } from "../../src/services/api";
 import { UserService } from "../../src/services/user/userService";
 import { colors } from "../../theme";
 
@@ -69,54 +69,77 @@ export default function ProfileSettingsScreen() {
     const fetchProfile = async () => {
         try {
             setLoading(true);
-            const response = await UserService.getProfile();
-            const user = response?.data;
+            // Use /user/me API endpoint
+            const response = await get(Api.profile);
+            const user = response?.data?.data || response?.data || response;
 
-            if (!user) return;
+            if (!user) {
+                Toast.show({
+                    type: "error",
+                    text1: "Error",
+                    text2: "No user data found",
+                });
+                return;
+            }
+
+            console.log("User data from /user/me:", user);
 
             // Handle profile picture URL
             let profileImageUrl = "";
             if (user?.profilePic && user.profilePic !== "null" && user.profilePic !== "undefined") {
-                if (user.profilePic.includes("googleusercontent")) {
+                if (user.profilePic.includes("googleusercontent") || user.profilePic.startsWith("http")) {
                     profileImageUrl = user.profilePic;
                 } else {
                     try {
                         const imageResponse = await get(`${Api.Image}?key=${user.profilePic}`);
-                        profileImageUrl = imageResponse?.data?.url || "";
+                        profileImageUrl = imageResponse?.data?.url || imageResponse?.data || "";
                     } catch {
                         profileImageUrl = user.profilePic;
                     }
                 }
             }
 
+            // Format date of birth - handle various date formats
+            let formattedDob = "";
+            if (user.dob) {
+                if (user.dob.includes("T")) {
+                    formattedDob = user.dob.split("T")[0];
+                } else if (user.dob.includes(" ")) {
+                    formattedDob = user.dob.split(" ")[0];
+                } else {
+                    formattedDob = user.dob;
+                }
+            }
+
+            // Populate all form fields from API response
             setFormData({
-                firstName: user.firstName || "",
-                lastName: user.lastName || "",
+                firstName: user.firstName || user.first_name || "",
+                lastName: user.lastName || user.last_name || "",
                 email: user.email || "",
-                phone: user.phone || "",
+                phone: user.phone || user.phoneNumber || "",
                 gender: user.gender || "",
-                dob: user.dob ? (user.dob.includes("T") ? user.dob.split("T")[0] : user.dob) : "",
+                dob: formattedDob,
                 address: user.address || "",
-                cityState: user.cityState || "",
-                pin: user.pin || "",
+                cityState: user.cityState || user.city_state || user.city || "",
+                pin: user.pin || user.pinCode || user.pincode || "",
                 country: user.country || "",
                 profilePic: profileImageUrl,
-                verified: !!user.verified,
+                verified: !!user.verified || !!user.isVerified,
             });
 
             // Set verification status
-            if (user.verified) {
+            if (user.verified || user.isVerified) {
                 setVerificationStatus("verified");
-            } else if (user.verificationStatus) {
-                setVerificationStatus(user.verificationStatus as any);
+            } else if (user.verificationStatus || user.verification_status) {
+                setVerificationStatus((user.verificationStatus || user.verification_status) as any);
             } else {
                 setVerificationStatus("not_verified");
             }
-        } catch (error) {
+        } catch (error: any) {
             Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: "Failed to load profile data",
+                text2: error?.message || "Failed to load profile data",
             });
             console.error("Error fetching profile:", error);
         } finally {
@@ -147,18 +170,22 @@ export default function ProfileSettingsScreen() {
             };
 
             const response = await UserService.updateProfile(updateData);
-            if (response?.status === 200) {
+            if (response?.status === 200 || response?.status === 201) {
                 Toast.show({
                     type: "success",
                     text1: "Success",
-                    text2: response?.data?.message || "Profile updated successfully",
+                    text2: response?.data?.message || response?.message || "Profile updated successfully",
                 });
                 await fetchProfile();
             } else {
+                const errorMessage = response?.message || 
+                    (response?.status === 404 ? "Update endpoint not found. Please contact support." : 
+                     response?.status === 400 ? "Invalid data. Please check your inputs." :
+                     "Failed to update profile");
                 Toast.show({
                     type: "error",
                     text1: "Error",
-                    text2: (response as any)?.message || "Failed to update profile",
+                    text2: errorMessage,
                 });
             }
         } catch (error: any) {

@@ -1,5 +1,6 @@
 import { get, post } from "@/src/services/api";
 import { colors } from "@/theme";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,6 +9,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { Api } from "./Api";
 
 interface ClassifiedShowCardProps {
@@ -21,6 +23,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
   onClose,
   category,
 }) => {
+  const router = useRouter();
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState<any>(null);
   const [categoryName, setCategoryName] = useState("");
@@ -131,8 +134,32 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
   };
 
   const handleViewItems = () => {
+    if (!data.subcategoryId) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Please select a subcategory",
+      });
+      return;
+    }
+
     onClose();
-    console.log("View items", data);
+    
+    // Navigate to product listing with params
+    const divisionTypes = selectedSubcategory?.division_type || [];
+    const selectedDivision = data.divisionId 
+      ? divisionTypes.find((d: any) => d.id === data.divisionId)
+      : null;
+
+    router.push({
+      pathname: "/products" as any,
+      params: {
+        subcategoryId: data.subcategoryId,
+        subcategoryName: selectedSubcategory?.name || categoryName,
+        divisionTypes: JSON.stringify(divisionTypes),
+        selectedDivision: selectedDivision ? JSON.stringify(selectedDivision) : "",
+      },
+    });
   };
 
   return (
