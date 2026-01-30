@@ -7,68 +7,76 @@ import { Image, Text, TouchableOpacity, View } from "react-native";
 interface HeaderProps {
   place?: string;
   profile?: string | null;
+  userName?: string | null;
   onLocationPress?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ place, profile, onLocationPress }) => {
+const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPress }) => {
   const router = useRouter();
 
   return (
     <View
-      className="px-4 py-2 flex-row items-center justify-between"
-      style={{ backgroundColor: colors.bg_primary }}
+      className="px-4 py-4 flex-row items-center"
+      style={{ backgroundColor: "transparent" }}
     >
-      {/* 📍 Location */}
-      <TouchableOpacity
-        onPress={onLocationPress}
-        activeOpacity={0.7}
-        className="flex-1"
-      >
-        <Text
-          className="text-xs font-medium"
-          style={{ color: colors.text_secondary }}
-        >
-          Home
-        </Text>
-        <View className="flex-row items-center mt-0.5">
-          <Ionicons
-            name="location-sharp"
-            size={16}
-            color={colors.icon_primary}
-          />
-          <Text
-            className="ml-1 text-base font-bold flex-1"
-            style={{ color: colors.text_primary }}
-            numberOfLines={1}
-          >
-            {place || "Your location"}
-          </Text>
-          <Ionicons
-            name="chevron-down"
-            size={14}
-            color={colors.icon_secondary}
-            style={{ marginLeft: 4 }}
-          />
-        </View>
-      </TouchableOpacity>
-
-      {/* 👤 Profile Avatar */}
-      <TouchableOpacity
-        className="w-10 h-10 rounded-full overflow-hidden border ml-3"
-        style={{
-          borderColor: colors.border_primary,
-          backgroundColor: colors.bg_secondary,
-        }}
-        onPress={() => router.push("/profile")}
-        activeOpacity={0.8}
-      >
-        <Image
-          source={{
-            uri: profile || "https://randomuser.me/api/portraits/men/32.jpg",
+      {/* Profile Picture + User Info */}
+      <View className="flex-row items-center flex-1">
+        {/* Profile Picture */}
+        <TouchableOpacity
+          className="w-12 h-12 rounded-full overflow-hidden border mr-3"
+          style={{
+            borderColor: colors.border_primary,
+            backgroundColor: colors.bg_secondary,
           }}
-          className="w-full h-full"
-        />
-      </TouchableOpacity>
+          onPress={() => router.push("/profile")}
+          activeOpacity={0.8}
+        >
+          <Image
+            source={{
+              uri: profile || "https://randomuser.me/api/portraits/men/32.jpg",
+            }}
+            className="w-full h-full"
+            style={{ resizeMode: "cover" }}
+          />
+        </TouchableOpacity>
+
+        {/* User Name and Location */}
+        <View className="flex-1">
+          {/* User Name */}
+          {userName && (
+            <Text
+              className="text-base font-semibold"
+              style={{ 
+                color: colors.bg_black,
+                fontFamily: "OpenSans"
+              }}
+              numberOfLines={1}
+            >
+              Hi{userName ? ` ${userName}` : ""}
+            </Text>
+          )}
+          
+          {/* Location */}
+          <TouchableOpacity
+            onPress={onLocationPress}
+            activeOpacity={0.7}
+            className="flex-row items-center mt-0.5"
+          >
+            <Ionicons
+              name="location-sharp"
+              size={14}
+              color={colors.icon_primary}
+            />
+            <Text
+              className="ml-1 text-sm font-medium"
+              style={{ color: colors.text_primary }}
+              numberOfLines={1}
+            >
+              {place && place.trim() ? place : "Your location"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 };

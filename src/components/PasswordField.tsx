@@ -32,7 +32,7 @@ export default function PasswordField({
         <TextInput
           id={id}
           placeholder={label}
-          placeholderTextColor={colors.text_secondary}
+          placeholderTextColor={colors.text_tertiary}
           secureTextEntry={!showPassword}
           value={value}
           onChangeText={(text) => onChange(name, text)}

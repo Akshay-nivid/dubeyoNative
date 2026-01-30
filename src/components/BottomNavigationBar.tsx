@@ -17,12 +17,12 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
   const router = useRouter();
   const pathname = usePathname();
   const [showAIModal, setShowAIModal] = useState(false);
-  
+
   // Animation values for AI mascot
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
-  
+
   useEffect(() => {
     // Pulsing animation
     const pulseAnimation = Animated.loop(
@@ -39,53 +39,53 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
-    
+
     // Glow animation
-    const glowAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 2000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0,
-          duration: 2000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-      ])
-    );
-    
+    // const glowAnimation = Animated.loop(
+    //   Animated.sequence([
+    //     Animated.timing(glowAnim, {
+    //       toValue: 1,
+    //       duration: 2000,
+    //       easing: Easing.inOut(Easing.ease),
+    //       useNativeDriver: false,
+    //     }),
+    //     Animated.timing(glowAnim, {
+    //       toValue: 0,
+    //       duration: 2000,
+    //       easing: Easing.inOut(Easing.ease),
+    //       useNativeDriver: false,
+    //     }),
+    //   ])
+    // );
+
     // Rotation animation
-    const rotateAnimation = Animated.loop(
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 3000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-    
-    pulseAnimation.start();
-    glowAnimation.start();
-    rotateAnimation.start();
-    
+    // const rotateAnimation = Animated.loop(
+    //   Animated.timing(rotateAnim, {
+    //     toValue: 1,
+    //     duration: 3000,
+    //     easing: Easing.linear,
+    //     useNativeDriver: true,
+    //   })
+    // );
+
+    // pulseAnimation.start();
+    // glowAnimation.start();
+    // rotateAnimation.start();
+
     return () => {
-      pulseAnimation.stop();
-      glowAnimation.stop();
-      rotateAnimation.stop();
+      // pulseAnimation.stop();
+      // glowAnimation.stop();
+      // rotateAnimation.stop();
     };
   }, []);
-  
+
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ["0deg", "360deg"],
   });
-  
+
   const glowOpacity = glowAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0.3, 0.8],
@@ -129,16 +129,16 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
       route: "/chat",
     },
     {
-      id: "myads",
-      label: "My Ads",
+      id: "profile",
+      label: "Profile",
       icon: (active: boolean) => (
         <Ionicons
-          name={active ? "list" : "list-outline"}
+          name={active ? "person" : "person-outline"}
           size={22}
           color={active ? colors.primary : colors.text_tertiary}
         />
       ),
-      route: "/my-ads",
+      route: "/profile",
     },
   ];
 
@@ -158,7 +158,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
         }}
       >
         {/* Outer Glow Ring */}
-        <Animated.View
+        {/* <Animated.View
           style={{
             position: "absolute",
             width: 88,
@@ -168,10 +168,10 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
             borderColor: colors.primary,
             opacity: glowOpacity,
           }}
-        />
-        
+        /> */}
+
         {/* Middle Glow Ring */}
-        <Animated.View
+        {/* <Animated.View
           style={{
             position: "absolute",
             width: 100,
@@ -184,8 +184,8 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
               outputRange: [0.2, 0.6],
             }),
           }}
-        />
-        
+        /> */}
+
         {/* Animated Gradient Background */}
         <Animated.View
           style={{
@@ -230,7 +230,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
               }}
             >
               <Image
-                 source={require("@/assets/images/fotor-ai-20260130115255.jpg")}
+                source={require("@/assets/images/fotor-ai-20260130115255.jpg")}
                 style={{
                   width: 60,
                   height: 60,
@@ -242,7 +242,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
             </View>
           </LinearGradient>
         </Animated.View>
-        
+
         {/* Pressable Overlay */}
         <Pressable
           onPress={handleAIMascotPress}
@@ -254,9 +254,9 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
             opacity: pressed ? 0.8 : 1,
           })}
         />
-        
+
         {/* Floating Particles Effect */}
-        <Animated.View
+        {/* <Animated.View
           style={{
             position: "absolute",
             top: -10,
@@ -275,8 +275,8 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
               },
             ],
           }}
-        />
-        <Animated.View
+        /> */}
+        {/* <Animated.View
           style={{
             position: "absolute",
             bottom: -8,
@@ -298,8 +298,8 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
               },
             ],
           }}
-        />
-        <Animated.View
+        /> */}
+        {/* <Animated.View
           style={{
             position: "absolute",
             top: 10,
@@ -321,7 +321,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
               },
             ],
           }}
-        />
+        /> */}
       </View>
 
       {/* Bottom Navigation Bar */}
@@ -470,11 +470,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
                 AI Assistant
               </Text>
               <Pressable onPress={() => setShowAIModal(false)}>
-                <Ionicons
-                  name="close"
-                  size={24}
-                  color={colors.text_primary}
-                />
+                <Ionicons name="close" size={24} color={colors.text_primary} />
               </Pressable>
             </View>
             <View

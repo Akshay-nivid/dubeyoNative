@@ -26,7 +26,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
   const displayCategories = [...realCategories, othersCategory];
 
   return (
-    <View className="mb-4 px-4">
+    <View className="px-4" style={{ marginBottom: 4 }}>
       <View className="flex-row flex-wrap justify-between">
         {displayCategories.map((c) => {
           const IconComponent = categoryIcons[c.name];
@@ -36,16 +36,32 @@ const CategoryList: React.FC<CategoryListProps> = ({
               key={c.key}
               className="w-[23%] mb-4"
               onPress={() => onSelect(c)}
+              activeOpacity={0.7}
             >
-              <View className="w-full aspect-square rounded-3xl items-center justify-center p-1" style={{ backgroundColor: colors.bg_secondary }}>
+              <View 
+                className="w-full aspect-square rounded-lg items-center justify-center" 
+                style={{ 
+                  backgroundColor: colors.bg_secondary,
+                  paddingTop: 12,
+                  paddingBottom: 8,
+                  paddingHorizontal: 8,
+                }}
+              >
                 {isOthers ? (
-                  <Ionicons name="grid-outline" size={24} color={colors.icon_primary} />
+                  <Ionicons name="grid-outline" size={24} color={colors.text_primary} />
                 ) : (
                   IconComponent && (
-                    <IconComponent size={24} color={colors.icon_primary} />
+                    <IconComponent size={24} color={colors.text_primary} />
                   )
                 )}
-                <Text className="text-[10px] text-center font-bold mt-1.5 leading-3" style={{ color: colors.text_primary }} numberOfLines={2}>
+                <Text 
+                  className="text-[10px] text-center font-bold leading-3" 
+                  style={{ 
+                    color: colors.text_primary,
+                    marginTop: 8,
+                  }} 
+                  numberOfLines={2}
+                >
                   {c.name}
                 </Text>
               </View>

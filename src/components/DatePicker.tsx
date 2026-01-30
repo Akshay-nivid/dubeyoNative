@@ -87,7 +87,7 @@ export default function DatePicker({
       >
         <Text
           className="flex-1 text-base"
-          style={{ color: value ? colors.text_primary : colors.text_secondary }}
+          style={{ color: value ? colors.text_primary : colors.text_tertiary }}
         >
           {value ? formatDisplayDate(value) : labelText}
         </Text>

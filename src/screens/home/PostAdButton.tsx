@@ -9,7 +9,7 @@ interface PostAdButtonProps {
 
 const PostAdButton: React.FC<PostAdButtonProps> = ({ onPress }) => {
   return (
-    <View className="px-4 mb-6">
+    <View className="px-4" style={{ marginTop: 0, marginBottom: 24 }}>
       <TouchableOpacity
         className="w-full py-3.5 rounded-lg items-center justify-center flex-row shadow-sm"
         style={{ backgroundColor: colors.primary }}

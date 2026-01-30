@@ -213,6 +213,11 @@ export default function ProfileScreen() {
                             onPress={() => router.push("/profile/edit" as any)}
                         />
                         <MenuItem icon="settings-outline" label="Account Setting" />
+                        <MenuItem 
+                            icon="list-outline" 
+                            label="My ads" 
+                            onPress={() => router.push("/my-ads" as any)}
+                        />
                         <MenuItem icon="notifications-outline" label="Notification Setting" />
                         <MenuItem 
                             icon="lock-closed-outline" 

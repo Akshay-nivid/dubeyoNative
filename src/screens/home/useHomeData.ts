@@ -24,6 +24,7 @@ export const useHomeData = () => {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
   const [profile, setProfile] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
   const [suggested, setSuggested] = useState<any[]>([]);
   const [trending, setTrending] = useState<any[]>([]);
@@ -88,6 +89,13 @@ export const useHomeData = () => {
       setTrending(trendingData);
       setNewAds(newAdsData);
       setProfile(profileData?.profilePic || null);
+      
+      // Extract user name from profile data
+      const firstName = profileData?.firstName || profileData?.first_name || "";
+      const lastName = profileData?.lastName || profileData?.last_name || "";
+      const fullName = profileData?.name || profileData?.fullName || 
+        (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || null);
+      setUserName(fullName);
 
       // Load images in parallel
       await Promise.all([
@@ -139,6 +147,7 @@ export const useHomeData = () => {
     loading,
     place,
     profile,
+    userName,
     signedImages,
     nearestProducts: nearest,
     trendingProducts: trending,

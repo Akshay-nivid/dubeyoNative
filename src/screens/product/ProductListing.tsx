@@ -246,7 +246,8 @@ const ProductListingScreen: React.FC = () => {
         setSelectedDivisionType(null);
       }
     }
-  }, [params]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.subcategoryId, params.subcategoryName, params.divisionTypes, params.selectedDivision]);
 
   // Fetch products when subcategoryId or selectedDivisionType changes
   useEffect(() => {

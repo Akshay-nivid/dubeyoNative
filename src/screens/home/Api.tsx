@@ -24,6 +24,7 @@ export const Api = {
   getProductDetails: "/product/getproductdetails",
   thumbnail: "/product/image/thumbnail",
   getUserDashboardCounts: "/user/getUserDashboardCounts",
+  getUserProducts: "/product/getProductsByUserId",
 };
 
 // API Functions
@@ -59,6 +60,10 @@ export const fetchProductImages = async (productId: number | string) => {
 
 export const fetchProfile = async () => {
   return get(Api.profile);
+};
+
+export const fetchUserProducts = async () => {
+  return get(Api.getUserProducts);
 };
 
 // Map category names to Ionicons names

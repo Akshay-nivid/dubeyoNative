@@ -12,6 +12,7 @@ import Header from "./Header";
 import PostAdButton from "./PostAdButton";
 import ProductSection from "./ProductSection";
 import SearchBar from "./SearchBar";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { useHomeData } from "./useHomeData";
 
@@ -22,6 +23,7 @@ const HomeScreen = () => {
     loading,
     place,
     profile,
+    userName,
     signedImages,
     nearestProducts,
     trendingProducts,
@@ -41,15 +43,24 @@ const HomeScreen = () => {
       className="flex-1"
       style={{ backgroundColor: colors.bg_primary }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.bg_primary} />
+      {/* <StatusBar barStyle="dark-content" backgroundColor={colors.bg_primary} /> */}
+      <StatusBar barStyle="dark-content" backgroundColor="#108EAA" />
+      {/* Linear Gradient at the top */}
+      <LinearGradient
+        colors={["#108EAA", "#f6f6f6"]}
+        locations={[0, 1]}
+        style={{ paddingTop: 0 }}
+      >
 
-      {/* ✅ Header handles profile navigation internally */}
+      {/*Header handles profile navigation internally */}
       <Header
         place={place}
         profile={profile}
+        userName={userName}
         onLocationPress={() => setLocationPickerVisible(true)}
       />
-
+      <SearchBar />
+      </LinearGradient>
       <ScrollView
         className="flex-1"
         style={{ backgroundColor: colors.bg_primary }}
@@ -58,7 +69,7 @@ const HomeScreen = () => {
           <RefreshControl refreshing={loading} onRefresh={refresh} />
         }
       >
-        <SearchBar />
+        {/* <SearchBar /> */}
 
         <CategoryList
           categories={categoriesToRender}

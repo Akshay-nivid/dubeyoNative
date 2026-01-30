@@ -47,7 +47,7 @@ export default function Dropdown({
       >
         <Text
           className="flex-1 text-base"
-          style={{ color: selectedOption && selectedOption.value !== "" ? colors.text_primary : colors.text_secondary }}
+          style={{ color: selectedOption && selectedOption.value !== "" ? colors.text_primary : colors.text_tertiary }}
         >
           {selectedOption && selectedOption.value !== ""
             ? selectedOption.label

@@ -290,13 +290,13 @@ export default function SignupScreen() {
         style={{ backgroundColor: colors.bg_primary }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="px-6 pt-8 pb-4">
+        <View className="px-6 pt-16 pb-4">
           {/* Title */}
           <View className="mb-8">
             <Text className="mb-2 text-3xl font-bold" style={{ color: colors.text_primary }}>
               Create Account
             </Text>
-            <Text className="text-base" style={{ color: colors.text_secondary }}>
+            <Text className="text-base" style={{ color: colors.text_tertiary }}>
               Fill in your details to get started
             </Text>
           </View>
@@ -306,7 +306,7 @@ export default function SignupScreen() {
             <View className="flex-1">
               <TextInput
                 placeholder="First Name *"
-                placeholderTextColor={colors.text_secondary}
+                placeholderTextColor={colors.text_tertiary}
                 value={data.firstName || ""}
                 onChangeText={(text) => handleChange("firstName", text)}
                 editable={!loading}
@@ -324,7 +324,7 @@ export default function SignupScreen() {
             <View className="flex-1">
               <TextInput
                 placeholder="Last Name"
-                placeholderTextColor={colors.text_secondary}
+                placeholderTextColor={colors.text_tertiary}
                 value={data.lastName || ""}
                 onChangeText={(text) => handleChange("lastName", text)}
                 editable={!loading}
@@ -345,7 +345,7 @@ export default function SignupScreen() {
             <View className="flex-row gap-2 items-center">
               <TextInput
                 placeholder="Email *"
-                placeholderTextColor={colors.text_secondary}
+                placeholderTextColor={colors.text_tertiary}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={data.email || ""}
@@ -395,7 +395,7 @@ export default function SignupScreen() {
               <View className="flex-row gap-2">
                 <TextInput
                   placeholder="Email OTP *"
-                  placeholderTextColor={colors.text_secondary}
+                  placeholderTextColor={colors.text_tertiary}
                   keyboardType="number-pad"
                   maxLength={6}
                   value={data.email_otp || ""}
@@ -450,7 +450,7 @@ export default function SignupScreen() {
           <View className="w-full mb-5">
             <TextInput
               placeholder="Phone *"
-              placeholderTextColor={colors.text_secondary}
+              placeholderTextColor={colors.text_tertiary}
               keyboardType="phone-pad"
               value={data.phone || ""}
               onChangeText={(text) => handleChange("phone", text)}
@@ -495,7 +495,7 @@ export default function SignupScreen() {
           <View className="w-full mb-5">
             <TextInput
               placeholder="Address *"
-              placeholderTextColor={colors.text_secondary}
+              placeholderTextColor={colors.text_tertiary}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -554,7 +554,7 @@ export default function SignupScreen() {
               onPress={() => setAcceptedTerms(!acceptedTerms)}
               className="flex-1"
             >
-              <Text className="text-xs leading-5" style={{ color: colors.text_secondary }}>
+              <Text className="text-xs leading-5" style={{ color: colors.text_tertiary }}>
                 By signing up, you agree to Dubeyo&apos;s{" "}
                 <Text className="underline" style={{ color: colors.primary }}>Terms of Service</Text>{" "}
                 and{" "}
@@ -606,7 +606,7 @@ export default function SignupScreen() {
 
           {/* Footer Sign In */}
           <View className="flex-row justify-center pb-4">
-            <Text className="text-sm" style={{ color: colors.text_secondary }}>
+            <Text className="text-sm" style={{ color: colors.text_tertiary }}>
               Already have an account?{" "}
               <Text
                 className="font-semibold"

@@ -76,7 +76,9 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       }
 
       if (!categoryId) {
-        throw new Error("Category not found");
+        setError("Category not found. Please try selecting a different category.");
+        setLoading(false);
+        return;
       }
 
       setCategoryName(name);
@@ -168,8 +170,12 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      statusBarTranslucent={true}
     >
-      <View className="flex-1 bg-black/60 justify-end">
+      <View 
+        className="flex-1 bg-black/60 justify-end"
+        style={{ zIndex: 10000 }}
+      >
         <TouchableOpacity
           className="flex-1"
           onPress={onClose}
@@ -177,8 +183,14 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
         />
 
         <View
-          className="rounded-t-[30px] h-[65%] w-full overflow-hidden"
-          style={{ backgroundColor: colors.bg_white }}
+          className="rounded-t-[30px] w-full overflow-hidden"
+          style={{ 
+            backgroundColor: colors.bg_white,
+            height: '75%',
+            zIndex: 10001,
+            marginBottom: 0,
+            paddingBottom: 0,
+          }}
         >
           <View
             className="p-6 border-b flex-row justify-between items-center"
