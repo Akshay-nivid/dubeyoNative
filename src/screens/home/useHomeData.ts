@@ -78,10 +78,10 @@ export const useHomeData = () => {
         fetchProfile().catch(() => ({ data: { firstName: "User", profilePic: null } })),
       ]);
 
-      const categoriesData = categoryRes?.data || [];
-      const suggestedData = suggestedRes?.data || [];
-      const trendingData = trendingRes?.data || [];
-      const newAdsData = newAdsRes?.data || [];
+      const categoriesData = Array.isArray(categoryRes?.data) ? categoryRes.data : [];
+      const suggestedData = Array.isArray(suggestedRes?.data) ? suggestedRes.data : [];
+      const trendingData = Array.isArray(trendingRes?.data) ? trendingRes.data : [];
+      const newAdsData = Array.isArray(newAdsRes?.data) ? newAdsRes.data : [];
       const profileData = profileRes?.data || {};
 
       setCategories(categoriesData);
