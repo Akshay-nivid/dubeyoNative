@@ -1,22 +1,23 @@
+import { Api } from "@/src/screens/home/Api";
+import { get } from "@/src/services/api";
+import { getImages } from "@/src/services/imageLink/image";
 import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   Linking,
   Pressable,
   ScrollView,
+  Share,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import { get } from "@/src/services/api";
-import { getImages } from "@/src/services/imageLink/image";
-import { Api } from "@/src/screens/home/Api";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -81,10 +82,9 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
   }, [productId]);
 
   const handleShare = async () => {
-    // For React Native, we can use expo-sharing or Linking
     try {
       const shareUrl = `dubeyoapp://product/${productId}`;
-      await Linking.share({
+      await Share.share({
         message: `${product?.title}\n${product?.description || ""}\n${shareUrl}`,
         url: shareUrl,
       });
@@ -112,36 +112,32 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
     }
   };
 
-  const handleInterested = () => {
+  const handleWhatsApp = () => {
+    if (product?.seller?.phone) {
+      Linking.openURL(`https://wa.me/${product.seller.phone.replace(/[^0-9]/g, '')}`);
+    } else {
+      Toast.show({
+        type: "info",
+        text1: "Phone number not available",
+      });
+    }
+  };
+
+  const handleChat = () => {
     Toast.show({
       type: "success",
-      text1: "Interest sent",
-      text2: "The seller will be notified",
+      text1: "Chat",
+      text2: "Chat feature coming soon",
     });
   };
 
-  const goToNext = () => {
-    if (imageUrls.length > 1 && imageScrollRef.current) {
-      const nextIndex = (currentImageIndex + 1) % imageUrls.length;
-      setCurrentImageIndex(nextIndex);
-      imageScrollRef.current.scrollTo({ x: nextIndex * SCREEN_WIDTH, animated: true });
-    }
-  };
-
-  const goToPrevious = () => {
-    if (imageUrls.length > 1 && imageScrollRef.current) {
-      const prevIndex = (currentImageIndex - 1 + imageUrls.length) % imageUrls.length;
-      setCurrentImageIndex(prevIndex);
-      imageScrollRef.current.scrollTo({ x: prevIndex * SCREEN_WIDTH, animated: true });
-    }
-  };
 
   if (loading) {
     return (
       <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg_primary }}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text className="mt-4 text-base" style={{ color: colors.text_secondary }}>
+          <Text className="mt-2 text-base" style={{ color: colors.text_secondary }}>
             Loading product details...
           </Text>
         </View>
@@ -187,6 +183,28 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
   const hasMoreSpecs = specsEntries.length > initialLimit;
   const displayedSpecs = showAllDetails ? specsEntries : specsEntries.slice(0, initialLimit);
 
+  // Extract features/verification badges from product data
+  const features = product.features || product.verificationBadges || product.badges || [];
+  const featuresArray = Array.isArray(features) ? features : [];
+
+  // Extract basic specs from product or specs object
+  const getSpecValue = (key: string, fallback?: string) => {
+    if (specs[key] && typeof specs[key] === 'object' && 'value' in specs[key]) {
+      return specs[key].value;
+    }
+    if (specs[key]) {
+      return specs[key];
+    }
+    if (product[key]) {
+      return product[key];
+    }
+    return fallback;
+  };
+
+  const year = getSpecValue('year') || getSpecValue('modelYear') || getSpecValue('model_year');
+  const mileage = getSpecValue('mileage') || getSpecValue('odometer') || getSpecValue('km');
+  const fuelType = getSpecValue('fuelType') || getSpecValue('fuel') || getSpecValue('fuel_type');
+
   const currency = product.currency || "AED";
   const originalPrice = parseFloat(product.price) || 0;
   const finalPrice =
@@ -202,7 +220,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 80 }}
       >
         {/* Header with back and share buttons */}
         <View className="absolute top-0 left-0 right-0 z-10 flex-row justify-between items-center px-4 pt-2 pb-2">
@@ -280,43 +298,18 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                 </View>
               )}
 
-              {/* Image Counter */}
+              {/* Image Counter - Bottom Left */}
               {imageUrls.length > 1 && (
                 <View
-                  className="absolute top-16 right-4 px-3 py-1 rounded-full"
-                  style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+                  className="absolute bottom-4 left-4 px-3 py-1 rounded"
+                  style={{ backgroundColor: "rgba(255,255,255,0.8)" }}
                 >
-                  <Text className="text-sm font-semibold" style={{ color: colors.text_white }}>
+                  <Text className="text-sm font-semibold" style={{ color: colors.text_primary }}>
                     {currentImageIndex + 1}/{imageUrls.length}
                   </Text>
                 </View>
               )}
 
-              {/* Navigation Arrows */}
-              {imageUrls.length > 1 && (
-                <>
-                  <Pressable
-                    onPress={goToPrevious}
-                    className="absolute left-4 top-1/2 w-10 h-10 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor: "rgba(255,255,255,0.9)",
-                      transform: [{ translateY: -20 }],
-                    }}
-                  >
-                    <Ionicons name="chevron-back" size={24} color={colors.text_primary} />
-                  </Pressable>
-                  <Pressable
-                    onPress={goToNext}
-                    className="absolute right-4 top-1/2 w-10 h-10 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor: "rgba(255,255,255,0.9)",
-                      transform: [{ translateY: -20 }],
-                    }}
-                  >
-                    <Ionicons name="chevron-forward" size={24} color={colors.text_primary} />
-                  </Pressable>
-                </>
-              )}
             </>
           ) : currentImage ? (
             <Image
@@ -338,170 +331,257 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
         </View>
 
         {/* Product Info Card */}
-        <View className="bg-white rounded-t-3xl -mt-6 px-6 pt-6 pb-4">
-          <View className="flex-row justify-between items-start mb-4">
-            <Text className="text-2xl font-bold flex-1 pr-4" style={{ color: colors.text_primary }}>
-              {product.title || "Untitled Product"}
+        <View className="bg-white rounded-t-3xl -mt-6 px-6 pt-4 pb-3">
+          {/* Price and Seller Info Row */}
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-2xl font-bold" style={{ color: colors.text_primary }}>
+              {finalPrice > 0 ? `${currency} ${finalPrice.toLocaleString()}` : "Price on request"}
             </Text>
-            <Pressable onPress={handleToggleFavorite} className="ml-2">
-              <Ionicons
-                name={isFavorited ? "heart" : "heart-outline"}
-                size={28}
-                color={isFavorited ? "#dc2626" : colors.text_primary}
-              />
-            </Pressable>
+            {product?.seller && (
+              <View className="flex-row items-center">
+                <View
+                  className="w-10 h-10 rounded-full items-center justify-center mr-2"
+                  style={{ backgroundColor: colors.bg_secondary }}
+                >
+                  {product.seller.profilePic ? (
+                    <Image
+                      source={{ uri: product.seller.profilePic }}
+                      style={{ width: 40, height: 40, borderRadius: 20 }}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Ionicons name="person" size={20} color={colors.text_primary} />
+                  )}
+                </View>
+                <View>
+                  <Text className="text-sm font-semibold" style={{ color: colors.text_primary }}>
+                    {product.seller.name || "Seller"}
+                  </Text>
+                  <View className="flex-row items-center">
+                    <Text className="text-xs" style={{ color: colors.text_tertiary }}>
+                      Seller
+                    </Text>
+                    <Ionicons name="star" size={12} color="#fbbf24" style={{ marginLeft: 4 }} />
+                    <Text className="text-xs ml-1 font-semibold" style={{ color: colors.text_primary }}>
+                      4.4
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
 
-          <View className="mb-4">
+          {/* Car Model */}
+          <Text className="text-md font-bold mb-4" style={{ color: colors.text_primary }}>
+            {product.title || "Untitled Product"}
+          </Text>
+
+          {/* Basic Specs Row */}
+          {(year || mileage || fuelType) && (
+            <View className="flex-row items-center gap-3 mb-3">
+              {year && (
+                <View className="flex-row items-center">
+                  <Ionicons name="time-outline" size={16} color={colors.text_tertiary} />
+                  <Text className="text-sm ml-1" style={{ color: colors.text_tertiary }}>
+                    {year} model
+                  </Text>
+                </View>
+              )}
+              {mileage && (
+                <View className="flex-row items-center">
+                  <Ionicons name="speedometer-outline" size={16} color={colors.text_tertiary} />
+                  <Text className="text-sm ml-1" style={{ color: colors.text_tertiary }}>
+                    {mileage} {mileage.toString().includes('km') ? '' : 'km'}
+                  </Text>
+                </View>
+              )}
+              {fuelType && (
+                <View className="flex-row items-center">
+                  <Ionicons name="car-outline" size={16} color={colors.text_tertiary} />
+                  <Text className="text-sm ml-1" style={{ color: colors.text_tertiary }}>
+                    {fuelType}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Verification Badges / Features */}
+          {featuresArray.length > 0 && (
+            <View className="flex-row flex-wrap gap-2 mb-2">
+              {featuresArray.map((feature: any, index: number) => {
+                const featureName = typeof feature === 'string' ? feature : feature.name || feature.label || feature.title;
+                if (!featureName) return null;
+                return (
+                  <View key={index} className="px-3 py-1 rounded-full flex-row items-center" style={{ backgroundColor: "#10b981" }}>
+                    <Ionicons name="checkmark" size={14} color="#ffffff" />
+                    <Text className="text-xs font-semibold ml-1" style={{ color: "#ffffff" }}>
+                      {featureName}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Disclaimer */}
+          <View className="flex-row items-start mb-2">
+            <Ionicons name="alert-circle" size={16} color="#ef4444" style={{ marginTop: 2 }} />
+            <Text className="text-xs ml-2 flex-1" style={{ color: colors.text_tertiary }}>
+              This info is provided by the seller and is not verified by Dubeyoo.
+            </Text>
+          </View>
+        </View>
+
+
+        {/* Car Details Card */}
+        {specsEntries.length > 0 && (
+          <View className="bg-white mx-4 mt-3 rounded-2xl p-4">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-lg font-bold" style={{ color: colors.text_primary }}>
+                Car Details
+              </Text>
+              {hasMoreSpecs && (
+                <Pressable onPress={() => setShowAllDetails(!showAllDetails)}>
+                  <Text className="text-md font-bold" style={{ color: colors.bg_black }}>
+                    {showAllDetails ? "Less" : "More"}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+            <View className="gap-1">
+              {displayedSpecs.map(([key, value]) => {
+                // Handle specs that have a 'value' property
+                const specValue = value && typeof value === 'object' && 'value' in value 
+                  ? (value as any).value 
+                  : value;
+                const displayKey = value && typeof value === 'object' && 'label' in value
+                  ? (value as any).label
+                  : key;
+                const displayValue = specValue !== null && specValue !== undefined ? String(specValue) : '';
+                return (
+                  <View key={key} className="flex-row justify-between items-center py-1.5 border-b" style={{ borderBottomColor: colors.border_primary }}>
+                    <Text className="text-sm flex-1" style={{ color: colors.text_tertiary }}>
+                      {displayKey}:
+                    </Text>
+                    <Text className="text-sm font-semibold flex-1 text-right" style={{ color: colors.text_primary }}>
+                      {displayValue}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Description Section */}
+        {description && (
+          <View className="bg-white mx-4 mt-3 rounded-2xl p-4">
+            <Text className="text-lg font-bold mb-2" style={{ color: colors.text_primary }}>
+              Description
+            </Text>
             <Text className="text-base leading-6" style={{ color: colors.text_primary }}>
               {displayDescription}
               {hasMoreDescription && (
                 <Text
                   onPress={() => setShowFullDescription(!showFullDescription)}
-                  className="font-semibold"
-                  style={{ color: colors.primary }}
+                  className="font-bold"
+                  style={{ color: colors.bg_black }}
                 >
                   {showFullDescription ? " Less" : " More"}
                 </Text>
               )}
             </Text>
           </View>
+        )}
 
-          <View className="flex-row items-baseline gap-3 mb-6">
-            {hasDiscount && originalPrice > 0 && (
-              <Text className="text-lg line-through" style={{ color: colors.text_tertiary }}>
-                {currency} {originalPrice.toFixed(2)}
-              </Text>
-            )}
-            <Text className="text-3xl font-bold" style={{ color: colors.primary }}>
-              {finalPrice > 0 ? `${currency} ${finalPrice.toFixed(2)}` : "Price on request"}
+        {/* Posted On */}
+        {product.createdAt && (
+          <View className="bg-white mx-4 mt-3 rounded-2xl p-4">
+            <Text className="text-sm" style={{ color: colors.text_tertiary }}>
+              Posted On: {new Date(product.createdAt).toLocaleDateString('en-US', { 
+                day: 'numeric', 
+                month: 'long', 
+                year: 'numeric' 
+              })}
             </Text>
           </View>
-        </View>
-
-        {/* Seller Information Card */}
-        {product?.seller && (
-          <View className="bg-white mx-4 mt-4 rounded-2xl p-5">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                <View
-                  className="w-14 h-14 rounded-full items-center justify-center mr-4"
-                  style={{ backgroundColor: colors.bg_secondary }}
-                >
-                  <Ionicons name="person" size={28} color={colors.text_primary} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-lg font-bold mb-1" style={{ color: colors.text_primary }}>
-                    {product.seller.name || "Seller"}
-                  </Text>
-                  <Text className="text-sm" style={{ color: colors.text_tertiary }}>
-                    Active Seller
-                  </Text>
-                </View>
-              </View>
-              <View className="flex-row items-center px-3 py-1 rounded-full" style={{ backgroundColor: colors.bg_secondary }}>
-                <Ionicons name="star" size={16} color="#fbbf24" />
-                <Text className="ml-1 text-sm font-semibold" style={{ color: colors.text_primary }}>
-                  4.4
-                </Text>
-              </View>
-            </View>
-            <View className="mt-3 pt-3 border-t" style={{ borderColor: colors.border_primary }}>
-              <View className="flex-row items-center">
-                <View className="px-3 py-1 rounded-full mr-2" style={{ backgroundColor: colors.bg_secondary }}>
-                  <Text className="text-xs font-semibold" style={{ color: colors.primary }}>
-                    Fast Responder
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
         )}
 
-        {/* Product Details Card */}
-        {specsEntries.length > 0 && (
-          <View className="bg-white mx-4 mt-4 rounded-2xl p-5">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-xl font-bold" style={{ color: colors.text_primary }}>
-                Product Details
+        {/* Location Section */}
+        <View className="bg-white mx-4 mt-3 rounded-2xl p-4">
+          <Text className="text-lg font-bold mb-2" style={{ color: colors.text_primary }}>
+            Location
+          </Text>
+          <View className="flex-row justify-between items-start mb-2">
+            <Text className="text-base flex-1" style={{ color: colors.text_primary }}>
+              {product.location || product.address || "P.O. Box 39613, Dubai, UAE Emirates"}
+            </Text>
+            <Pressable>
+              <Text className="text-sm font-semibold" style={{ color: colors.primary }}>
+                Edit
               </Text>
-              {hasMoreSpecs && (
-                <Pressable onPress={() => setShowAllDetails(!showAllDetails)}>
-                  <Text className="text-sm font-semibold" style={{ color: colors.primary }}>
-                    {showAllDetails ? "View Less" : "View All"}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-            <View className="gap-3">
-              {displayedSpecs.map(([key, value]) => (
-                <View key={key} className="flex-row items-center py-2">
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: colors.bg_secondary }}>
-                    <Text className="text-lg">
-                      {key.toLowerCase().includes("fuel") && "⛽"}
-                      {key.toLowerCase().includes("color") && "🎨"}
-                      {key.toLowerCase().includes("mileage") && "📊"}
-                      {key.toLowerCase().includes("power") && "⚡"}
-                      {key.toLowerCase().includes("engine") && "🔧"}
-                      {!key.toLowerCase().includes("fuel") &&
-                        !key.toLowerCase().includes("color") &&
-                        !key.toLowerCase().includes("mileage") &&
-                        !key.toLowerCase().includes("power") &&
-                        !key.toLowerCase().includes("engine") &&
-                        "📋"}
-                    </Text>
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm mb-1" style={{ color: colors.text_tertiary }}>
-                      {key}
-                    </Text>
-                    <Text className="text-base font-semibold" style={{ color: colors.text_primary }}>
-                      {String(value)}
-                    </Text>
-                  </View>
-                </View>
-              ))}
+            </Pressable>
+          </View>
+          <View className="bg-gray-200 rounded-lg overflow-hidden" style={{ minHeight: 200 }}>
+            <View className="items-center justify-center" style={{ minHeight: 200 }}>
+              <Ionicons name="map-outline" size={48} color={colors.text_tertiary} />
+              <Text className="mt-4 text-base font-semibold" style={{ color: colors.text_primary }}>
+                Map View
+              </Text>
             </View>
           </View>
-        )}
-
-        {/* Map Section Placeholder */}
-        <View className="bg-white mx-4 mt-4 rounded-2xl p-6 items-center justify-center" style={{ minHeight: 200 }}>
-          <Ionicons name="map-outline" size={48} color={colors.text_tertiary} />
-          <Text className="mt-4 text-base font-semibold" style={{ color: colors.text_primary }}>
-            Location Map
-          </Text>
-          <Text className="mt-2 text-sm" style={{ color: colors.text_tertiary }}>
-            Map integration coming soon
-          </Text>
         </View>
 
-        <View className="h-24" />
+        {/* Report Ad Button */}
+        <View className="mx-4 mt-3 mb-6">
+          <Pressable
+            className="w-full py-3 rounded-xl items-center"
+            style={{ backgroundColor: "#000000" }}
+          >
+            <Text className="text-base font-semibold" style={{ color: "#ffffff" }}>
+              Report ad
+            </Text>
+          </Pressable>
+        </View>
+
+        <View className="h-20" />
       </ScrollView>
 
       {/* Action Buttons - Fixed at bottom */}
       <View
-        className="absolute bottom-0 left-0 right-0 flex-row px-4 pb-6 pt-4 gap-3"
+        className="absolute bottom-0 left-0 right-0 flex-row px-4 pb-4 pt-3"
         style={{
-          backgroundColor: colors.bg_primary,
+          backgroundColor: "#ffffff",
           borderTopWidth: 1,
           borderTopColor: colors.border_primary,
         }}
       >
         <Pressable
           onPress={handleCall}
-          className="w-14 h-14 items-center justify-center rounded-xl"
-          style={{ backgroundColor: colors.primary }}
+          className="flex-1 items-center py-2"
         >
-          <Ionicons name="call" size={24} color={colors.text_white} />
+          <Ionicons name="call" size={24} color={colors.text_primary} />
+          <Text className="text-xs mt-1" style={{ color: colors.text_primary }}>
+            Call
+          </Text>
         </Pressable>
         <Pressable
-          onPress={handleInterested}
-          className="flex-1 h-14 items-center justify-center rounded-xl"
-          style={{ backgroundColor: colors.primary }}
+          onPress={handleWhatsApp}
+          className="flex-1 items-center py-2"
         >
-          <Text className="text-base font-semibold" style={{ color: colors.text_white }}>
-            I&apos;m interested
+          <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+          <Text className="text-xs mt-1" style={{ color: colors.text_primary }}>
+            Whatsapp
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={handleChat}
+          className="flex-1 items-center py-2"
+        >
+          <Ionicons name="chatbubble-outline" size={24} color={colors.text_primary} />
+          <Text className="text-xs mt-1" style={{ color: colors.text_primary }}>
+            Chat
           </Text>
         </Pressable>
       </View>

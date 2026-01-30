@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { RefreshControl, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import BottomNavigationBar from "@/src/components/BottomNavigationBar";
 import LocationPicker from "@/src/components/LocationPicker";
 import CategoryList from "./CategoryList";
 import ClassifiedShowCard from "./ClassifiedShowCard";
@@ -92,8 +93,10 @@ const HomeScreen = () => {
           images={signedImages.newads}
         />
 
-        <View className="h-24" />
+        <View className="h-32" />
       </ScrollView>
+
+      <BottomNavigationBar />
 
       <ClassifiedShowCard
         open={subcategoriesOpen}

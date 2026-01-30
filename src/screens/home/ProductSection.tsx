@@ -62,26 +62,6 @@ const ProductSection: React.FC<ProductSectionProps> = ({
                   style={{ height: 120 }}
                   resizeMode="cover"
                 />
-                {/* Heart Icon Overlay */}
-                <TouchableOpacity 
-                  className="absolute top-2 right-2"
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    // TODO: Handle favorite toggle
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <View style={{ 
-                    backgroundColor: '#fff',
-                    borderRadius: 12,
-                    width: 24,
-                    height: 23,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Ionicons name="heart-outline" size={16} color="#000" />
-                  </View>
-                </TouchableOpacity>
               </View>
               <View className="p-3">
                 <Text
