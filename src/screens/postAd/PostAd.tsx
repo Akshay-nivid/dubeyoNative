@@ -2,9 +2,10 @@ import { post } from "@/src/services/api";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useUserLocation } from "../../hooks/useUserLocation";
@@ -51,7 +52,7 @@ const PostAd = () => {
         }
 
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             allowsMultipleSelection: true,
             selectionLimit: 4 - photos.length,
             quality: 1,
@@ -187,61 +188,82 @@ const PostAd = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
-            {/* Header */}
-            <View className="px-4 py-2 flex-row items-center">
-                <TouchableOpacity
-                    onPress={() => router.back()}
-                    className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100"
-                >
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </TouchableOpacity>
-
-                <View className="ml-4">
-                    <Text className="text-xl font-bold text-gray-900">Post ad</Text>
-                    <TouchableOpacity className="flex-row items-center">
-                        <Text className="text-gray-600 text-sm mr-1">{place || "Detecting location..."}</Text>
-                        <Ionicons name="caret-down-sharp" size={12} color="#000" />
+        <LinearGradient
+            colors={['#F3E8FF', '#FCE7F3', '#E0F2FE']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flex: 1 }}
+        >
+            <SafeAreaView className="flex-1 bg-transparent" edges={['top']}>
+                {/* Header */}
+                <View className="px-4 py-2 flex-row items-center">
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100"
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
-                </View>
-            </View>
 
-            <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
-                {/* Images Section */}
-                {renderImagesSection()}
-
-                {/* Description Section */}
-                <View className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100 mb-8">
-                    <Text className="text-xl font-bold text-gray-900 mb-4 tracking-tight">Description</Text>
-                    <View className="bg-gray-50 rounded-3xl p-5 h-44 border border-gray-100/50">
-                        <TextInput
-                            placeholder="Describe what you're selling..."
-                            className="flex-1 text-base text-gray-900"
-                            multiline
-                            textAlignVertical="top"
-                            value={description}
-                            onChangeText={setDescription}
-                            placeholderTextColor="#9CA3AF"
-                        />
+                    <View className="ml-4">
+                        <Text className="text-xl font-bold text-gray-900">Post ad</Text>
+                        <TouchableOpacity className="flex-row items-center">
+                            <Text className="text-gray-600 text-sm mr-1">{place || "Detecting location..."}</Text>
+                            <Ionicons name="caret-down-sharp" size={12} color="#000" />
+                        </TouchableOpacity>
                     </View>
-                    <Text className="text-gray-400 text-sm mt-3 leading-5">
-                        AI will expand, refine, and organize this into professional product details.
-                    </Text>
                 </View>
 
-                {/* Analyze Button */}
-                <TouchableOpacity
-                    className={`py-4 rounded-xl items-center justify-center flex-row mb-10 w-full ${(!description.trim() || photos.length === 0) ? 'bg-gray-200' : ''}`}
-                    style={(!description.trim() || photos.length === 0) ? {} : { backgroundColor: 'rgb(8, 145, 178)' }}
-                    onPress={handleContinue}
-                    disabled={loading || !description.trim() || photos.length === 0}
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={{ flex: 1 }}
                 >
-                    <Ionicons name="sparkles" size={18} color={(!description.trim() || photos.length === 0) ? "#9CA3AF" : "#FFF"} style={{ marginRight: 8 }} />
-                    <Text className={`font-bold text-lg ${(!description.trim() || photos.length === 0) ? 'text-gray-400' : 'text-white'}`}>Continue with AI</Text>
-                </TouchableOpacity>
+                    <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
+                        {/* Images Section */}
+                        {renderImagesSection()}
+                    </ScrollView>
 
-            </ScrollView>
-        </SafeAreaView>
+                    {/* Chat Input Section - Bottom Aligned */}
+                    <View className="px-4 pb-4">
+                        <View className="bg-white/80 rounded-[22px] p-5 shadow-xl shadow-black/10 border-2 border-white/90">
+                            <View className="flex-row">
+                                {!description && (
+                                    <View className="mr-2 mt-1">
+                                        <Ionicons name="sparkles" size={18} color="#9CA3AF" />
+                                    </View>
+                                )}
+                                <TextInput
+                                    placeholder="Type the Description...."
+                                    className="flex-1 text-base text-gray-900 min-h-[80px] pt-0.5"
+                                    value={description}
+                                    onChangeText={setDescription}
+                                    placeholderTextColor="#9CA3AF"
+                                    multiline
+                                    textAlignVertical="top"
+                                />
+                            </View>
+                            <View className="flex-row items-center justify-between mt-2 px-1">
+                                {/* Waveform Icon */}
+                                <TouchableOpacity className="flex-row items-center h-8 gap-[3px]" activeOpacity={0.7}>
+                                    <View className="w-[3px] h-3 bg-black rounded-full" />
+                                    <View className="w-[3px] h-5 bg-black rounded-full" />
+                                    <View className="w-[3px] h-8 bg-black rounded-full" />
+                                    <View className="w-[3px] h-5 bg-black rounded-full" />
+                                    <View className="w-[3px] h-3 bg-black rounded-full" />
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={handleContinue}
+                                    disabled={loading || !description.trim() || photos.length === 0}
+                                    className={`w-12 h-12 rounded-xl items-center justify-center ${(!description.trim() || photos.length === 0) ? 'bg-gray-200' : 'bg-black'}`}
+                                >
+                                    <Ionicons name="arrow-up" size={24} color="#FFF" />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </LinearGradient>
     );
 };
 

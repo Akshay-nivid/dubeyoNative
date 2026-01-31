@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 const LOCATION_STORAGE_KEY = 'dubeyo_selected_location';
@@ -28,11 +28,11 @@ export const useUserLocation = () => {
                     addr.city || addr.district || addr.subregion,
                     addr.region || addr.subregion
                 ].filter((part): part is string => Boolean(part));
-                
+
                 if (parts.length > 0) {
                     return parts.join(', ').toLowerCase();
                 }
-                
+
                 // Fallback: try other address components
                 const fallbackParts = [
                     addr.name,
@@ -40,7 +40,7 @@ export const useUserLocation = () => {
                     addr.district,
                     addr.subregion
                 ].filter((part): part is string => Boolean(part));
-                
+
                 if (fallbackParts.length > 0) {
                     return fallbackParts[0];
                 }
@@ -108,10 +108,10 @@ export const useUserLocation = () => {
             // Try to load stored location first
             let storedLocation: LocationData | null = null;
             try {
-                const stored = Platform.OS === 'web' 
+                const stored = Platform.OS === 'web'
                     ? localStorage.getItem(LOCATION_STORAGE_KEY)
                     : await SecureStore.getItemAsync(LOCATION_STORAGE_KEY);
-                
+
                 if (stored) {
                     storedLocation = JSON.parse(stored);
                 }
@@ -133,7 +133,7 @@ export const useUserLocation = () => {
                 }
             } else {
                 // If stored location exists but place name is missing or is coordinates, fetch it
-                if (!storedLocation.place || 
+                if (!storedLocation.place ||
                     storedLocation.place.match(/^-?\d+\.?\d*,\s*-?\d+\.?\d*$/)) {
                     const placeName = await getPlaceName(
                         storedLocation.coordinates.lat,
@@ -167,7 +167,7 @@ export const useUserLocation = () => {
         try {
             // Ensure place name is set (if missing or is coordinates, fetch it)
             let locationToStore = { ...newLocation };
-            if (!locationToStore.place || 
+            if (!locationToStore.place ||
                 locationToStore.place.match(/^-?\d+\.?\d*,\s*-?\d+\.?\d*$/)) {
                 const placeName = await getPlaceName(
                     locationToStore.coordinates.lat,
@@ -175,7 +175,7 @@ export const useUserLocation = () => {
                 );
                 locationToStore.place = placeName;
             }
-            
+
             // Store the selected location
             const locationString = JSON.stringify(locationToStore);
             if (Platform.OS === 'web') {
@@ -183,7 +183,7 @@ export const useUserLocation = () => {
             } else {
                 await SecureStore.setItemAsync(LOCATION_STORAGE_KEY, locationString);
             }
-            
+
             setLocation(locationToStore);
         } catch (error) {
             console.error('Error saving location:', error);
@@ -206,7 +206,7 @@ export const useUserLocation = () => {
         ...location,
         loading,
         updateLocation,
-        useCurrentLocation,
+        refreshCurrentLocation: useCurrentLocation,
         getPlaceName,
         getCoordinatesFromName,
     };

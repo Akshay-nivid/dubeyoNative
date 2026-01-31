@@ -23,7 +23,7 @@ async function request(method: string, url: string, options: any = {}) {
       console.log("Validation Errors:", JSON.stringify(err.response?.data, null, 2));
     }
     return {
-      data: null,
+      data: error.details || null,
       status: error.status ?? 400,
       token: null,
       message: error.message,

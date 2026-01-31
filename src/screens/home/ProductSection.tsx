@@ -17,7 +17,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
 }) => {
   const router = useRouter();
 
-  if (!products || products.length === 0) return null;
+  if (!products || !Array.isArray(products) || products.length === 0) return null;
 
   return (
     <View className="mb-6">

@@ -123,25 +123,25 @@ export default function LoginScreen() {
     };
 
     return (
-        <View className="flex-1" style={{ backgroundColor: colors.bg_primary }}>
+        <View className="flex-1" style={{ backgroundColor: colors.palette_light_cream }}>
             <ScrollView
                 contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
                 className="flex-1"
-                style={{ backgroundColor: colors.bg_primary }}
+                style={{ backgroundColor: colors.palette_light_cream }}
                 showsVerticalScrollIndicator={false}
             >
                 <View className="flex-1 items-center justify-center px-6 py-8">
-                    <View className="items-center mb-8">
-                        <Logo width={200} height={200} />
+                    <View className="w-full items-center mt-12 mb-16">
+                        <Logo width={200} height={60} />
                     </View>
-                    <Text className="mb-8 text-center text-xl font-semibold" style={{ color: colors.text_primary }}>
+                    <Text className="mb-8 text-center text-xl font-semibold" style={{ color: colors.palette_dark_blue }}>
                         Login to your Account
                     </Text>
                     <View className="w-full max-w-md">
                         <View className="mb-4 w-full">
                             <TextInput
                                 placeholder="Email"
-                                placeholderTextColor={colors.text_secondary}
+                                placeholderTextColor={colors.bg_gray_400}
                                 autoCapitalize="none"
                                 keyboardType="email-address"
                                 value={email}
@@ -152,7 +152,7 @@ export default function LoginScreen() {
                                     backgroundColor: colors.bg_white,
                                     borderColor: colors.border_primary,
                                     borderWidth: 1,
-                                    color: colors.text_primary
+                                    color: colors.palette_dark_blue
                                 }}
                             />
                         </View>
@@ -160,13 +160,13 @@ export default function LoginScreen() {
                             <View className="w-full rounded-xl px-4 py-3.5 flex-row items-center" style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary, borderWidth: 1 }}>
                                 <TextInput
                                     placeholder="Password"
-                                    placeholderTextColor={colors.text_secondary}
+                                    placeholderTextColor={colors.bg_gray_400}
                                     secureTextEntry={!showPassword}
                                     value={password}
                                     onChangeText={setPassword}
                                     editable={!loading}
                                     className="flex-1 text-base"
-                                    style={{ color: colors.text_primary }}
+                                    style={{ color: colors.palette_dark_blue }}
                                 />
                                 <Pressable
                                     onPress={() => setShowPassword(!showPassword)}
@@ -185,7 +185,7 @@ export default function LoginScreen() {
                             disabled={loading}
                             className="mb-8 w-full rounded-xl py-4"
                             style={{
-                                backgroundColor: loading ? colors.bg_gray_400 : colors.primary,
+                                backgroundColor: loading ? colors.bg_gray_400 : colors.palette_dark_blue,
                                 shadowColor: "#000",
                                 shadowOffset: { width: 0, height: 2 },
                                 shadowOpacity: 0.15,
@@ -196,13 +196,13 @@ export default function LoginScreen() {
                             {loading ? (
                                 <ActivityIndicator color={colors.text_light} />
                             ) : (
-                                <Text className="text-center text-base font-semibold" style={{ color: colors.text_light }}>
+                                <Text className="text-center text-base font-semibold" style={{ color: colors.palette_light_cream }}>
                                     Sign in
                                 </Text>
                             )}
                         </Pressable>
                         <View className="mb-6">
-                            <Text className="text-center text-sm" style={{ color: colors.text_secondary }}>
+                            <Text className="text-center text-sm" style={{ color: colors.bg_gray_400 }}>
                                 — Or sign in with —
                             </Text>
                         </View>
@@ -224,13 +224,13 @@ export default function LoginScreen() {
                                 {googleLoading ? (
                                     <ActivityIndicator size="small" color={colors.icon_primary} />
                                 ) : (
-                                    <Text className="text-xl font-bold" style={{ color: colors.text_primary }}>G</Text>
+                                    <Text className="text-xl font-bold" style={{ color: colors.palette_dark_blue }}>G</Text>
                                 )}
                             </Pressable>
                             <Pressable
                                 className="h-12 w-12 items-center justify-center rounded-xl"
                                 style={{
-                                    backgroundColor: colors.primary,
+                                    backgroundColor: colors.palette_dark_blue,
                                     shadowColor: "#000",
                                     shadowOffset: { width: 0, height: 1 },
                                     shadowOpacity: 0.05,
@@ -238,7 +238,7 @@ export default function LoginScreen() {
                                     elevation: 2,
                                 }}
                             >
-                                <Text className="text-base font-bold" style={{ color: colors.text_light }}>f</Text>
+                                <Text className="text-base font-bold" style={{ color: colors.palette_light_cream }}>f</Text>
                             </Pressable>
                             <Pressable
                                 className="h-12 w-12 items-center justify-center rounded-xl border"
@@ -252,15 +252,15 @@ export default function LoginScreen() {
                                     elevation: 2,
                                 }}
                             >
-                                <Text className="text-base font-bold" style={{ color: colors.primary }}>𝕏</Text>
+                                <Text className="text-base font-bold" style={{ color: colors.palette_dark_blue }}>𝕏</Text>
                             </Pressable>
                         </View>
                         <View className="flex-row justify-center">
-                            <Text className="text-sm" style={{ color: colors.text_secondary }}>
+                            <Text className="text-sm" style={{ color: colors.bg_gray_400 }}>
                                 Don&apos;t have an account?{" "}
                                 <Text
                                     className="font-semibold"
-                                    style={{ color: colors.text_primary }}
+                                    style={{ color: colors.palette_dark_blue }}
                                     onPress={() => router.push("/signup")}
                                 >
                                     Sign up

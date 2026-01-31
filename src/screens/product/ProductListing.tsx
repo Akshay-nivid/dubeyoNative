@@ -433,8 +433,8 @@ const ProductListingScreen: React.FC = () => {
   const renderProduct = ({ item: p, index }: { item: any; index: number }) => {
     const id = p.product_id || p.id;
     const noImageUrl = "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg";
-    const img = signedImages[id] && !signedImages[id].includes("undefined") 
-      ? signedImages[id] 
+    const img = signedImages[id] && !signedImages[id].includes("undefined")
+      ? signedImages[id]
       : noImageUrl;
 
     // Ensure all values are primitives, not objects

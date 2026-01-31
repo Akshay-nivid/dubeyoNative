@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
-    Animated, // Added Animated
+    Animated, 
     ScrollView,
     Text,
     TextInput,
@@ -28,7 +28,7 @@ const GENERATION_STEPS = {
 const PostAdDetails = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const { coordinates } = useUserLocation();
+    const { coordinates, refreshCurrentLocation } = useUserLocation();
 
     // From params
     const initialDescription = params.description as string;
@@ -60,6 +60,10 @@ const PostAdDetails = () => {
     const [imageKeys, setImageKeys] = useState<string[]>([]);
     const [questionAnswers, setQuestionAnswers] = useState<any>({});
 
+    // Division fallback state
+    const [divisions, setDivisions] = useState<any[]>([]);
+    const [isLoadingDivisions, setIsLoadingDivisions] = useState(false);
+
     const normalizeFieldKey = (field: string) =>
         field
             .toLowerCase()
@@ -68,13 +72,13 @@ const PostAdDetails = () => {
 
     const hasValidSpecs = useMemo(() => {
         if (!data?.specs) {
-            console.log('hasValidSpecs: No specs in data');
+
             return false;
         }
         const hasSpecs = Object.values(data.specs).some(
             (v) => v !== null && v !== "" && v !== undefined
         );
-        console.log('hasValidSpecs:', hasSpecs, 'Specs:', data.specs);
+
         return hasSpecs;
     }, [data.specs]);
 
@@ -107,34 +111,55 @@ const PostAdDetails = () => {
     }, []);
 
     // Filter subcategories locally when category changes
-    // Filter subcategories locally when category changes
     useEffect(() => {
-        console.log("Filtering Effect Triggered", {
-            categoryId: data.categoryId,
-            allSubcategoriesCount: allSubcategories.length
-        });
-
         if (data.categoryId && allSubcategories.length > 0) {
             const filtered = allSubcategories.filter((sub: any) => {
                 const subCatId = sub.categoryId || sub.category_id || sub.category?.id;
-                // Log mismatch/match for debugging first few items
-                // console.log(`Checking sub ${sub.name}: ${subCatId} === ${data.categoryId}`);
                 return subCatId === data.categoryId;
             });
-            console.log("Filtered count:", filtered.length);
+
             setSubcategories(filtered);
         } else {
-            console.log("Clearing subcategories (condition not met)");
             setSubcategories([]);
         }
     }, [data.categoryId, allSubcategories]);
+
+    // Fetch divisions if subcategory changes
+    useEffect(() => {
+        const fetchDivisions = async () => {
+            if (!data.subcategoryId) {
+                setDivisions([]);
+                return;
+            }
+
+            try {
+                // If we don't have divisions yet, or subcategory changed, fetch them.
+                // We always fetch to allow changing the division even if one is pre-selected by AI.
+                setIsLoadingDivisions(true);
+                const res = await get(`${PostAdApi.divisionBySubcategory}?subCategoryId=${data.subcategoryId}`);
+
+                const divisionsData = res?.data?.data || res?.data || [];
+
+                if (Array.isArray(divisionsData)) {
+                    setDivisions(divisionsData);
+                } else {
+                    setDivisions([]);
+                }
+            } catch (error) {
+                console.error("Failed to fetch divisions", error);
+            } finally {
+                setIsLoadingDivisions(false);
+            }
+        };
+        fetchDivisions();
+    }, [data.subcategoryId]);
 
     /* ---------------- SPECS NORMALIZATION ---------------- */
     // The backend returns specs as complex objects with metadata:
     // { brand: { type: "text", label: "Brand", value: "Land Rover", options: [], instruction: "..." } }
     // We need to extract just the values for display
-    const normalizeSpecs = (specs: any = {}) => {
-        console.log('Normalizing specs:', specs);
+    const normalizeSpecs = (specs: Record<string, any> | any[] = {}) => {
+
 
         if (!specs || typeof specs !== 'object') return {};
 
@@ -145,7 +170,7 @@ const PostAdDetails = () => {
                     .filter((s: any) => s.value !== null && s.value !== undefined && s.value !== '')
                     .map((s: any) => [s.key || s.name || s.field || s.label, s.value])
             );
-            console.log('Normalized specs (from array):', normalized);
+
             return normalized;
         }
 
@@ -181,7 +206,7 @@ const PostAdDetails = () => {
                 })
         );
 
-        console.log('Normalized specs (from object):', normalized);
+
         return normalized;
     };
 
@@ -201,12 +226,11 @@ const PostAdDetails = () => {
                 // Ensure valid mime type, default to jpeg if unknown or missing
                 const safeType = (ext === 'jpg' || ext === 'jpeg' || ext === 'png' || ext === 'webp') ? ext : 'jpeg';
 
-                // @ts-ignore
                 formData.append('image', {
                     uri,
                     name: fileName,
                     type: `image/${safeType === 'jpg' ? 'jpeg' : safeType}`
-                });
+                } as any);
             });
 
             const res = await post(PostAdApi.previewProduct, formData, {
@@ -218,8 +242,6 @@ const PostAdDetails = () => {
                 setIsFormLoading(false);
                 return;
             }
-
-            console.log('Basic API Response:', JSON.stringify(res.data, null, 2));
 
             const basic = res.data;
             setImageKeys(basic.images || []);
@@ -235,7 +257,7 @@ const PostAdDetails = () => {
                 price: basic.price || "",
             };
 
-            console.log('UI Data after basic:', uiData);
+
             setData(uiData);
             setGenerationStep(GENERATION_STEPS.BASIC_FORM);
 
@@ -264,23 +286,28 @@ const PostAdDetails = () => {
             if (!res?.data) {
                 console.warn("Intermediate API returned no data");
             }
-            console.log('Intermediate API Response:', JSON.stringify(res.data, null, 2));
+
 
             const intermediate = res.data || {};
 
-            // Extract specs from root-level fields that have a 'value' property
-            const extractedSpecs: any = {};
+            // Extract specs logic:
+            // 1. Check if there is an explicit 'specs' object (which seemingly contains the specs)
+            let extractedSpecs: Record<string, any> = intermediate.specs || {};
+
+            // 2. Also look for root-level fields that might be specs (legacy behavior or mixed response)
             Object.entries(intermediate).forEach(([key, value]) => {
-                if (key === 'slug' || key === 'images' || key === 'questions') return;
+                if (key === 'slug' || key === 'images' || key === 'questions' || key === 'specs') return;
+
                 if (value && typeof value === 'object' && 'value' in value) {
                     const specObj = value as any;
+                    // If it looks like a spec object (has value property)
                     if (specObj.value !== null && specObj.value !== undefined && specObj.value !== '') {
                         extractedSpecs[key] = specObj;
                     }
                 }
             });
 
-            console.log('Extracted specs from intermediate:', extractedSpecs);
+
 
             // Merge intermediate data while preserving basic info
             setData((prev: any) => {
@@ -293,11 +320,11 @@ const PostAdDetails = () => {
                     subcategoryId: intermediate?.subcategory?.id || prev.subcategoryId,
                     category: intermediate.category || prev.category,
                     subcategory: intermediate.subcategory || prev.subcategory,
+                    divisionId: intermediate?.division?.id || prev.divisionId,
                     specs: normalizeSpecs(extractedSpecs),
                     price: intermediate.price || prev.price,
                 };
-                console.log('Merged data after intermediate:', merged);
-                console.log('Specs after intermediate:', merged.specs);
+
                 return merged;
             });
 
@@ -328,13 +355,12 @@ const PostAdDetails = () => {
                 },
             });
 
-            console.log('Final API Response:', JSON.stringify(res.data, null, 2));
+
 
             const finalPayload = res.data ?? res;
 
             // Extract questions from various possible locations
             const questionsData = finalPayload.questions || finalPayload.dynamicQuestions || finalPayload.additionalQuestions || [];
-            console.log('Extracted questions:', questionsData);
 
             if (questionsData && questionsData.length > 0) {
                 setQuestions(questionsData);
@@ -351,12 +377,11 @@ const PostAdDetails = () => {
                     subcategoryId: finalPayload?.subcategory?.id || prev.subcategoryId,
                     category: finalPayload.category || prev.category,
                     subcategory: finalPayload.subcategory || prev.subcategory,
+                    divisionId: finalPayload?.division?.id || prev.divisionId,
                     specs: normalizeSpecs(finalPayload.specs || finalPayload.specifications || prev.specs || {}),
                     price: finalPayload.price || prev.price,
                 };
-                console.log('Final merged data:', merged);
-                console.log('Final specs:', merged.specs);
-                console.log('Final questions:', questionsData);
+
                 return merged;
             });
             setIsFormLoading(false);
@@ -387,11 +412,23 @@ const PostAdDetails = () => {
 
     /* ---------------- SUBMIT ---------------- */
     const handleSubmit = async () => {
-        if (clicked) return;
+        if (clicked) {
+            return;
+        }
         setClicked(true);
 
-        if (!coordinates?.lat) {
-            Toast.show({ type: "error", text1: "Location Required", text2: "Enable location to post ad" });
+
+
+        // Check if coordinates valid (not 0,0 and passed existence check)
+        if (!coordinates || !coordinates.lat || coordinates.lat === 0) {
+            Toast.show({ type: "info", text1: "Location Required", text2: "Requesting location permission..." });
+            try {
+                // once the state updates.
+                refreshCurrentLocation();
+            } catch (err) {
+                console.error("Failed to request location", err);
+            }
+            Toast.show({ type: "error", text1: "Location not found", text2: "Please enable location and try again" });
             setClicked(false);
             return;
         }
@@ -400,23 +437,66 @@ const PostAdDetails = () => {
             const rawPrice = Number(data.price);
             const normalizedPrice = isNaN(rawPrice) ? 0 : rawPrice;
 
-            const res = await post(PostAdApi.createProduct, {
+            // Format complex specs for backend
+            const formattedSpecs: any = {};
+
+            // 1. Process existing numeric/text specs
+            if (data.specs) {
+                Object.entries(data.specs).forEach(([k, v]) => {
+                    formattedSpecs[k] = { value: v, label: k };
+                });
+            }
+
+            // 2. Process question answers
+            Object.entries(questionAnswers).forEach(([k, v]) => {
+                // Find original question to get proper label if possible
+                const q = questions.find(q => {
+                    const qKey = q.key || q.slug || normalizeFieldKey(q.field || q.label || "question");
+                    return qKey === k;
+                });
+                formattedSpecs[k] = {
+                    value: v,
+                    label: q?.label || q?.field || k
+                };
+            });
+
+            const payload = {
                 ...data,
                 price: normalizedPrice,
-                ...questionAnswers,
+                specs: formattedSpecs,
                 ...negotiation,
                 description: data.enhancedDescription,
                 location: {
                     type: "Point",
                     coordinates: [coordinates.lon, coordinates.lat],
                 },
-            });
+            };
+
+            const res = await post(PostAdApi.createProduct, payload);
 
             if (res.status === 200 || res.status === 201) {
                 Toast.show({ type: 'success', text1: 'Success', text2: 'Ad posted successfully!' });
                 router.replace("/home");
             } else {
-                Toast.show({ type: 'error', text1: 'Error', text2: res.message || 'Failed to submit' });
+
+                let errorMsg = res.message || 'Failed to submit';
+
+                // If we have detailed validation errors (often in res.data or res.data.message)
+                if (res.data && typeof res.data === 'object') {
+                    // Check for common backend validation formats, e.g. express-validator or class-validator
+                    const details = res.data.message || res.data.errors || res.data;
+                    if (typeof details === 'string') {
+                        errorMsg = details;
+                    } else if (Array.isArray(details)) {
+                        errorMsg = details.map((e: any) => e.msg || e.message || JSON.stringify(e)).join('\n');
+                    } else if (typeof details === 'object') {
+                        // Extract first error message from object values
+                        const firstVal = Object.values(details)[0];
+                        if (typeof firstVal === 'string') errorMsg = firstVal as string;
+                    }
+                }
+
+                Toast.show({ type: 'error', text1: 'Validation Error', text2: errorMsg });
             }
         } catch (err) {
             Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to submit ad' });
@@ -513,7 +593,7 @@ const PostAdDetails = () => {
     const EditableRow = ({ label, value, onChange, placeholder, type = "default" }: any) => (
         <View className="mb-4">
             <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">{label}</Text>
-            <View className="bg-white border border-gray-100 rounded-2xl px-4 py-3.5 shadow-sm shadow-gray-100">
+            <View className="bg-white border border-gray-100 rounded-2xl px-4 h-12 justify-center shadow-sm shadow-gray-100">
                 <TextInput
                     value={value?.toString()}
                     onChangeText={onChange}
@@ -529,20 +609,17 @@ const PostAdDetails = () => {
     const SelectRow = ({ label, value, options, onSelect, isLoading = false }: any) => {
         const [open, setOpen] = useState(false);
 
-        // Debug logging
-        console.log(`SelectRow ${label}:`, { value, optionsCount: options?.length, isLoading, options });
-
         return (
             <View className="mb-4">
                 <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">{label}</Text>
                 <TouchableOpacity
                     onPress={() => {
                         if (isLoading) return;
-                        console.log(`${label} dropdown toggled. Options available:`, options?.length);
+
                         setOpen(!open);
                     }}
                     disabled={isLoading}
-                    className={`bg-white border border-gray-100 rounded-2xl px-4 py-3.5 shadow-sm shadow-gray-100 flex-row justify-between items-center ${isLoading ? 'opacity-50' : ''}`}
+                    className={`bg-white border border-gray-100 rounded-2xl px-4 h-12 shadow-sm shadow-gray-100 flex-row justify-between items-center ${isLoading ? 'opacity-50' : ''}`}
                 >
                     <Text className={`text-sm font-medium ${value ? 'text-gray-900' : 'text-gray-400'}`}>
                         {isLoading ? 'Loading...' : (value || `Select ${label}`)}
@@ -560,7 +637,7 @@ const PostAdDetails = () => {
                                 <TouchableOpacity
                                     key={opt.id || opt._id || opt.value}
                                     onPress={() => {
-                                        console.log(`Selected ${label}:`, opt);
+
                                         onSelect(opt);
                                         setOpen(false);
                                     }}
@@ -604,7 +681,7 @@ const PostAdDetails = () => {
                     <ImagePreviewCard />
 
                     {/* Basic Info */}
-                    <View className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100 mb-6">
+                    <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
                         <AISuggestedTag />
                         <Text className="text-xl font-bold text-gray-900 mb-5">Basic Information</Text>
                         {generationStep < GENERATION_STEPS.BASIC_FORM ? (
@@ -622,7 +699,7 @@ const PostAdDetails = () => {
                                     options={categories}
                                     onSelect={(opt: any) => {
                                         const catId = opt.id || opt._id || opt.value;
-                                        console.log("Selected Category ID:", catId);
+
                                         setData({ ...data, categoryId: catId, category: opt, subcategoryId: null, subcategory: null });
                                         setSubcategories([]);
                                     }}
@@ -633,8 +710,8 @@ const PostAdDetails = () => {
                                     options={subcategories}
                                     isLoading={isLoadingSubcategories}
                                     onSelect={(opt: any) => {
-                                        console.log('Selected subcategory:', opt);
-                                        setData({ ...data, subcategoryId: opt.id || opt._id, subcategory: opt });
+
+                                        setData({ ...data, subcategoryId: opt.id || opt._id, subcategory: opt, division: null });
                                     }}
                                 />
                             </>
@@ -642,8 +719,8 @@ const PostAdDetails = () => {
                     </View>
 
                     {/* Specs */}
-                    {generationStep >= GENERATION_STEPS.BASIC_FORM && (generationStep < GENERATION_STEPS.SPECS_FORM || hasValidSpecs) && (
-                        <View className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100 mb-6">
+                    {generationStep >= GENERATION_STEPS.BASIC_FORM && (generationStep < GENERATION_STEPS.SPECS_FORM || hasValidSpecs || !data.division || !!data.division) && (
+                        <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
                             <AISuggestedTag />
                             <Text className="text-xl font-bold text-gray-900 mb-5">Specifications</Text>
                             {generationStep < GENERATION_STEPS.SPECS_FORM ? (
@@ -652,27 +729,52 @@ const PostAdDetails = () => {
                                     <Skeleton className="h-12 w-full rounded-xl mb-3" />
                                 </>
                             ) : (
-                                Object.entries(data.specs || {})
-                                    .filter(([_, v]) => v !== null && v !== "")
-                                    .map(([key, value]) => (
-                                        <View key={key} className="mb-4">
-                                            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1 capitalize">{key}</Text>
+                                <>
+                                    {/* Division (If present from AI key/no options loaded) */}
+                                    {data.division && divisions.length === 0 && (
+                                        <View className="mb-4">
+                                            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1 capitalize">Division</Text>
                                             <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5">
-                                                <TextInput
-                                                    value={value?.toString()}
-                                                    onChangeText={(v) => setData({ ...data, specs: { ...data.specs, [key]: v } })}
-                                                    className="text-gray-900 text-sm font-medium"
-                                                />
+                                                <Text className="text-gray-900 text-sm font-medium">{data.division.name || data.division.label || "Selected"}</Text>
                                             </View>
                                         </View>
-                                    ))
+                                    )}
+
+                                    {Object.entries(data.specs || {})
+                                        .filter(([_, v]) => v !== null && v !== "")
+                                        .map(([key, value]) => (
+                                            <View key={key} className="mb-4">
+                                                <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1 capitalize">{key}</Text>
+                                                <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-0.5">
+                                                    <TextInput
+                                                        value={value?.toString()}
+                                                        onChangeText={(v) => setData({ ...data, specs: { ...data.specs, [key]: v } })}
+                                                        className="text-gray-900 text-sm font-medium"
+                                                    />
+                                                </View>
+                                            </View>
+                                        ))}
+
+                                    {/* Division Fallback (Dropdown) */}
+                                    {(!data.division || divisions.length > 0) && (
+                                        <SelectRow
+                                            label="Division / Type"
+                                            value={data.division?.name || data.division?.label}
+                                            options={divisions}
+                                            isLoading={isLoadingDivisions}
+                                            onSelect={(opt: any) => {
+                                                setData({ ...data, division: opt, divisionId: opt.id || opt._id });
+                                            }}
+                                        />
+                                    )}
+                                </>
                             )}
                         </View>
                     )}
 
                     {/* Questions */}
                     {generationStep >= GENERATION_STEPS.SPECS_FORM && (
-                        <View className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100 mb-6">
+                        <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
                             <AISuggestedTag />
                             <Text className="text-xl font-bold text-gray-900 mb-5">Helpful Details</Text>
                             {generationStep < GENERATION_STEPS.DONE ? (
@@ -682,10 +784,10 @@ const PostAdDetails = () => {
                                 </>
                             ) : (
                                 questions.length > 0 ? questions.map((q, idx) => {
-                                    const fieldKey = normalizeFieldKey(q.field);
+                                    const fieldKey = q.key || q.slug || normalizeFieldKey(q.field || q.label || "question");
                                     return (
                                         <View key={idx} className="mb-6">
-                                            <Text className="text-gray-800 text-sm font-bold mb-3 ml-1">{q.question}</Text>
+                                            <Text className="text-gray-800 text-sm font-bold mb-3 ml-1">{q.question || q.label || q.field}</Text>
                                             <View className="flex-row flex-wrap gap-2">
                                                 {(q.options || []).map((opt: string) => (
                                                     <TouchableOpacity
@@ -726,9 +828,9 @@ const PostAdDetails = () => {
                     {generationStep === GENERATION_STEPS.DONE && (
                         <>
                             {/* Price */}
-                            <View className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100 mb-6">
+                            <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
                                 <Text className="text-xl font-bold text-gray-900 mb-5">Set Price</Text>
-                                <View className="bg-gray-50 border border-gray-100 rounded-[28px] px-6 py-5 flex-row items-center">
+                                <View className="bg-gray-50 border border-gray-100 rounded-[6px] px-4 flex-row items-center">
                                     <Text className="text-gray-400 font-bold mr-2">AED</Text>
                                     <TextInput
                                         placeholder="0"
@@ -751,7 +853,7 @@ const PostAdDetails = () => {
                             </View>
 
                             {/* Description */}
-                            <View className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100 mb-10">
+                            <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-10">
                                 <AISuggestedTag />
                                 <Text className="text-xl font-bold text-gray-900 mb-5">Final Description</Text>
                                 <View className="bg-gray-50 border border-gray-100 rounded-3xl p-5 min-h-[160px]">

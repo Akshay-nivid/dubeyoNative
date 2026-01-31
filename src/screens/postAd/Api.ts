@@ -6,4 +6,5 @@ export const PostAdApi = {
     categories: "/category/all",
     subcategories: "/subcategory/all",
     divisions: "/division/all",
+    divisionBySubcategory: "/division/view",
 };
