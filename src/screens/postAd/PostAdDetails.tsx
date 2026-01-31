@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
-    Animated, 
+    Animated,
     ScrollView,
     Text,
     TextInput,
@@ -461,7 +461,19 @@ const PostAdDetails = () => {
             });
 
             const payload = {
+                // Spread necessary data but we'll override explicitly to be safe
                 ...data,
+
+                // Explicit IDs
+                categoryId: data.categoryId || data.category?.id || data.category?._id,
+                subcategoryId: data.subcategoryId || data.subcategory?.id || data.subcategory?._id,
+                divisionId: data.divisionId || data.division?.id || data.division?._id, // Critical for user request: Check division submission
+
+                // Remove objects that might cause backend validation errors if it expects IDs
+                category: undefined,
+                subcategory: undefined,
+                division: undefined,
+
                 price: normalizedPrice,
                 specs: formattedSpecs,
                 ...negotiation,
@@ -470,6 +482,9 @@ const PostAdDetails = () => {
                     type: "Point",
                     coordinates: [coordinates.lon, coordinates.lat],
                 },
+
+                // Ensure images are the array of keys/urls
+                images: data.images || images || [],
             };
 
             const res = await post(PostAdApi.createProduct, payload);

@@ -8,7 +8,9 @@ import React, { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import GradientText from "../../components/GradientText";
 import { useUserLocation } from "../../hooks/useUserLocation";
+import { fetchProfile } from "../../screens/home/Api"; // Import from Home API
 import { getToken } from "../../services/storage/tokenStorage";
 import { PostAdApi } from "./Api";
 
@@ -18,7 +20,10 @@ const PostAd = () => {
     const [loading, setLoading] = useState(false);
     const [photos, setPhotos] = useState<ImagePicker.ImagePickerAsset[]>([]);
     const [imageError, setImageError] = useState("");
+
+
     const { place } = useUserLocation();
+    const [userName, setUserName] = useState("User");
 
     useEffect(() => {
         const checkGuest = async () => {
@@ -27,12 +32,28 @@ const PostAd = () => {
             // or having a specific flag in storage. Following the token check:
             if (!token) {
                 router.replace("/login");
+            } else {
+                try {
+                    const res = await fetchProfile();
+                    const profileData = res?.data || {};
+                    // Extract user name just like in useHomeData
+                    const firstName = profileData?.firstName || profileData?.first_name || "";
+                    const lastName = profileData?.lastName || profileData?.last_name || "";
+                    const fullName = profileData?.name || profileData?.fullName ||
+                        (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || "User");
+
+                    if (fullName) {
+                        setUserName(fullName.split(' ')[0]); // Use first name
+                    }
+                } catch (e) {
+                    console.log("Error fetching profile", e);
+                }
             }
         };
         checkGuest();
     }, [router]);
 
-    const MAX_SIZE = 20 * 1024 * 1024; // Updated to 20MB as per new UI design
+    const MAX_SIZE = 10 * 1024 * 1024; // Updated to 10MB as per user request
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -67,7 +88,7 @@ const PostAd = () => {
                     Toast.show({
                         type: 'error',
                         text1: 'File too large',
-                        text2: `Image size is larger than 20MB`
+                        text2: `Image size is larger than 10MB`
                     });
                     continue;
                 }
@@ -138,45 +159,53 @@ const PostAd = () => {
 
     const renderImagesSection = () => {
         return (
-            <View className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100 mb-6">
-                <Text className="text-xl font-bold text-gray-900 mb-4 tracking-tight">Images</Text>
+            <View className="mb-4">
+                {photos.length === 0 ? (
+                    /* Empty State - Click to Upload */
+                    <TouchableOpacity
+                        onPress={pickImage}
+                        activeOpacity={0.7}
+                        className="bg-[#F0F4FF] border-2 border-dashed border-[#1e3a8a] rounded-2xl h-52 items-center justify-center"
+                    >
+                        <Ionicons name="add-circle-outline" size={32} color="#1e3a8a" />
+                        <Text className="text-[#1e3a8a] font-semibold text-lg mt-2">Upload Image</Text>
+                        <Text className="text-gray-400 text-xs mt-1">
+                            Max 4 images. JPG, PNG, JPEG. Max 10MB.
+                        </Text>
+                    </TouchableOpacity>
+                ) : (
+                    /* Filled State - Images Inside Box */
+                    <View className="bg-[#F0F4FF] border-2 border-dashed border-[#1e3a8a] rounded-2xl p-4 min-h-[160px]">
+                        <View className="flex-row flex-wrap gap-2">
+                            {photos.map((photo, index) => (
+                                <View key={index} className="w-[22%] aspect-square rounded-xl overflow-hidden relative border border-gray-100 bg-white">
+                                    <Image
+                                        source={{ uri: photo.uri }}
+                                        style={{ width: '100%', height: '100%' }}
+                                        contentFit="cover"
+                                    />
+                                    <TouchableOpacity
+                                        onPress={() => removePhoto(index)}
+                                        className="absolute top-1 right-1 bg-red-100 rounded-md p-1 z-10 shadow-sm"
+                                    >
+                                        <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
 
-                {/* Upload Area */}
-                <TouchableOpacity
-                    onPress={pickImage}
-                    activeOpacity={0.7}
-                    className="border-2 border-dashed border-gray-200 rounded-2xl p-8 items-center justify-center mb-6"
-                >
-                    <View className="bg-white px-6 py-2 rounded-xl mb-4 border border-gray-200 shadow-sm flex-row items-center">
-                        <Ionicons name="arrow-up-outline" size={20} color="#374151" />
-                        <Text className="ml-2 text-gray-700 font-bold text-lg">Upload</Text>
-                    </View>
-                    <Text className="text-gray-600 text-center text-sm font-medium mb-1">
-                        Choose images or drag & drop it here.
-                    </Text>
-                    <Text className="text-gray-400 text-center text-xs">
-                        JPG, JPEG, PNG and WEBP. Max 20 MB.
-                    </Text>
-                </TouchableOpacity>
-
-                {/* Preview Row - Only show if photos exist */}
-                {photos.length > 0 && (
-                    <View className="flex-row flex-wrap gap-2 mt-2">
-                        {photos.map((photo, index) => (
-                            <View key={index} className="w-[22%] aspect-square rounded-xl overflow-hidden relative border border-gray-100">
-                                <Image
-                                    source={{ uri: photo.uri }}
-                                    style={{ width: '100%', height: '100%' }}
-                                    contentFit="cover"
-                                />
+                            {/* Add Button (if less than 4) */}
+                            {photos.length < 4 && (
                                 <TouchableOpacity
-                                    onPress={() => removePhoto(index)}
-                                    className="absolute top-1 right-1 bg-red-500 rounded-full p-1 z-10 shadow-sm"
+                                    onPress={pickImage}
+                                    className="w-[22%] aspect-square rounded-xl border-2 border-dashed border-[#1e3a8a] items-center justify-center bg-white/50"
                                 >
-                                    <Ionicons name="close" size={14} color="white" />
+                                    <Ionicons name="add" size={24} color="#1e3a8a" />
                                 </TouchableOpacity>
-                            </View>
-                        ))}
+                            )}
+                        </View>
+                        <Text className="text-gray-400 text-xs mt-4 text-center">
+                            Max 4 images. JPG, PNG, JPEG. Max 10MB.
+                        </Text>
                     </View>
                 )}
 
@@ -189,7 +218,7 @@ const PostAd = () => {
 
     return (
         <LinearGradient
-            colors={['#F3E8FF', '#FCE7F3', '#E0F2FE']}
+            colors={['#FFFFFF', '#F5F3FF', '#F0F9FF']} // White -> Very Light Purple -> Very Light Blue
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ flex: 1 }}
@@ -213,57 +242,100 @@ const PostAd = () => {
                     </View>
                 </View>
 
+                {/* New Gradient Header */}
+
+
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : "height"}
                     style={{ flex: 1 }}
                 >
                     <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
-                        {/* Images Section */}
-                        {renderImagesSection()}
-                    </ScrollView>
-
-                    {/* Chat Input Section - Bottom Aligned */}
-                    <View className="px-4 pb-4">
-                        <View className="bg-white/80 rounded-[22px] p-5 shadow-xl shadow-black/10 border-2 border-white/90">
-                            <View className="flex-row">
-                                {!description && (
-                                    <View className="mr-2 mt-1">
-                                        <Ionicons name="sparkles" size={18} color="#9CA3AF" />
-                                    </View>
-                                )}
-                                <TextInput
-                                    placeholder="Type the Description...."
-                                    className="flex-1 text-base text-gray-900 min-h-[80px] pt-0.5"
-                                    value={description}
-                                    onChangeText={setDescription}
-                                    placeholderTextColor="#9CA3AF"
-                                    multiline
-                                    textAlignVertical="top"
+                        {/* New Gradient Header Moved Here */}
+                        <View className="px-5 mb-2">
+                            <View className="items-center mb-4">
+                                <Image
+                                    source={require("@/assets/images/ai icon.png")}
+                                    style={{ width: 60, height: 60 }}
+                                    contentFit="contain"
                                 />
                             </View>
-                            <View className="flex-row items-center justify-between mt-2 px-1">
-                                {/* Waveform Icon */}
-                                <TouchableOpacity className="flex-row items-center h-8 gap-[3px]" activeOpacity={0.7}>
-                                    <View className="w-[3px] h-3 bg-black rounded-full" />
-                                    <View className="w-[3px] h-5 bg-black rounded-full" />
-                                    <View className="w-[3px] h-8 bg-black rounded-full" />
-                                    <View className="w-[3px] h-5 bg-black rounded-full" />
-                                    <View className="w-[3px] h-3 bg-black rounded-full" />
-                                </TouchableOpacity>
+                            <View className="mb-2">
+                                {/* Full Gradient Line 1 */}
+                                <View style={{ height: 44, width: '100%' }}>
+                                    <GradientText
+                                        text={`Hi there, ${userName}`}
+                                        colors={['#14B8A6', '#3B82F6', '#8B5CF6']} // Teal -> Blue -> Violet
+                                        style={{ fontSize: 36, fontWeight: '800' }}
+                                        textAnchor="middle"
+                                        x="50%"
+                                    />
+                                </View>
+                            </View>
 
-                                <TouchableOpacity
-                                    onPress={handleContinue}
-                                    disabled={loading || !description.trim() || photos.length === 0}
-                                    className={`w-12 h-12 rounded-xl items-center justify-center ${(!description.trim() || photos.length === 0) ? 'bg-gray-200' : 'bg-black'}`}
-                                >
-                                    <Ionicons name="arrow-up" size={24} color="#FFF" />
-                                </TouchableOpacity>
+                            <View className="mb-1">
+                                {/* Full Gradient Line 2 */}
+                                <View style={{ height: 44, width: '100%' }}>
+                                    <GradientText
+                                        text="Sell with AI"
+                                        colors={['#14B8A6', '#3B82F6', '#8B5CF6']} // Teal -> Blue -> Violet
+                                        style={{ fontSize: 36, fontWeight: '800' }}
+                                        textAnchor="middle"
+                                        x="50%"
+                                    />
+                                </View>
+                            </View>
+
+                            <Text className="text-gray-500 text-sm mt-3 font-medium leading-5 w-full text-center">
+                                Post ads effortlessly with our exclusive AI-powered AI experience
+                            </Text>
+                        </View>
+
+                        <View className="pb-20 mt-6">
+                            {renderImagesSection()}
+
+                            <View className="bg-white/80 rounded-[22px] p-5 shadow-xl shadow-black/10 border-2 border-white/90">
+                                <View className="flex-row">
+                                    {!description && (
+                                        <View className="mr-2 mt-1">
+                                            <Ionicons name="sparkles" size={18} color="#9CA3AF" />
+                                        </View>
+                                    )}
+                                    <TextInput
+                                        placeholder="Type the Description...."
+                                        className="flex-1 text-base text-gray-900 min-h-[80px] pt-0.5"
+                                        value={description}
+                                        onChangeText={setDescription}
+                                        placeholderTextColor="#9CA3AF"
+                                        multiline
+                                        textAlignVertical="top"
+                                    />
+                                </View>
+                                <View className="flex-row items-center justify-between mt-2 px-1">
+                                    {/* Waveform Icon */}
+                                    <TouchableOpacity className="flex-row items-center h-8 gap-[3px]" activeOpacity={0.7}>
+                                        <View className="w-[3px] h-3 bg-black rounded-full" />
+                                        <View className="w-[3px] h-5 bg-black rounded-full" />
+                                        <View className="w-[3px] h-8 bg-black rounded-full" />
+                                        <View className="w-[3px] h-5 bg-black rounded-full" />
+                                        <View className="w-[3px] h-3 bg-black rounded-full" />
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        onPress={handleContinue}
+                                        disabled={loading || !description.trim() || photos.length === 0}
+                                        className={`w-12 h-12 rounded-xl items-center justify-center ${(!description.trim() || photos.length === 0) ? 'bg-gray-200' : 'bg-black'}`}
+                                    >
+                                        <Ionicons name="arrow-up" size={24} color="#FFF" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </View>
-                    </View>
+                    </ScrollView>
+
+
                 </KeyboardAvoidingView>
             </SafeAreaView>
-        </LinearGradient>
+        </LinearGradient >
     );
 };
 
