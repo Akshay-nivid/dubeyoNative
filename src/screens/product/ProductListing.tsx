@@ -173,8 +173,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress }) => {
             gap: 6,
           }}
         >
-          {item.discountedPrice &&
-            item.originalPrice &&
+          {item.discountedPrice != null &&
+            item.originalPrice != null &&
             item.originalPrice > item.discountedPrice && (
               <Text
                 style={{
@@ -336,12 +336,12 @@ const ProductListingScreen: React.FC = () => {
 
   const fetchSellerData = async (list: any[]) => {
     const result: Record<string | number, { name: string; profilePic?: string }> = {};
-    
+
     // First, check if seller data is already in the product
     list.forEach((p) => {
       const id = p?.product_id || p?.id;
       if (!id) return;
-      
+
       // Check if seller data exists in product
       if (p.seller && typeof p.seller === 'object') {
         let sellerName: string | undefined = undefined;
@@ -352,7 +352,7 @@ const ProductListingScreen: React.FC = () => {
         } else if (typeof p.seller.firstName === 'string' && p.seller.firstName.trim()) {
           sellerName = p.seller.firstName.trim();
         }
-        
+
         if (sellerName) {
           result[id] = {
             name: sellerName,
@@ -370,20 +370,20 @@ const ProductListingScreen: React.FC = () => {
 
     // Fetch seller data for products that don't have it (limit to avoid too many requests)
     const limitedProducts = productsWithoutSeller.slice(0, 20);
-    
+
     await Promise.all(
       limitedProducts.map(async (p) => {
         const id = p?.product_id || p?.id;
         if (!id || result[id]) return;
-        
+
         try {
           const res = await get(`${Api.getProductDetails}?productId=${id}`);
           const productData = res?.data?.data || res?.data;
-          
+
           if (productData?.seller) {
             const seller = productData.seller;
             let sellerName: string | undefined = undefined;
-            
+
             if (typeof seller.name === 'string' && seller.name.trim()) {
               sellerName = seller.name.trim();
             } else if (typeof seller.firstName === 'string' && typeof seller.lastName === 'string') {
@@ -391,7 +391,7 @@ const ProductListingScreen: React.FC = () => {
             } else if (typeof seller.firstName === 'string' && seller.firstName.trim()) {
               sellerName = seller.firstName.trim();
             }
-            
+
             if (sellerName) {
               result[id] = {
                 name: sellerName,
@@ -404,7 +404,7 @@ const ProductListingScreen: React.FC = () => {
         }
       })
     );
-    
+
     setSellerData(result);
   };
 
@@ -438,18 +438,18 @@ const ProductListingScreen: React.FC = () => {
       : noImageUrl;
 
     // Ensure all values are primitives, not objects
-    const title = typeof p.title === 'string' ? p.title : 
-                  typeof p.product_name === 'string' ? p.product_name : 
-                  typeof p.title === 'object' ? JSON.stringify(p.title) : 
-                  "Untitled";
-    
+    const title = typeof p.title === 'string' ? p.title :
+      typeof p.product_name === 'string' ? p.product_name :
+        typeof p.title === 'object' ? JSON.stringify(p.title) :
+          "Untitled";
+
     const price = formatPrice(p.price);
-    const originalPrice = typeof p.originalPrice === 'number' ? p.originalPrice : 
-                          typeof p.price === 'number' ? p.price : 
-                          typeof p.price === 'string' ? parseFloat(p.price) || 0 : 0;
-    const discountedPrice = typeof p.finalPrice === 'number' ? p.finalPrice : 
-                            typeof p.price === 'number' ? p.price : 
-                            typeof p.price === 'string' ? parseFloat(p.price) || 0 : 0;
+    const originalPrice = typeof p.originalPrice === 'number' ? p.originalPrice :
+      typeof p.price === 'number' ? p.price :
+        typeof p.price === 'string' ? parseFloat(p.price) || 0 : 0;
+    const discountedPrice = typeof p.finalPrice === 'number' ? p.finalPrice :
+      typeof p.price === 'number' ? p.price :
+        typeof p.price === 'string' ? parseFloat(p.price) || 0 : 0;
 
     // Extract seller information - first check cached seller data, then product object
     let sellerName: string | undefined = undefined;
@@ -472,7 +472,7 @@ const ProductListingScreen: React.FC = () => {
       } else if (typeof p.seller.username === 'string' && p.seller.username.trim()) {
         sellerName = p.seller.username.trim();
       }
-      
+
       if (typeof p.seller.profilePic === 'string' && p.seller.profilePic.trim()) {
         sellerProfilePic = p.seller.profilePic.trim();
       } else if (typeof p.seller.profile_pic === 'string' && p.seller.profile_pic.trim()) {
@@ -489,7 +489,7 @@ const ProductListingScreen: React.FC = () => {
       } else if (typeof p.user.firstName === 'string' && p.user.firstName.trim()) {
         sellerName = p.user.firstName.trim();
       }
-      
+
       if (typeof p.user.profilePic === 'string' && p.user.profilePic.trim()) {
         sellerProfilePic = p.user.profilePic.trim();
       } else if (typeof p.user.profile_pic === 'string' && p.user.profile_pic.trim()) {
@@ -502,7 +502,7 @@ const ProductListingScreen: React.FC = () => {
       } else if (typeof p.createdBy.firstName === 'string' && typeof p.createdBy.lastName === 'string') {
         sellerName = `${p.createdBy.firstName.trim()} ${p.createdBy.lastName.trim()}`;
       }
-      
+
       if (typeof p.createdBy.profilePic === 'string' && p.createdBy.profilePic.trim()) {
         sellerProfilePic = p.createdBy.profilePic.trim();
       }
@@ -563,9 +563,9 @@ const ProductListingScreen: React.FC = () => {
               const isSelected = f.value === null
                 ? selectedDivisionType === null
                 : selectedDivisionType?.id === f.value?.id;
-              
+
               const labelText = typeof f.label === 'string' ? f.label : String(f.label || '');
-              
+
               return (
                 <Pressable
                   key={f.value?.id ?? "all"}
@@ -634,33 +634,33 @@ const ProductListingScreen: React.FC = () => {
           }
         />
       ) : (
-        <View 
-          style={{ 
-            flex: 1, 
-            justifyContent: 'center', 
-            alignItems: 'center', 
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
             paddingHorizontal: 24,
             paddingVertical: 40,
           }}
         >
           <Ionicons name="cube-outline" size={64} color={colors.text_tertiary} />
-          <Text 
-            style={{ 
-              marginTop: 16, 
-              fontSize: 18, 
-              fontWeight: '600', 
+          <Text
+            style={{
+              marginTop: 16,
+              fontSize: 18,
+              fontWeight: '600',
               textAlign: 'center',
-              color: colors.text_primary 
+              color: colors.text_primary
             }}
           >
             No products found
           </Text>
-          <Text 
-            style={{ 
-              marginTop: 8, 
-              fontSize: 14, 
+          <Text
+            style={{
+              marginTop: 8,
+              fontSize: 14,
               textAlign: 'center',
-              color: colors.text_tertiary 
+              color: colors.text_tertiary
             }}
           >
             No products found for this subcategory.
@@ -675,11 +675,11 @@ const ProductListingScreen: React.FC = () => {
               backgroundColor: colors.primary,
             }}
           >
-            <Text 
-              style={{ 
-                fontSize: 16, 
+            <Text
+              style={{
+                fontSize: 16,
                 fontWeight: '600',
-                color: colors.text_white 
+                color: colors.text_white
               }}
             >
               Go to Home

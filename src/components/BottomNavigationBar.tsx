@@ -1,8 +1,10 @@
+import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
-import React from "react";
-import { Dimensions, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useMemo } from "react";
+import { Dimensions, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Defs, Path, Stop, LinearGradient as SvgLinearGradient } from "react-native-svg";
 
 interface BottomNavigationBarProps {
   onAIMascotPress?: () => void;
@@ -86,17 +88,47 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
     },
   ];
 
+  // Calculate the SVG Path for the floating bar with center cutout
+  const curveTabPath = useMemo(() => {
+    const tabHeight = 84;
+    const buttonRadius = 30; // 60px button
+    const gap = 12; // Comfortable gap
+    const holeRadius = buttonRadius + gap; // 42px
+    const holeWidth = holeRadius * 2; // 84px
+    const holeDepth = 40; // Depth of the curve
+
+    const center = width / 2;
+    const leftHoleStart = center - holeWidth / 2;
+    const rightHoleEnd = center + holeWidth / 2;
+
+    // Cleaner circular arc approximation
+    return `
+      M 0 0
+      L ${leftHoleStart} 0
+      C ${leftHoleStart + 20} 0, ${center - 25} ${holeDepth}, ${center} ${holeDepth}
+      C ${center + 25} ${holeDepth}, ${rightHoleEnd - 20} 0, ${rightHoleEnd} 0
+      L ${width} 0
+      L ${width} ${tabHeight} 
+      L 0 ${tabHeight} 
+      Z
+    `;
+  }, []);
+
   return (
     <View style={styles.container}>
-      {/* Background Gradient Mesh */}
-      <LinearGradient
-        colors={['transparent', 'rgba(255,255,255,0.8)', '#ffffff']}
-        locations={[0, 0.55, 1]}
-        style={styles.backgroundGradient}
-        pointerEvents="none"
-      />
+      {/* Liquid Glass Background */}
+      <View style={styles.absoluteFill}>
+        <Svg width={width} height={100} style={styles.shadowData}>
+          <Defs>
+            <SvgLinearGradient id="glassGradient" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={colors.bg_white} stopOpacity="1" />
+              <Stop offset="1" stopColor={colors.bg_white} stopOpacity="1" />
+            </SvgLinearGradient>
+          </Defs>
+          <Path d={curveTabPath} fill="url(#glassGradient)" stroke="rgba(0,0,0,0.05)" strokeWidth={1} />
+        </Svg>
+      </View>
 
-      {/* Bottom Icons Row */}
       <View style={styles.iconRow}>
         {navigationItems.map((item, index) => {
           if (item.isCenter) {
@@ -105,15 +137,18 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
                 <Pressable
                   onPress={item.onPress}
                   style={({ pressed }) => [
-                    styles.centerOrb,
-                    { transform: [{ scale: pressed ? 0.95 : 1 }], backgroundColor: 'transparent', shadowOpacity: 0.3 }
+                    styles.centerButton,
+                    { transform: [{ scale: pressed ? 0.96 : 1 }] }
                   ]}
                 >
-                  <Image
-                    source={{ uri: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Crystal%20Ball.png' }}
-                    style={styles.mascotImage}
-                    resizeMode="contain"
-                  />
+                  <LinearGradient
+                    colors={[colors.palette_dark_blue, colors.primary, '#d8b4fe']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.centerButtonGradient}
+                  >
+                    <Ionicons name="sparkles" size={28} color={colors.text_white} />
+                  </LinearGradient>
                 </Pressable>
               </View>
             );
@@ -123,26 +158,30 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
           return (
             <Pressable
               key={item.id}
-              onPress={() => item.route && router.push(item.route as any)}
+              onPress={() => item.route && router.push(item.route)}
               style={({ pressed }) => [
                 styles.navItem,
                 { opacity: pressed ? 0.6 : 1 },
               ]}
             >
-              <View style={{ height: 32, justifyContent: 'center', alignItems: 'center' }}>
-                {item.icon && item.icon(active)}
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ height: 26, justifyContent: 'center', marginBottom: 2 }}>
+                  {item.icon && item.icon(active)}
+                </View>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: active ? colors.text_primary : colors.text_secondary,
+                    fontWeight: active ? "600" : "500",
+                    marginBottom: 2,
+                  }}
+                >
+                  {item.label}
+                </Text>
+                {active && (
+                  <View style={styles.activeDot} />
+                )}
               </View>
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: active ? "black" : "#6b7280",
-                  marginTop: 2,
-                  fontWeight: active ? "600" : "400",
-                  textAlign: "center",
-                }}
-              >
-                {item.label}
-              </Text>
             </Pressable>
           );
         })}
@@ -158,40 +197,69 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
         <Pressable
           style={{
             flex: 1,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.3)", // Dimmed overlay
             justifyContent: "flex-end",
           }}
           onPress={() => setShowAIModal(false)}
         >
           <Pressable
             style={{
-              backgroundColor: "white",
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              padding: 24,
-              minHeight: 300,
+              backgroundColor: colors.bg_white,
+              borderTopLeftRadius: 32, // More rounded
+              borderTopRightRadius: 32,
+              paddingHorizontal: 30,
+              paddingBottom: 40,
+              paddingTop: 16,
+              minHeight: 320,
+              shadowColor: "#000",
+              shadowOffset: {
+                width: 0,
+                height: -10,
+              },
+              shadowOpacity: 0.1,
+              shadowRadius: 20,
+              elevation: 25, // Visual float
             }}
             onPress={(e) => e.stopPropagation()}
           >
+            {/* Grab Handle */}
+            <View
+              style={{
+                width: 40,
+                height: 5,
+                borderRadius: 3,
+                backgroundColor: colors.border_primary,
+                alignSelf: 'center',
+                marginBottom: 25,
+              }}
+            />
+
             <View
               style={{
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: 20,
+                marginBottom: 24,
               }}
             >
               <Text
                 style={{
-                  fontSize: 20,
+                  fontSize: 22, // Slightly larger
                   fontWeight: "700",
-                  color: "#1f2937",
+                  color: colors.text_primary,
                 }}
               >
                 AI Assistant
               </Text>
-              <Pressable onPress={() => setShowAIModal(false)}>
-                <Ionicons name="close" size={24} color="#1f2937" />
+              <Pressable
+                onPress={() => setShowAIModal(false)}
+                style={{
+                  padding: 4,
+                  backgroundColor: colors.bg_secondary,
+                  borderRadius: 20,
+                }}
+              >
+                <Ionicons name="close" size={20} color={colors.text_secondary} />
               </Pressable>
             </View>
             <View
@@ -203,15 +271,21 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
             >
               <View
                 style={{
-                  width: 140,
-                  height: 140,
-                  borderRadius: 70,
+                  width: 120, // Slightly smaller for better proportion
+                  height: 120,
+                  borderRadius: 60,
                   overflow: "hidden",
                   marginBottom: 20,
+                  shadowColor: colors.primary, // Glow effect for mascot
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 10,
+                  backgroundColor: colors.bg_white,
                 }}
               >
                 <LinearGradient
-                  colors={['#60A5FA', '#A78BFA', '#F472B6']}
+                  colors={[colors.palette_dark_blue, colors.primary, '#d8b4fe']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={{
@@ -223,28 +297,30 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
                 >
                   <View
                     style={{
-                      width: 120,
-                      height: 120,
-                      borderRadius: 60,
-                      backgroundColor: "rgba(255, 255, 255, 0.95)",
+                      width: 104,
+                      height: 104,
+                      borderRadius: 52,
+                      backgroundColor: "rgba(255, 255, 255, 0.9)",
                       justifyContent: "center",
                       alignItems: "center",
-                      borderWidth: 3,
+                      borderWidth: 2,
                       borderColor: "rgba(255, 255, 255, 1)",
                     }}
                   >
+                    <Ionicons name="sparkles" size={48} color={colors.primary} />
                   </View>
                 </LinearGradient>
               </View>
               <Text
                 style={{
                   fontSize: 16,
-                  color: "#4b5563",
-                  marginTop: 16,
+                  fontWeight: '500',
+                  color: colors.text_secondary,
+                  marginTop: 8,
                   textAlign: "center",
                 }}
               >
-                AI Assistant coming soon
+                How can I help you today?
               </Text>
             </View>
           </Pressable>
@@ -261,51 +337,77 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    alignItems: 'center',
-    paddingBottom: 5, // Moved down as requested
+    height: 84, // Correct height for standard bar
+    justifyContent: 'flex-end',
+    backgroundColor: 'transparent',
   },
-  backgroundGradient: {
+  absoluteFill: {
     position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    height: 110, // Reduced height since pill is gone
+  },
+  shadowData: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 8,
   },
   iconRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    paddingHorizontal: 25,
-    height: 60,
+    paddingHorizontal: 20,
+    height: 84, // Match container
+    paddingBottom: 10,
   },
   navItem: {
-    padding: 10,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.text_primary,
   },
   centerButtonContainer: {
+    position: 'absolute',
+    left: width / 2 - 30, // Center: half of 60
+    top: -30, // Positioned to float
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1001,
   },
-  centerOrb: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    shadowColor: "#A78BFA",
+  centerButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30, // Perfect circle
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
     elevation: 8,
+    backgroundColor: colors.bg_white,
+    padding: 3,
   },
-  orbGradient: {
-    flex: 1,
-    borderRadius: 24,
-  },
-  mascotImage: {
+  centerButtonGradient: {
     width: '100%',
     height: '100%',
-  }
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 export default BottomNavigationBar;

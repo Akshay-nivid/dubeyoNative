@@ -1,21 +1,18 @@
+import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { colors } from "@/theme";
 import { categoryIcons } from "./Api";
-
 interface Category {
   key: string;
   name: string;
   categoryId: string | null;
 }
-
 interface CategoryListProps {
   categories: Category[];
   onSelect: (category: Category) => void;
   onSeeAll: () => void;
 }
-
 const CategoryList: React.FC<CategoryListProps> = ({
   categories,
   onSelect,
@@ -24,7 +21,6 @@ const CategoryList: React.FC<CategoryListProps> = ({
   const realCategories = categories.slice(0, 7);
   const othersCategory = { key: "others", name: "Others", categoryId: null };
   const displayCategories = [...realCategories, othersCategory];
-
   return (
     <View className="px-4" style={{ marginBottom: 4 }}>
       <View className="flex-row flex-wrap justify-between">
@@ -38,9 +34,9 @@ const CategoryList: React.FC<CategoryListProps> = ({
               onPress={() => onSelect(c)}
               activeOpacity={0.7}
             >
-              <View 
-                className="w-full aspect-square rounded-lg items-center justify-center" 
-                style={{ 
+              <View
+                className="w-full aspect-square rounded-lg items-center justify-center"
+                style={{
                   backgroundColor: colors.bg_secondary,
                   paddingTop: 12,
                   paddingBottom: 8,
@@ -54,12 +50,12 @@ const CategoryList: React.FC<CategoryListProps> = ({
                     <IconComponent size={24} color={colors.text_primary} />
                   )
                 )}
-                <Text 
-                  className="text-[10px] text-center font-bold leading-3" 
-                  style={{ 
+                <Text
+                  className="text-[10px] text-center font-bold leading-3"
+                  style={{
                     color: colors.text_primary,
                     marginTop: 8,
-                  }} 
+                  }}
                   numberOfLines={2}
                 >
                   {c.name}
@@ -72,5 +68,4 @@ const CategoryList: React.FC<CategoryListProps> = ({
     </View>
   );
 };
-
 export default CategoryList;
