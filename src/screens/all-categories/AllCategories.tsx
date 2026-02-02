@@ -85,30 +85,20 @@ const AllCategories = () => {
 
   return (
     <SafeAreaView
-      className="flex-1"
-      style={{ backgroundColor: colors.bg_primary }}
+      className="flex-1 bg-bg_primary"
       edges={["top"]}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colors.bg_primary} />
 
       {/* Header */}
-      <View
-        className="px-4 py-3 flex-row items-center justify-between border-b"
-        style={{
-          backgroundColor: colors.bg_primary,
-          borderColor: colors.border_primary,
-        }}
-      >
+      <View className="px-4 py-3 flex-row items-center justify-between border-b border-border_primary bg-bg_primary">
         <TouchableOpacity
           onPress={() => router.back()}
           className="w-10 h-10 items-center justify-center"
         >
           <Ionicons name="arrow-back" size={24} color={colors.icon_primary} />
         </TouchableOpacity>
-        <Text
-          className="text-lg font-bold"
-          style={{ color: colors.text_primary }}
-        >
+        <Text className="text-lg font-bold text-text_primary">
           All Categories
         </Text>
         <View className="w-10" />
@@ -117,14 +107,13 @@ const AllCategories = () => {
       {loading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text className="mt-4" style={{ color: colors.text_secondary }}>
+          <Text className="mt-4 text-text_secondary">
             Loading categories...
           </Text>
         </View>
       ) : (
         <ScrollView
-          className="flex-1"
-          style={{ backgroundColor: colors.bg_primary }}
+          className="flex-1 bg-bg_primary"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: 16 }}
         >
@@ -134,17 +123,10 @@ const AllCategories = () => {
               return (
                 <TouchableOpacity
                   key={c.categoryId || c.key}
-                  className="items-center mb-6"
-                  style={{ width: "23%" }}
+                  className="w-[23%] items-center mb-6"
                   onPress={() => handleCategoryClick(c)}
                 >
-                  <View
-                    className="w-16 h-16 rounded-2xl items-center justify-center mb-2 shadow-sm border"
-                    style={{
-                      backgroundColor: colors.bg_white,
-                      borderColor: colors.border_primary,
-                    }}
-                  >
+                  <View className="w-16 h-16 rounded-2xl items-center justify-center mb-2 shadow-sm border border-border_primary bg-bg_white">
                     {IconComponent ? (
                       <IconComponent size={28} color={colors.icon_primary} />
                     ) : (
@@ -152,8 +134,7 @@ const AllCategories = () => {
                     )}
                   </View>
                   <Text
-                    className="text-xs text-center font-medium leading-4"
-                    style={{ color: colors.text_primary }}
+                    className="text-xs text-center font-medium leading-4 text-text_primary"
                     numberOfLines={2}
                   >
                     {c.name}

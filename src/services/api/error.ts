@@ -16,7 +16,9 @@ export function normalizeError(error: any) {
   if (error.request) {
     return {
       status: null,
-      message: "No response from server",
+      message: error.message?.includes("Network Error") 
+        ? "Network error. Please check your connection." 
+        : "No response from server",
     };
   }
 

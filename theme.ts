@@ -1,3 +1,9 @@
+/**
+ * Single source of truth for app colors.
+ * Used by: (1) Tailwind via tailwind.config.js → use classes like text-text_primary, bg-bg_white, border-border_primary.
+ * (2) Native props (e.g. Icon color) → use colors.text_primary, colors.icon_secondary.
+ * Changing values here and rebuilding applies the theme across the app.
+ */
 export const colors = {
   // Palette Colors from Design
   palette_dark_blue: "#151f5a",
@@ -17,10 +23,10 @@ export const colors = {
   bg_white: "#ffffff", // Pure white for cards/content
   bg_black: "#000000",
   bg_gray_400: "#9ca3af", // Medium gray (disabled states)
-  // Text Colors
-  text_primary: "#151f5a", // Dark blue - Main text
+  // Text Colors (use in Tailwind: text-text_primary, text-text_tertiary, etc.)
+  text_primary: "#151f5a", // Dark blue - Main text, input value text
   text_secondary: "#f1edea", // Light blue-gray - Secondary/muted text
-  text_tertiary: "#9ca3af", // Gray-400 - Placeholder text
+  text_tertiary: "#9ca3af", // Gray-400 - Placeholder text, input placeholder
   text_light: "#F7F7FA", // Light cream - Text on dark backgrounds
   text_white: "#ffffff", // White text
   // Border Colors

@@ -1,10 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Image,
     Modal,
+    Platform,
     Pressable,
     ScrollView,
     Text,
@@ -13,14 +16,14 @@ import {
     View,
 } from "react-native";
 import Toast from "react-native-toast-message";
-import DatePicker from "../../src/components/DatePicker";
-import Dropdown from "../../src/components/Dropdown";
-import { Api } from "../../src/screens/home/Api";
-import { get, post } from "../../src/services/api";
-import { UserService } from "../../src/services/user/userService";
-import { colors } from "../../theme";
+import DatePicker from "../../components/DatePicker";
+import Dropdown from "../../components/Dropdown";
+import { Api } from "../home/Api";
+import { get } from "../../services/api";
+import { UserService } from "../../services/user/userService";
+import { colors } from "../../../theme";
 
-export default function ProfileSettingsScreen() {
+export default function ProfileEditScreen() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -201,12 +204,238 @@ export default function ProfileSettingsScreen() {
     };
 
     const handleProfilePicChange = async () => {
-        // TODO: Implement image picker with expo-image-picker
-        Toast.show({
-            type: "info",
-            text1: "Info",
-            text2: "Profile picture upload functionality to be implemented",
-        });
+        try {
+            // Request permission to access media library
+            if (Platform.OS !== 'web') {
+                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (status !== 'granted') {
+                    Alert.alert(
+                        "Permission Required",
+                        "We need access to your photos to update your profile picture.",
+                        [{ text: "OK" }]
+                    );
+                    return;
+                }
+            }
+
+            // Show action sheet for image source selection
+            Alert.alert(
+                "Select Photo",
+                "Choose an option",
+                [
+                    {
+                        text: "Camera",
+                        onPress: () => pickImageFromCamera(),
+                    },
+                    {
+                        text: "Photo Library",
+                        onPress: () => pickImageFromLibrary(),
+                    },
+                    {
+                        text: "Cancel",
+                        style: "cancel",
+                    },
+                ],
+                { cancelable: true }
+            );
+        } catch (error: any) {
+            console.error("Error requesting permissions:", error);
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Failed to access photos",
+            });
+        }
+    };
+
+    const pickImageFromCamera = async () => {
+        try {
+            if (Platform.OS !== 'web') {
+                const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                if (status !== 'granted') {
+                    Alert.alert(
+                        "Permission Required",
+                        "We need access to your camera to take a photo.",
+                        [{ text: "OK" }]
+                    );
+                    return;
+                }
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets && result.assets[0]) {
+                await uploadProfilePicture(result.assets[0].uri);
+            }
+        } catch (error: any) {
+            console.error("Error picking image from camera:", error);
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Failed to take photo",
+            });
+        }
+    };
+
+    const pickImageFromLibrary = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets && result.assets[0]) {
+                await uploadProfilePicture(result.assets[0].uri);
+            }
+        } catch (error: any) {
+            console.error("Error picking image from library:", error);
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Failed to select photo",
+            });
+        }
+    };
+
+    const uploadProfilePicture = async (imageUri: string) => {
+        try {
+            setProfilePicLoading(true);
+
+            // Create FormData
+            const formData = new FormData();
+            
+            // Extract filename and type from URI
+            // Handle both file:// and content:// URIs (Android)
+            let filename = imageUri.split('/').pop() || 'profile.jpg';
+            
+            // Remove query parameters if any
+            filename = filename.split('?')[0];
+            
+            // Determine MIME type
+            const extension = filename.split('.').pop()?.toLowerCase() || 'jpg';
+            let mimeType = 'image/jpeg';
+            
+            switch (extension) {
+                case 'png':
+                    mimeType = 'image/png';
+                    break;
+                case 'jpg':
+                case 'jpeg':
+                    mimeType = 'image/jpeg';
+                    break;
+                case 'gif':
+                    mimeType = 'image/gif';
+                    break;
+                case 'webp':
+                    mimeType = 'image/webp';
+                    break;
+                default:
+                    mimeType = 'image/jpeg';
+            }
+
+            // Ensure filename has proper extension
+            if (!filename.includes('.')) {
+                filename = `profile.${extension}`;
+            }
+
+            // Append file to FormData (React Native format)
+            // FormData handles file:// and content:// URIs correctly
+            formData.append('files', {
+                uri: imageUri,
+                name: filename,
+                type: mimeType,
+            } as any);
+
+            // Upload to backend
+            const response = await UserService.updateProfilePic(formData);
+
+            if (response?.status === 200 || response?.status === 201) {
+                // Backend returns: { message: "Profile picture updated successfully", data: userObject }
+                // API service extracts: res.data = response.data?.data || response.data
+                // So response.data = userObject (the updated user), response.message = success message
+                const userData = response?.data;
+                const imageKey = userData?.profilePic;
+                
+                if (imageKey) {
+                    // Fetch the signed URL for the image
+                    try {
+                        const imageResponse = await get(`${Api.Image}?key=${imageKey}`);
+                        const imageUrl = imageResponse?.data?.url || imageResponse?.data || imageUri;
+                        
+                        // Update form data with new profile picture URL
+                        setFormData((prev) => ({
+                            ...prev,
+                            profilePic: imageUrl,
+                        }));
+
+                        Toast.show({
+                            type: "success",
+                            text1: "Success",
+                            text2: response?.message || "Profile picture updated successfully",
+                        });
+                    } catch (error) {
+                        // If fetching signed URL fails, use the local URI temporarily
+                        setFormData((prev) => ({
+                            ...prev,
+                            profilePic: imageUri,
+                        }));
+
+                        Toast.show({
+                            type: "success",
+                            text1: "Success",
+                            text2: response?.message || "Profile picture updated successfully",
+                        });
+                    }
+                } else {
+                    // If no key in response, refresh profile to get updated data
+                    await fetchProfile();
+                    Toast.show({
+                        type: "success",
+                        text1: "Success",
+                        text2: response?.message || "Profile picture updated successfully",
+                    });
+                }
+            } else {
+                const errorMessage = response?.message || 
+                    (response?.status === 400 ? "Invalid image file" :
+                     response?.status === 413 ? "Image file too large" :
+                     "Failed to update profile picture");
+                Toast.show({
+                    type: "error",
+                    text1: "Error",
+                    text2: errorMessage,
+                });
+            }
+        } catch (error: any) {
+            console.error("Error uploading profile picture:", error);
+            
+            // Provide more specific error messages
+            let errorMessage = "Failed to upload profile picture";
+            if (error?.message?.includes("Network Error") || error?.message?.includes("network")) {
+                errorMessage = "Network error. Please check your internet connection and try again.";
+            } else if (error?.message) {
+                errorMessage = error.message;
+            } else if (error?.response?.status === 413) {
+                errorMessage = "Image file is too large. Please choose a smaller image.";
+            } else if (error?.response?.status === 400) {
+                errorMessage = "Invalid image file. Please try again.";
+            }
+            
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: errorMessage,
+            });
+        } finally {
+            setProfilePicLoading(false);
+        }
     };
 
     const handleVerificationChange = (name: string, value: string) => {
@@ -316,177 +545,129 @@ export default function ProfileSettingsScreen() {
 
     if (loading) {
         return (
-            <View className="flex-1 items-center justify-center bg-gray-50">
+            <View className="flex-1 items-center justify-center bg-bg_primary">
                 <ActivityIndicator size="large" color={colors.primary} />
-                <Text className="mt-4 text-gray-600">Loading profile...</Text>
+                <Text className="mt-4 text-text_tertiary">Loading profile...</Text>
             </View>
         );
     }
 
     return (
-        <View className="flex-1 bg-gray-50">
+        <View className="flex-1 bg-bg_primary">
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 20 }}
             >
-                {/* Header */}
-                <View className="flex-row items-center px-4 pt-4 pb-6 bg-white border-b border-gray-200">
+                <View className="flex-row items-center px-4 pt-4 pb-6 bg-bg_white border-b border-border_primary">
                     <TouchableOpacity
                         onPress={() => router.back()}
                         className="p-2 -ml-2"
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="arrow-back" size={24} color="#000" />
+                        <Ionicons name="arrow-back" size={24} color={colors.icon_primary} />
                     </TouchableOpacity>
-                    <Text className="flex-1 text-center font-bold text-lg text-gray-900">
+                    <Text className="flex-1 text-center font-bold text-lg text-text_primary">
                         Profile setting
                     </Text>
-                    <View style={{ width: 40 }} />
+                    <View className="w-10" />
                 </View>
 
                 <View className="px-4 pt-6">
-                    {/* Profile Picture Section */}
                     <View className="items-center mb-6">
                         <View className="relative">
                             {profilePicLoading ? (
-                                <View className="w-24 h-24 rounded-full bg-gray-200 items-center justify-center">
+                                <View className="w-24 h-24 rounded-full bg-border_secondary items-center justify-center">
                                     <ActivityIndicator size="small" color={colors.primary} />
                                 </View>
                             ) : formData.profilePic ? (
                                 <Image
                                     source={{ uri: formData.profilePic }}
-                                    className="w-24 h-24 rounded-full"
-                                    style={{ borderWidth: 2, borderColor: colors.border_primary }}
+                                    className="w-24 h-24 rounded-full border-2 border-border_primary"
                                 />
                             ) : (
-                                <View className="w-24 h-24 rounded-full bg-gray-200 items-center justify-center">
+                                <View className="w-24 h-24 rounded-full bg-border_secondary items-center justify-center">
                                     <Ionicons name="person" size={40} color={colors.icon_secondary} />
                                 </View>
                             )}
                             <TouchableOpacity
                                 onPress={handleProfilePicChange}
-                                className="absolute bottom-0 right-0 bg-green-500 rounded-full p-1.5 border-2 border-white"
+                                className="absolute bottom-0 right-0 bg-success rounded-full p-1.5 border-2 border-bg_white"
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="create-outline" size={14} color="#fff" />
+                                <Ionicons name="create-outline" size={14} color={colors.text_white} />
                             </TouchableOpacity>
                         </View>
 
-                        <Text className="mt-3 text-gray-500 text-sm text-center">
+                        <Text className="mt-3 text-text_tertiary text-sm text-center">
                             {getVerificationText()}
                         </Text>
 
                         <TouchableOpacity
                             className={`mt-2 px-6 py-2 rounded-full ${
                                 verificationStatus === "verified"
-                                    ? "bg-green-500"
+                                    ? "bg-success"
                                     : verificationStatus === "pending"
-                                    ? "bg-yellow-500"
+                                    ? "bg-warning"
                                     : verificationStatus === "rejected"
-                                    ? "bg-red-500"
-                                    : "bg-black"
-                            }`}
+                                    ? "bg-error"
+                                    : "bg-bg_black"
+                            } ${verificationStatus === "verified" || verificationStatus === "pending" ? "opacity-60" : ""}`}
                             onPress={handleVerifyButtonClick}
                             disabled={verificationStatus === "verified" || verificationStatus === "pending"}
                             activeOpacity={0.7}
-                            style={{
-                                opacity:
-                                    verificationStatus === "verified" || verificationStatus === "pending" ? 0.6 : 1,
-                            }}
                         >
-                            <Text className="text-white text-sm font-semibold">
+                            <Text className="text-text_white text-sm font-semibold">
                                 {getVerifyButtonText()}
                             </Text>
                         </TouchableOpacity>
                     </View>
 
-                    {/* Form */}
-                    <View 
-                        className="bg-white rounded-2xl p-4"
-                        style={{
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 1 },
-                            shadowOpacity: 0.05,
-                            shadowRadius: 2,
-                            elevation: 2,
-                        }}
-                    >
-                        {/* First Name & Last Name Row */}
+                    <View className="bg-bg_white rounded-2xl p-4 shadow-sm" style={{ elevation: 2 }}>
                         <View className="flex-row gap-3 mb-5">
                             <View className="flex-1">
                                 <TextInput
                                     placeholder="First Name *"
-                                    placeholderTextColor={colors.text_secondary}
+                                    placeholderTextColor={colors.text_tertiary}
                                     value={formData.firstName}
                                     onChangeText={(text) => handleChange("firstName", text)}
                                     editable={!saving}
-                                    className="rounded-xl px-4 py-3.5 text-base"
-                                    style={{
-                                        outline: "none",
-                                        backgroundColor: colors.bg_white,
-                                        borderColor: colors.border_primary,
-                                        borderWidth: 1,
-                                        color: colors.text_primary,
-                                    }}
+                                    className="rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
                                 />
                             </View>
                             <View className="flex-1">
                                 <TextInput
                                     placeholder="Last Name"
-                                    placeholderTextColor={colors.text_secondary}
+                                    placeholderTextColor={colors.text_tertiary}
                                     value={formData.lastName}
                                     onChangeText={(text) => handleChange("lastName", text)}
                                     editable={!saving}
-                                    className="rounded-xl px-4 py-3.5 text-base"
-                                    style={{
-                                        outline: "none",
-                                        backgroundColor: colors.bg_white,
-                                        borderColor: colors.border_primary,
-                                        borderWidth: 1,
-                                        color: colors.text_primary,
-                                    }}
+                                    className="rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
                                 />
                             </View>
                         </View>
 
-                        {/* Email */}
                         <View className="mb-5">
                             <TextInput
                                 placeholder="Email *"
-                                placeholderTextColor={colors.text_secondary}
+                                placeholderTextColor={colors.text_tertiary}
                                 autoCapitalize="none"
                                 keyboardType="email-address"
                                 value={formData.email}
                                 onChangeText={(text) => handleChange("email", text)}
                                 editable={false}
-                                className="rounded-xl px-4 py-3.5 text-base"
-                                style={{
-                                    outline: "none",
-                                    backgroundColor: colors.bg_white,
-                                    borderColor: colors.border_primary,
-                                    borderWidth: 1,
-                                    color: colors.text_tertiary,
-                                }}
+                                className="rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_tertiary"
                             />
                         </View>
 
-                        {/* Phone */}
                         <View className="mb-5">
                             <TextInput
                                 placeholder="Phone *"
-                                placeholderTextColor={colors.text_secondary}
+                                placeholderTextColor={colors.text_tertiary}
                                 keyboardType="phone-pad"
                                 value={formData.phone}
                                 onChangeText={(text) => handleChange("phone", text)}
                                 editable={!saving}
-                                className="rounded-xl px-4 py-3.5 text-base"
-                                style={{
-                                    outline: "none",
-                                    backgroundColor: colors.bg_white,
-                                    borderColor: colors.border_primary,
-                                    borderWidth: 1,
-                                    color: colors.text_primary,
-                                }}
+                                className="rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
                             />
                         </View>
 
@@ -515,64 +696,40 @@ export default function ProfileSettingsScreen() {
                             required={false}
                         />
 
-                        {/* Address */}
                         <View className="mb-5">
                             <TextInput
                                 placeholder="Address *"
-                                placeholderTextColor={colors.text_secondary}
+                                placeholderTextColor={colors.text_tertiary}
                                 multiline
                                 numberOfLines={4}
                                 textAlignVertical="top"
                                 value={formData.address}
                                 onChangeText={(text) => handleChange("address", text)}
                                 editable={!saving}
-                                className="rounded-xl px-4 py-3.5 text-base min-h-[100px]"
-                                style={{
-                                    outline: "none",
-                                    backgroundColor: colors.bg_white,
-                                    borderColor: colors.border_primary,
-                                    borderWidth: 1,
-                                    color: colors.text_primary,
-                                }}
+                                className="rounded-xl px-4 py-3.5 text-base min-h-[100px] bg-bg_white border border-border_primary text-text_primary"
                             />
                         </View>
 
-                        {/* City */}
                         <View className="mb-5">
                             <TextInput
                                 placeholder="City"
-                                placeholderTextColor={colors.text_secondary}
+                                placeholderTextColor={colors.text_tertiary}
                                 value={formData.cityState}
                                 onChangeText={(text) => handleChange("cityState", text)}
                                 editable={!saving}
-                                className="rounded-xl px-4 py-3.5 text-base"
-                                style={{
-                                    outline: "none",
-                                    backgroundColor: colors.bg_white,
-                                    borderColor: colors.border_primary,
-                                    borderWidth: 1,
-                                    color: colors.text_primary,
-                                }}
+                                className="rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
                             />
                         </View>
 
-                        {/* PIN Code */}
                         <View className="mb-5">
                             <TextInput
                                 placeholder="PIN Code"
-                                placeholderTextColor={colors.text_secondary}
+                                placeholderTextColor={colors.text_tertiary}
                                 keyboardType="numeric"
                                 value={formData.pin}
                                 onChangeText={(text) => handleChange("pin", text)}
                                 editable={!saving}
-                                className="rounded-xl px-4 py-3.5 text-base"
-                                style={{
-                                    outline: "none",
-                                    backgroundColor: colors.bg_white,
-                                    borderColor: colors.border_primary,
-                                    borderWidth: 1,
-                                    color: colors.text_primary,
-                                }}
+                                className="rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
                             />
                         </View>
 
@@ -595,18 +752,16 @@ export default function ProfileSettingsScreen() {
                             ]}
                         />
 
-                        {/* Save Button */}
                         <TouchableOpacity
                             onPress={handleSubmit}
                             disabled={saving}
-                            className="mt-6 bg-lime-400 py-4 rounded-xl items-center"
-                            style={{ opacity: saving ? 0.6 : 1 }}
+                            className={`mt-6 bg-primary py-4 rounded-xl items-center ${saving ? "opacity-60" : ""}`}
                             activeOpacity={0.7}
                         >
                             {saving ? (
-                                <ActivityIndicator size="small" color="#000" />
+                                <ActivityIndicator size="small" color={colors.text_white} />
                             ) : (
-                                <Text className="font-bold text-black text-base">Save</Text>
+                                <Text className="font-bold text-text_white text-base">Save</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -658,14 +813,7 @@ export default function ProfileSettingsScreen() {
                                         placeholderTextColor={colors.text_secondary}
                                         value={verificationForm.emiratesId}
                                         onChangeText={(text) => handleVerificationChange("emiratesId", text)}
-                                        className="rounded-xl px-4 py-3 text-base"
-                                        style={{
-                                            outline: "none",
-                                            backgroundColor: colors.bg_white,
-                                            borderColor: verificationErrors.emiratesId ? colors.error : colors.border_primary,
-                                            borderWidth: 1,
-                                            color: colors.text_primary,
-                                        }}
+                                        className={`rounded-xl px-4 py-3 text-base bg-bg_white border text-text_primary ${verificationErrors.emiratesId ? "border-error" : "border-border_primary"}`}
                                     />
                                     {verificationErrors.emiratesId && (
                                         <Text className="text-xs text-red-500 mt-0.5">
@@ -684,14 +832,7 @@ export default function ProfileSettingsScreen() {
                                         placeholderTextColor={colors.text_secondary}
                                         value={verificationForm.fullName}
                                         onChangeText={(text) => handleVerificationChange("fullName", text)}
-                                        className="rounded-xl px-4 py-3 text-base"
-                                        style={{
-                                            outline: "none",
-                                            backgroundColor: colors.bg_white,
-                                            borderColor: verificationErrors.fullName ? colors.error : colors.border_primary,
-                                            borderWidth: 1,
-                                            color: colors.text_primary,
-                                        }}
+                                        className={`rounded-xl px-4 py-3 text-base bg-bg_white border text-text_primary ${verificationErrors.fullName ? "border-error" : "border-border_primary"}`}
                                     />
                                     {verificationErrors.fullName && (
                                         <Text className="text-xs text-red-500 mt-0.5">
@@ -750,12 +891,7 @@ export default function ProfileSettingsScreen() {
                                             </Text>
                                             <TouchableOpacity
                                                 onPress={() => handleImageUpload("front")}
-                                                className="border-2 border-dashed border-gray-300 rounded-xl p-3 items-center justify-center"
-                                                style={{
-                                                    minHeight: 90,
-                                                    backgroundColor: verificationForm.frontImage ? "#F9FAFB" : "#FAFAFA",
-                                                    borderColor: verificationErrors.frontImage ? colors.error : colors.border_primary,
-                                                }}
+                                                className={`border-2 border-dashed rounded-xl p-3 items-center justify-center min-h-[90px] ${verificationForm.frontImage ? "bg-bg_primary" : "bg-bg_secondary"} ${verificationErrors.frontImage ? "border-error" : "border-border_primary"}`}
                                                 activeOpacity={0.7}
                                             >
                                                 {verificationForm.frontImage ? (
@@ -785,12 +921,7 @@ export default function ProfileSettingsScreen() {
                                             </Text>
                                             <TouchableOpacity
                                                 onPress={() => handleImageUpload("back")}
-                                                className="border-2 border-dashed border-gray-300 rounded-xl p-3 items-center justify-center"
-                                                style={{
-                                                    minHeight: 90,
-                                                    backgroundColor: verificationForm.backImage ? "#F9FAFB" : "#FAFAFA",
-                                                    borderColor: verificationErrors.backImage ? colors.error : colors.border_primary,
-                                                }}
+                                                className={`border-2 border-dashed rounded-xl p-3 items-center justify-center min-h-[90px] ${verificationForm.backImage ? "bg-bg_primary" : "bg-bg_secondary"} ${verificationErrors.backImage ? "border-error" : "border-border_primary"}`}
                                                 activeOpacity={0.7}
                                             >
                                                 {verificationForm.backImage ? (
@@ -819,16 +950,15 @@ export default function ProfileSettingsScreen() {
                                 <TouchableOpacity
                                     onPress={handleVerificationSubmit}
                                     disabled={submittingVerification}
-                                    className="bg-black py-3 rounded-xl items-center"
-                                    style={{ opacity: submittingVerification ? 0.6 : 1 }}
+                                    className={`bg-bg_black py-3 rounded-xl items-center ${submittingVerification ? "opacity-60" : ""}`}
                                     activeOpacity={0.7}
                                 >
                                     {submittingVerification ? (
-                                        <ActivityIndicator size="small" color="#fff" />
+                                        <ActivityIndicator size="small" color={colors.text_white} />
                                     ) : (
-                                        <Text className="text-white font-bold text-base">Submit</Text>
+                                        <Text className="text-text_white font-bold text-base">Submit</Text>
                                     )}
-            </TouchableOpacity>
+                                </TouchableOpacity>
                             </View>
                         </ScrollView>
                     </Pressable>

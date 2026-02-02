@@ -42,12 +42,10 @@ export default function Dropdown({
     <View className="mb-5">
       <Pressable
         onPress={() => setIsOpen(true)}
-        className="w-full rounded-xl px-4 py-3.5 flex-row items-center justify-between"
-        style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary, borderWidth: 1 }}
+        className="w-full rounded-xl px-4 py-3.5 flex-row items-center justify-between bg-bg_white border border-border_primary"
       >
         <Text
-          className="flex-1 text-base"
-          style={{ color: selectedOption && selectedOption.value !== "" ? colors.text_primary : colors.text_tertiary }}
+          className={`flex-1 text-base ${selectedOption && selectedOption.value !== "" ? "text-text_primary" : "text-text_tertiary"}`}
         >
           {selectedOption && selectedOption.value !== ""
             ? selectedOption.label
@@ -66,13 +64,13 @@ export default function Dropdown({
           className="flex-1 bg-black/50 justify-end"
           onPress={() => setIsOpen(false)}
         >
-          <Pressable className="rounded-t-3xl max-h-[80%]" style={{ backgroundColor: colors.bg_white }}>
+          <Pressable className="rounded-t-3xl max-h-[80%] bg-bg_white">
             <View className="py-4 px-6">
-              <Text className="text-lg font-semibold" style={{ color: colors.text_primary }}>
+              <Text className="text-lg font-semibold text-text_primary">
                 {typeof label === "string" ? label : "Select"}
               </Text>
             </View>
-            <View className="h-px mx-6" style={{ backgroundColor: colors.border_primary }} />
+            <View className="h-px mx-6 bg-border_primary" />
             <ScrollView className="max-h-96">
               {options
                 .filter((option) => option.value !== "")
@@ -80,12 +78,10 @@ export default function Dropdown({
                   <Pressable
                     key={option.value}
                     onPress={() => handleSelect(option.value)}
-                    className="px-6 py-4"
-                    style={{ backgroundColor: value === option.value ? colors.bg_secondary : colors.bg_white }}
+                    className={`px-6 py-4 ${value === option.value ? "bg-bg_secondary" : "bg-bg_white"}`}
                   >
                     <Text
-                      className={`text-base ${value === option.value ? "font-medium" : ""}`}
-                      style={{ color: value === option.value ? colors.primary : colors.text_primary }}
+                      className={`text-base ${value === option.value ? "font-medium text-primary" : "text-text_primary"}`}
                     >
                       {option.label}
                     </Text>

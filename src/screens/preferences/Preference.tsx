@@ -12,6 +12,7 @@ import {
 import Toast from "react-native-toast-message";
 
 import { get, post } from "@/src/services/api";
+import { colors } from "@/theme";
 import { Api } from "./api";
 
 interface Question {
@@ -183,7 +184,7 @@ export default function PreferenceScreen() {
         <View className="w-full">
           <TextInput
             placeholder="Type here..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text_tertiary}
             value={(currentAnswer as string) || ""}
             onChangeText={(text) => setCurrentAnswer(text)}
             onSubmitEditing={() => {
@@ -192,14 +193,12 @@ export default function PreferenceScreen() {
               }
             }}
             onBlur={() => {
-              // Auto-submit on blur if there's an answer
               if (currentAnswer && (currentAnswer as string).trim()) {
                 submitAnswer();
               }
             }}
             editable={!submitting}
-            className="w-full rounded-xl bg-white border border-gray-300 px-4 py-3.5 text-base text-gray-900"
-            style={{ outline: "none" }}
+            className="w-full rounded-xl bg-bg_white border border-border_secondary px-4 py-3.5 text-base text-text_primary"
           />
         </View>
       );
@@ -211,27 +210,18 @@ export default function PreferenceScreen() {
           {options.map((o) => (
             <Pressable
               key={o.id}
-              onPress={() => {
-                // Auto-submit immediately when option is clicked.
-                submitAnswer(o);
-              }}
+              onPress={() => submitAnswer(o)}
               disabled={submitting}
-              className="w-full rounded-xl bg-white border border-gray-200 px-4 py-4 flex-row items-center active:bg-blue-50"
-              style={{
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 2,
-                elevation: 1,
-              }}
+              className="w-full rounded-xl bg-bg_white border border-border_primary px-4 py-4 flex-row items-center shadow-sm"
+              style={{ elevation: 1 }}
             >
-              <View className="h-5 w-5 rounded-full border-2 border-gray-300 mr-3 items-center justify-center">
-                <View className="h-3 w-3 rounded-full " />
+              <View className="h-5 w-5 rounded-full border-2 border-border_secondary mr-3 items-center justify-center">
+                <View className="h-3 w-3 rounded-full" />
               </View>
-              <Text className="flex-1 text-base text-gray-900 font-medium">
+              <Text className="flex-1 text-base text-text_primary font-medium">
                 {o.name}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+              <Ionicons name="chevron-forward" size={20} color={colors.text_tertiary} />
             </Pressable>
           ))}
         </View>
@@ -254,50 +244,32 @@ export default function PreferenceScreen() {
                 onPress={() => {
                   const newSelection = nextValue;
                   setCurrentAnswer(newSelection);
-                  
-                  // Clear existing timeout
-                  if (submitTimeoutRef.current) {
-                    clearTimeout(submitTimeoutRef.current);
-                  }
-                  
-                  // Auto-submit after a short delay to allow multiple selections
+                  if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
                   submitTimeoutRef.current = setTimeout(() => {
-                    if (newSelection.length > 0 && !submitting) {
-                      submitAnswer(newSelection);
-                    }
+                    if (newSelection.length > 0 && !submitting) submitAnswer(newSelection);
                   }, 500);
                 }}
                 disabled={submitting}
                 className={`w-full rounded-xl border px-4 py-4 flex-row items-center ${
-                  active
-                    ? "bg-blue-50 border-blue-200"
-                    : "bg-white border-gray-200"
-                }`}
-                style={{
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 2,
-                  elevation: 1,
-                }}
+                  active ? "bg-bg_secondary border-primary" : "bg-bg_white border-border_primary"
+                } shadow-sm`}
+                style={{ elevation: 1 }}
               >
                 <View
                   className={`h-5 w-5 rounded-full border-2 mr-3 items-center justify-center ${
-                    active ? "border-blue-600 bg-blue-600" : "border-gray-300"
+                    active ? "border-primary bg-primary" : "border-border_secondary"
                   }`}
                 >
                   {active && (
-                    <View className="h-3 w-3 rounded-full bg-white" />
+                    <View className="h-3 w-3 rounded-full bg-bg_white" />
                   )}
                 </View>
                 <Text
-                  className={`flex-1 text-base ${
-                    active ? "text-blue-900 font-medium" : "text-gray-900"
-                  }`}
+                  className={`flex-1 text-base ${active ? "text-text_primary font-medium" : "text-text_primary"}`}
                 >
                   {o.name}
                 </Text>
-                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                <Ionicons name="chevron-forward" size={20} color={colors.text_tertiary} />
               </Pressable>
             );
           })}
@@ -315,7 +287,6 @@ export default function PreferenceScreen() {
         if (value < max) {
           const newValue = value + 1;
           setCurrentAnswer(newValue);
-          // Auto-submit after value change
           setTimeout(() => submitAnswer(newValue), 500);
         }
       };
@@ -324,14 +295,12 @@ export default function PreferenceScreen() {
         if (value > min) {
           const newValue = value - 1;
           setCurrentAnswer(newValue);
-          // Auto-submit after value change
           setTimeout(() => submitAnswer(newValue), 500);
         }
       };
 
       const handleValueChange = (newValue: number) => {
         setCurrentAnswer(newValue);
-        // Auto-submit after a delay when typing
         setTimeout(() => submitAnswer(newValue), 1000);
       };
 
@@ -339,39 +308,36 @@ export default function PreferenceScreen() {
 
       return (
         <View className="w-full">
-          {/* Value Display */}
           <View className="items-center mb-6">
-            <Text className="text-4xl font-bold text-blue-600 mb-1">
+            <Text className="text-4xl font-bold text-primary mb-1">
               {value.toLocaleString()}
             </Text>
             <View className="flex-row gap-4">
-              <Text className="text-sm text-gray-500">Min: {min.toLocaleString()}</Text>
-              <Text className="text-sm text-gray-500">Max: {max.toLocaleString()}</Text>
+              <Text className="text-sm text-text_tertiary">Min: {min.toLocaleString()}</Text>
+              <Text className="text-sm text-text_tertiary">Max: {max.toLocaleString()}</Text>
             </View>
           </View>
 
-          {/* Progress Bar */}
           <View className="relative mb-6">
-            <View className="h-3 bg-gray-200 rounded-full" />
+            <View className="h-3 bg-border_secondary rounded-full" />
             <View
-              className="absolute h-3 bg-blue-600 rounded-full"
+              className="absolute h-3 bg-primary rounded-full"
               style={{ width: `${percentage}%` }}
             />
           </View>
 
-          {/* Increment/Decrement Controls */}
           <View className="flex-row items-center justify-center gap-4">
             <Pressable
               onPress={handleDecrement}
               disabled={value <= min || submitting}
               className={`h-12 w-12 rounded-full items-center justify-center ${
-                value <= min ? "bg-gray-200" : "bg-blue-100"
+                value <= min ? "bg-border_secondary" : "bg-bg_secondary"
               }`}
             >
               <Ionicons
                 name="remove"
                 size={24}
-                color={value <= min ? "#9CA3AF" : "#1E40AF"}
+                color={value <= min ? colors.text_tertiary : colors.primary}
               />
             </Pressable>
 
@@ -380,13 +346,10 @@ export default function PreferenceScreen() {
                 value={value.toString()}
                 onChangeText={(text) => {
                   const num = parseInt(text) || min;
-                  if (num >= min && num <= max) {
-                    handleValueChange(num);
-                  }
+                  if (num >= min && num <= max) handleValueChange(num);
                 }}
                 keyboardType="number-pad"
-                className="text-2xl font-bold text-blue-600 text-center"
-                style={{ outline: "none" }}
+                className="text-2xl font-bold text-primary text-center"
                 editable={!submitting}
               />
             </View>
@@ -395,13 +358,13 @@ export default function PreferenceScreen() {
               onPress={handleIncrement}
               disabled={value >= max || submitting}
               className={`h-12 w-12 rounded-full items-center justify-center ${
-                value >= max ? "bg-gray-200" : "bg-blue-100"
+                value >= max ? "bg-border_secondary" : "bg-bg_secondary"
               }`}
             >
               <Ionicons
                 name="add"
                 size={24}
-                color={value >= max ? "#9CA3AF" : "#1E40AF"}
+                color={value >= max ? colors.text_tertiary : colors.primary}
               />
             </Pressable>
           </View>
@@ -419,25 +382,24 @@ export default function PreferenceScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-white items-center justify-center px-6">
-        <Text className="text-xl font-semibold text-gray-800 mb-4">
+      <View className="flex-1 bg-bg_white items-center justify-center px-6">
+        <Text className="text-xl font-semibold text-text_primary mb-4">
           Loading Preferences…
         </Text>
-        <ActivityIndicator size="large" color="#1E40AF" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
-  // Show error state if no conversation started
   if (conversation.length === 0 && !loading) {
     return (
-      <View className="flex-1 bg-white items-center justify-center px-6">
+      <View className="flex-1 bg-bg_white items-center justify-center px-6">
         <View className="items-center mb-6">
-          <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
-          <Text className="text-xl font-semibold text-gray-800 mt-4 mb-2">
+          <Ionicons name="alert-circle-outline" size={64} color={colors.error} />
+          <Text className="text-xl font-semibold text-text_primary mt-4 mb-2">
             Unable to Load Preferences
           </Text>
-          <Text className="text-base text-gray-600 text-center mb-6">
+          <Text className="text-base text-text_tertiary text-center mb-6">
             We couldn't load your preferences. Please try again or skip for now.
           </Text>
           <Pressable
@@ -445,15 +407,15 @@ export default function PreferenceScreen() {
               setLoading(true);
               init();
             }}
-            className="bg-blue-600 px-6 py-3 rounded-xl mb-3"
+            className="bg-primary px-6 py-3 rounded-xl mb-3"
           >
-            <Text className="text-white font-semibold">Retry</Text>
+            <Text className="text-text_white font-semibold">Retry</Text>
           </Pressable>
           <Pressable
             onPress={() => router.replace("/home")}
             className="px-6 py-3"
           >
-            <Text className="text-blue-600 font-semibold">Skip</Text>
+            <Text className="text-primary font-semibold">Skip</Text>
           </Pressable>
         </View>
       </View>
@@ -461,21 +423,19 @@ export default function PreferenceScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white">
-      {/* Header */}
-      <View className="px-6 pt-12 pb-4 flex-row justify-between items-center border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-900">
+    <View className="flex-1 bg-bg_white">
+      <View className="px-6 pt-12 pb-4 flex-row justify-between items-center border-b border-border_primary">
+        <Text className="text-2xl font-bold text-text_primary">
           Set your preferences
         </Text>
         <Pressable
           onPress={() => router.replace("/home")}
           className="px-4 py-2"
         >
-          <Text className="text-blue-600 font-semibold">Skip</Text>
+          <Text className="text-primary font-semibold">Skip</Text>
         </Pressable>
       </View>
 
-      {/* Content */}
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         className="flex-1"
@@ -485,32 +445,23 @@ export default function PreferenceScreen() {
           {conversation.map((item, index) => (
             <View
               key={index}
-              className="mb-6 rounded-2xl bg-white border border-gray-200 p-6 shadow-md"
-              style={{
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                elevation: 4,
-              }}
+              className="mb-6 rounded-2xl bg-bg_white border border-border_primary p-6 shadow-md"
+              style={{ elevation: 4 }}
             >
-              {/* Question Header */}
               <View className="flex-row items-start mb-4">
-                <View className="h-12 w-12 rounded-full bg-blue-100 items-center justify-center mr-4">
+                <View className="h-12 w-12 rounded-full bg-bg_secondary items-center justify-center mr-4">
                   <Text className="text-3xl">🤖</Text>
                 </View>
-                <Text className="flex-1 text-lg font-semibold text-gray-900 leading-6">
+                <Text className="flex-1 text-lg font-semibold text-text_primary leading-6">
                   {item.question.question}
                 </Text>
               </View>
 
-              {/* Divider */}
-              <View className="h-px bg-gray-200 mb-4" />
+              <View className="h-px bg-border_secondary mb-4" />
 
-              {/* Answer or Input */}
               {item.answer !== null ? (
-                <View className="rounded-xl bg-blue-50 border-2 border-blue-200 px-4 py-3.5">
-                  <Text className="text-base text-blue-900 font-medium">
+                <View className="rounded-xl bg-bg_secondary border-2 border-border_primary px-4 py-3.5">
+                  <Text className="text-base text-text_primary font-medium">
                     {renderAnswer(item.answer)}
                   </Text>
                 </View>
@@ -522,7 +473,7 @@ export default function PreferenceScreen() {
 
           {submitting && (
             <View className="items-center py-4">
-              <ActivityIndicator size="small" color="#1E40AF" />
+              <ActivityIndicator size="small" color={colors.primary} />
             </View>
           )}
         </View>

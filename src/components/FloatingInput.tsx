@@ -21,20 +21,21 @@ export default function FloatingInput({
   keyboardType = "default",
 }: Props) {
   return (
-    <View className={`border rounded-xl px-4 py-3 bg-gray-50 ${
-      editable ? "border-gray-300" : "border-gray-200"
-    }`}>
-      <Text className="text-xs text-gray-400 mb-1">{label}</Text>
+    <View
+      className={`rounded-xl px-4 py-3 border bg-bg_secondary ${
+        editable ? "border-border_secondary" : "border-border_primary"
+      }`}
+    >
+      <Text className="text-xs text-text_tertiary mb-1">{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
         editable={editable}
         placeholder={placeholder}
-        placeholderTextColor={colors.text_secondary}
+        placeholderTextColor={colors.text_tertiary}
         keyboardType={keyboardType}
-        className="text-base text-black"
-        style={{ color: editable ? colors.text_primary : colors.text_tertiary }}
+        className={`text-base ${editable ? "text-text_primary" : "text-text_tertiary"}`}
       />
     </View>
   );

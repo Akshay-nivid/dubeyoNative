@@ -93,20 +93,14 @@ export default function LocationPicker({
         onPress={onClose}
       >
         <Pressable
-          className="rounded-t-3xl max-h-[80%]"
-          style={{ backgroundColor: colors.bg_white }}
+          className="rounded-t-3xl max-h-[80%] bg-bg_white"
           onPress={(e) => e.stopPropagation()}
         >
-          <View className="py-4 px-6 border-b flex-row justify-between items-center" style={{ borderColor: colors.border_primary }}>
+          <View className="py-4 px-6 border-b border-border_primary flex-row justify-between items-center">
             <Pressable onPress={onClose}>
-              <Text className="text-base" style={{ color: colors.primary }}>
-                Cancel
-              </Text>
+              <Text className="text-base text-primary">Cancel</Text>
             </Pressable>
-            <Text
-              className="text-lg font-semibold"
-              style={{ color: colors.text_primary }}
-            >
+            <Text className="text-lg font-semibold text-text_primary">
               Select Location
             </Text>
             <View className="w-16" />
@@ -115,16 +109,10 @@ export default function LocationPicker({
           <ScrollView className="px-6 py-4">
             {/* Current Location */}
             <View className="mb-6">
-              <Text
-                className="text-sm font-medium mb-2"
-                style={{ color: colors.text_secondary }}
-              >
+              <Text className="text-sm font-medium mb-2 text-text_secondary">
                 Current Location
               </Text>
-              <View
-                className="p-4 rounded-lg flex-row items-center justify-between"
-                style={{ backgroundColor: colors.bg_secondary }}
-              >
+              <View className="p-4 rounded-lg flex-row items-center justify-between bg-bg_secondary">
                 <View className="flex-1">
                   <View className="flex-row items-center mb-1">
                     <Ionicons
@@ -132,17 +120,11 @@ export default function LocationPicker({
                       size={18}
                       color={colors.icon_primary}
                     />
-                    <Text
-                      className="ml-2 text-base font-medium"
-                      style={{ color: colors.text_primary }}
-                    >
+                    <Text className="ml-2 text-base font-medium text-text_primary">
                       {currentLocation.place}
                     </Text>
                   </View>
-                  <Text
-                    className="text-xs ml-6"
-                    style={{ color: colors.text_secondary }}
-                  >
+                  <Text className="text-xs ml-6 text-text_secondary">
                     {currentLocation.coordinates.lat.toFixed(4)},{" "}
                     {currentLocation.coordinates.lon.toFixed(4)}
                   </Text>
@@ -150,20 +132,12 @@ export default function LocationPicker({
                 <Pressable
                   onPress={handleUseCurrentLocation}
                   disabled={usingCurrent}
-                  className="px-4 py-2 rounded-lg"
-                  style={{
-                    backgroundColor: usingCurrent
-                      ? colors.bg_gray_400
-                      : colors.primary,
-                  }}
+                  className={`px-4 py-2 rounded-lg ${usingCurrent ? "bg-bg_gray_400" : "bg-primary"}`}
                 >
                   {usingCurrent ? (
                     <ActivityIndicator size="small" color={colors.text_white} />
                   ) : (
-                    <Text
-                      className="text-sm font-medium"
-                      style={{ color: colors.text_white }}
-                    >
+                    <Text className="text-sm font-medium text-text_white">
                       Use Current
                     </Text>
                   )}
@@ -173,10 +147,7 @@ export default function LocationPicker({
 
             {/* Manual Input */}
             <View>
-              <Text
-                className="text-sm font-medium mb-2"
-                style={{ color: colors.text_secondary }}
-              >
+              <Text className="text-sm font-medium mb-2 text-text_secondary">
                 Enter Location Name
               </Text>
 
@@ -188,28 +159,17 @@ export default function LocationPicker({
                     setError(null);
                   }}
                   placeholder="e.g., kannur, kerala"
-                  className="px-4 py-3 rounded-lg border"
-                  style={{
-                    backgroundColor: colors.bg_white,
-                    borderColor: error ? colors.error : colors.border_primary,
-                    color: colors.text_primary,
-                  }}
+                  className={`px-4 py-3 rounded-lg border bg-bg_white text-text_primary ${error ? "border-error" : "border-border_primary"}`}
                   placeholderTextColor={colors.text_tertiary}
                   autoCapitalize="words"
                   autoCorrect={false}
                 />
                 {error && (
-                  <Text
-                    className="text-xs mt-1"
-                    style={{ color: colors.error }}
-                  >
+                  <Text className="text-xs mt-1 text-error">
                     {error}
                   </Text>
                 )}
-                <Text
-                  className="text-xs mt-1"
-                  style={{ color: colors.text_tertiary }}
-                >
+                <Text className="text-xs mt-1 text-text_tertiary">
                   Enter city name, city and state, or full address
                 </Text>
               </View>
@@ -217,21 +177,14 @@ export default function LocationPicker({
               <Pressable
                 onPress={handleManualInput}
                 disabled={loading || !locationName.trim()}
-                className="py-3 rounded-lg items-center"
-                style={{
-                  backgroundColor:
-                    loading || !locationName.trim()
-                      ? colors.bg_gray_400
-                      : colors.primary,
-                }}
+                className={`py-3 rounded-lg items-center ${
+                  loading || !locationName.trim() ? "bg-bg_gray_400" : "bg-primary"
+                }`}
               >
                 {loading ? (
                   <ActivityIndicator size="small" color={colors.text_white} />
                 ) : (
-                  <Text
-                    className="text-base font-medium"
-                    style={{ color: colors.text_white }}
-                  >
+                  <Text className="text-base font-medium text-text_white">
                     Set Location
                   </Text>
                 )}

@@ -170,7 +170,7 @@ export default function ProfileScreen() {
 
                                 <TouchableOpacity
                                     className="bg-black px-4 py-1.5 rounded-full"
-                                    onPress={() => router.push("/profile/edit" as any)}
+                                    onPress={() => router.push("/profileditscreen" as any)}
                                 >
                                     <Text className="text-white text-xs font-semibold">Edit</Text>
                                 </TouchableOpacity>
@@ -210,7 +210,7 @@ export default function ProfileScreen() {
                         <MenuItem 
                             icon="person-outline" 
                             label="Profile Setting" 
-                            onPress={() => router.push("/profile/edit" as any)}
+                            onPress={() => router.push("/profileditscreen" as any)}
                         />
                         <MenuItem icon="settings-outline" label="Account Setting" />
                         <MenuItem 

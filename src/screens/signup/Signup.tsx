@@ -283,25 +283,22 @@ export default function SignupScreen() {
   };
 
   return (
-    <View className="flex-1" style={{ backgroundColor: colors.bg_primary }}>
+    <View className="flex-1 bg-bg_primary">
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
-        className="flex-1"
-        style={{ backgroundColor: colors.bg_primary }}
+        className="flex-1 bg-bg_primary"
         showsVerticalScrollIndicator={false}
       >
         <View className="px-6 pt-16 pb-4">
-          {/* Title */}
           <View className="mb-8">
-            <Text className="mb-2 text-3xl font-bold" style={{ color: colors.text_primary }}>
+            <Text className="mb-2 text-3xl font-bold text-text_primary">
               Create Account
             </Text>
-            <Text className="text-base" style={{ color: colors.text_tertiary }}>
+            <Text className="text-base text-text_tertiary">
               Fill in your details to get started
             </Text>
           </View>
 
-          {/* First Name & Last Name Row */}
           <View className="w-full flex-row mb-5 gap-3">
             <View className="flex-1">
               <TextInput
@@ -310,14 +307,7 @@ export default function SignupScreen() {
                 value={data.firstName || ""}
                 onChangeText={(text) => handleChange("firstName", text)}
                 editable={!loading}
-                className="rounded-xl px-4 py-3.5 text-base"
-                style={{ 
-                  outline: "none",
-                  backgroundColor: colors.bg_white,
-                  borderColor: colors.border_primary,
-                  borderWidth: 1,
-                  color: colors.text_primary
-                }}
+                className="rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
               />
             </View>
 
@@ -328,14 +318,7 @@ export default function SignupScreen() {
                 value={data.lastName || ""}
                 onChangeText={(text) => handleChange("lastName", text)}
                 editable={!loading}
-                className="rounded-xl px-4 py-3.5 text-base"
-                style={{ 
-                  outline: "none",
-                  backgroundColor: colors.bg_white,
-                  borderColor: colors.border_primary,
-                  borderWidth: 1,
-                  color: colors.text_primary
-                }}
+                className="rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
               />
             </View>
           </View>
@@ -351,36 +334,19 @@ export default function SignupScreen() {
                 value={data.email || ""}
                 onChangeText={(text) => handleChange("email", text)}
                 editable={!loading && !otpSent}
-                className="flex-1 rounded-xl px-4 py-3.5 text-base"
-                style={{ 
-                  outline: "none",
-                  backgroundColor: colors.bg_white,
-                  borderColor: colors.border_primary,
-                  borderWidth: 1,
-                  color: colors.text_primary
-                }}
+                className="flex-1 rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
               />
               {!otpSent && data.email && (
                 <Pressable
                   onPress={handleSendOTP}
                   disabled={sendingOTP}
-                  className="rounded-xl justify-center items-center"
-                  style={{
-                    paddingHorizontal: 16,
-                    paddingVertical: 14,
-                    minHeight: 50,
-                    backgroundColor: sendingOTP ? colors.bg_gray_400 : colors.primary,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 2,
-                    elevation: 2,
-                  }}
+                  className={`rounded-xl justify-center items-center px-4 py-3.5 min-h-[50px] ${sendingOTP ? "bg-bg_gray_400" : "bg-primary"}`}
+                  style={{ elevation: 2 }}
                 >
                   {sendingOTP ? (
                     <ActivityIndicator color={colors.text_light} size="small" />
                   ) : (
-                    <Text className="text-sm font-semibold" style={{ color: colors.text_light }}>
+                    <Text className="text-sm font-semibold text-text_light">
                       Send OTP
                     </Text>
                   )}
@@ -401,32 +367,18 @@ export default function SignupScreen() {
                   value={data.email_otp || ""}
                   onChangeText={(text) => handleChange("email_otp", text)}
                   editable={!loading}
-                  className="flex-1 rounded-xl px-4 py-3.5 text-base"
-                  style={{ 
-                    outline: "none",
-                    backgroundColor: colors.bg_white,
-                    borderColor: colors.border_primary,
-                    borderWidth: 1,
-                    color: colors.text_primary
-                  }}
+                  className="flex-1 rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
                 />
                 <Pressable
                   onPress={handleVerifyOTP}
                   disabled={verifyingOTP}
-                  className="px-5 py-3.5 rounded-xl justify-center items-center min-w-[100px]"
-                  style={{
-                    backgroundColor: verifyingOTP ? colors.bg_gray_400 : colors.success_btn,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 2,
-                    elevation: 2,
-                  }}
+                  className={`px-5 py-3.5 rounded-xl justify-center items-center min-w-[100px] ${verifyingOTP ? "bg-bg_gray_400" : "bg-success_btn"}`}
+                  style={{ elevation: 2 }}
                 >
                   {verifyingOTP ? (
                     <ActivityIndicator color={colors.text_light} size="small" />
                   ) : (
-                    <Text className="text-sm font-semibold" style={{ color: colors.text_light }}>
+                    <Text className="text-sm font-semibold text-text_light">
                       Verify
                     </Text>
                   )}
@@ -455,14 +407,7 @@ export default function SignupScreen() {
               value={data.phone || ""}
               onChangeText={(text) => handleChange("phone", text)}
               editable={!loading}
-              className="rounded-xl px-4 py-3.5 text-base"
-              style={{ 
-                outline: "none",
-                backgroundColor: colors.bg_white,
-                borderColor: colors.border_primary,
-                borderWidth: 1,
-                color: colors.text_primary
-              }}
+              className="rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
             />
           </View>
 
@@ -502,14 +447,7 @@ export default function SignupScreen() {
               value={data.address || ""}
               onChangeText={(text) => handleChange("address", text)}
               editable={!loading}
-              className="rounded-xl px-4 py-3.5 text-base min-h-[100px]"
-              style={{ 
-                outline: "none",
-                backgroundColor: colors.bg_white,
-                borderColor: colors.border_primary,
-                borderWidth: 1,
-                color: colors.text_primary
-              }}
+              className="rounded-xl px-4 py-3.5 text-base min-h-[100px] bg-bg_white border border-border_primary text-text_primary"
             />
           </View>
 
@@ -539,14 +477,12 @@ export default function SignupScreen() {
               className="mr-3 mt-1"
             >
               <View
-                className="h-5 w-5 rounded border-2 items-center justify-center"
-                style={{
-                  backgroundColor: acceptedTerms ? colors.primary : colors.bg_white,
-                  borderColor: acceptedTerms ? colors.primary : colors.border_primary
-                }}
+                className={`h-5 w-5 rounded border-2 items-center justify-center ${
+                  acceptedTerms ? "bg-primary border-primary" : "bg-bg_white border-border_primary"
+                }`}
               >
                 {acceptedTerms && (
-                  <Text className="text-xs font-bold" style={{ color: colors.text_light }}>✓</Text>
+                  <Text className="text-xs font-bold text-text_light">✓</Text>
                 )}
               </View>
             </Pressable>
@@ -554,16 +490,15 @@ export default function SignupScreen() {
               onPress={() => setAcceptedTerms(!acceptedTerms)}
               className="flex-1"
             >
-              <Text className="text-xs leading-5" style={{ color: colors.text_tertiary }}>
+              <Text className="text-xs leading-5 text-text_tertiary">
                 By signing up, you agree to Dubeyo&apos;s{" "}
-                <Text className="underline" style={{ color: colors.primary }}>Terms of Service</Text>{" "}
+                <Text className="underline text-primary">Terms of Service</Text>{" "}
                 and{" "}
-                <Text className="underline" style={{ color: colors.primary }}>Privacy Policy</Text>
+                <Text className="underline text-primary">Privacy Policy</Text>
               </Text>
             </Pressable>
           </View>
 
-          {/* Register Button */}
           <Pressable
             onPress={handleSubmit}
             disabled={
@@ -577,9 +512,8 @@ export default function SignupScreen() {
               !data.address ||
               !data.country
             }
-            className="mb-6 w-full rounded-xl py-4"
-            style={{
-              backgroundColor: (loading ||
+            className={`mb-6 w-full rounded-xl py-4 ${
+              (loading ||
                 !acceptedTerms ||
                 !data.firstName ||
                 !data.email ||
@@ -587,30 +521,24 @@ export default function SignupScreen() {
                 !data.password ||
                 !data.phone ||
                 !data.address ||
-                !data.country) ? colors.bg_gray_400 : colors.primary,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.15,
-              shadowRadius: 4,
-              elevation: 4,
-            }}
+                !data.country) ? "bg-bg_gray_400" : "bg-primary"
+            }`}
+            style={{ elevation: 4 }}
           >
             {loading ? (
               <ActivityIndicator color={colors.text_light} />
             ) : (
-              <Text className="text-center text-base font-semibold" style={{ color: colors.text_light }}>
+              <Text className="text-center text-base font-semibold text-text_light">
                 Register
               </Text>
             )}
           </Pressable>
 
-          {/* Footer Sign In */}
           <View className="flex-row justify-center pb-4">
-            <Text className="text-sm" style={{ color: colors.text_tertiary }}>
+            <Text className="text-sm text-text_tertiary">
               Already have an account?{" "}
               <Text
-                className="font-semibold"
-                style={{ color: colors.primary }}
+                className="font-semibold text-primary"
                 onPress={() => router.push("/")}
               >
                 Sign In

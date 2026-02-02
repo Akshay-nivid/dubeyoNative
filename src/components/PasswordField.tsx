@@ -28,7 +28,7 @@ export default function PasswordField({
 
   return (
     <View className="mb-5">
-      <View className="w-full rounded-xl px-4 py-3.5 flex-row items-center" style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary, borderWidth: 1 }}>
+      <View className="w-full rounded-xl px-4 py-3.5 flex-row items-center bg-bg_white border border-border_primary">
         <TextInput
           id={id}
           placeholder={label}
@@ -37,8 +37,7 @@ export default function PasswordField({
           value={value}
           onChangeText={(text) => onChange(name, text)}
           editable={editable}
-          className="flex-1 text-base"
-          style={{ outline: "none", color: colors.text_primary }}
+          className="flex-1 text-base text-text_primary"
         />
         <Pressable
           onPress={() => setShowPassword(!showPassword)}

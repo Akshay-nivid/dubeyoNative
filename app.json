@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "dubeyoApp",
+    "slug": "dubeyoApp",
+    "extra": {
+      "API_BASE_URL": "http://192.168.68.100:5000",
+      "googleAndroidClientId": "625043254314-72ufajmtpp5p15rh4knj1kaql29n2t3n.apps.googleusercontent.com",
+      "googleIosClientId": "625043254314-sashl32jjblvo1benf1t6guod2l32ch1.apps.googleusercontent.com",
+      "googleWebClientId": "625043254314-0asniuveu6m5b9k91o3g53dmfao3bhp1.apps.googleusercontent.com",
+      "router": {},
+      "eas": {
+        "projectId": "ad3ba110-b47b-48ef-bcfe-8eb556ece32e"
+      }
+    },
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "dubeyoapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.dubeyoApp"
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.dubeyoApp"
+    },
+    "edgeToEdgeEnabled": true,
+    "predictiveBackGestureEnabled": false,
+    "package": "com.anonymous.dubeyoApp"
+  },
+  "web": {
+    "output": "static",
+    "favicon": "./assets/images/favicon.png",
+    "bundler": "metro"
+  },
+  "plugins": [
+    "expo-router",
+    [
+      "expo-splash-screen",
+      {
+        "image": "./assets/images/splash-icon.png",
+        "imageWidth": 200,
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff",
+        "dark": {
+          "backgroundColor": "#000000"
+        }
+      }
+    ],
+    "expo-web-browser",
+    "expo-location",
+    "@react-native-community/datetimepicker"
+  ],
+  "experiments": {
+    "typedRoutes": true,
+    "reactCompiler": true
+  }
+}

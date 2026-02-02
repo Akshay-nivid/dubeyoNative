@@ -82,12 +82,10 @@ export default function DatePicker({
     <View className="mb-5">
       <Pressable
         onPress={() => setShowPicker(true)}
-        className="w-full rounded-xl px-4 py-3.5 flex-row items-center justify-between"
-        style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary, borderWidth: 1 }}
+        className="w-full rounded-xl px-4 py-3.5 flex-row items-center justify-between bg-bg_white border border-border_primary"
       >
         <Text
-          className="flex-1 text-base"
-          style={{ color: value ? colors.text_primary : colors.text_tertiary }}
+          className={`flex-1 text-base ${value ? "text-text_primary" : "text-text_tertiary"}`}
         >
           {value ? formatDisplayDate(value) : labelText}
         </Text>
@@ -115,16 +113,16 @@ export default function DatePicker({
             className="flex-1 bg-black/50 justify-end"
             onPress={() => setShowPicker(false)}
           >
-            <Pressable className="rounded-t-3xl" style={{ backgroundColor: colors.bg_white }}>
-              <View className="py-4 px-6 border-b flex-row justify-between items-center" style={{ borderColor: colors.border_primary }}>
+            <Pressable className="rounded-t-3xl bg-bg_white">
+              <View className="py-4 px-6 border-b border-border_primary flex-row justify-between items-center">
                 <Pressable onPress={() => setShowPicker(false)}>
-                  <Text className="text-base" style={{ color: colors.primary }}>Cancel</Text>
+                  <Text className="text-base text-primary">Cancel</Text>
                 </Pressable>
-                <Text className="text-lg font-semibold" style={{ color: colors.text_primary }}>
+                <Text className="text-lg font-semibold text-text_primary">
                   Select Date
                 </Text>
                 <Pressable onPress={handleConfirm}>
-                  <Text className="text-base font-semibold" style={{ color: colors.primary }}>
+                  <Text className="text-base font-semibold text-primary">
                     Done
                   </Text>
                 </Pressable>
@@ -135,7 +133,7 @@ export default function DatePicker({
                 display="spinner"
                 onChange={handleDateChange}
                 maximumDate={new Date()}
-                style={{ backgroundColor: "white" }}
+                style={{ backgroundColor: colors.bg_white }}
               />
             </Pressable>
           </Pressable>

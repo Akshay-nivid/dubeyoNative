@@ -15,19 +15,12 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
   const router = useRouter();
 
   return (
-    <View
-      className="px-4 py-4 flex-row items-center"
-      style={{ backgroundColor: "transparent" }}
-    >
+    <View className="px-4 py-4 flex-row items-center bg-transparent">
       {/* Profile Picture + User Info */}
       <View className="flex-row items-center flex-1">
         {/* Profile Picture */}
         <TouchableOpacity
-          className="w-12 h-12 rounded-full overflow-hidden border mr-3"
-          style={{
-            borderColor: colors.border_primary,
-            backgroundColor: colors.bg_secondary,
-          }}
+          className="w-12 h-12 rounded-full overflow-hidden border border-border_primary bg-bg_secondary mr-3"
           onPress={() => router.push("/profile")}
           activeOpacity={0.8}
         >
@@ -45,11 +38,7 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
           {/* User Name */}
           {userName && (
             <Text
-              className="text-base font-semibold"
-              style={{ 
-                color: colors.bg_black,
-                fontFamily: "OpenSans"
-              }}
+              className="text-base font-semibold text-bg_black"
               numberOfLines={1}
             >
               Hi{userName ? ` ${userName}` : ""}
@@ -68,8 +57,7 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
               color={colors.icon_primary}
             />
             <Text
-              className="ml-1 text-sm font-medium"
-              style={{ color: colors.text_primary }}
+              className="ml-1 text-sm font-medium text-text_primary"
               numberOfLines={1}
             >
               {place && place.trim() ? place : "Your location"}
