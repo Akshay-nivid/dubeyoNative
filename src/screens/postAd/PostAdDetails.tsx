@@ -568,7 +568,7 @@ const PostAdDetails = () => {
     const ImagePreviewCard = () => {
         const isLoading = generationStep === GENERATION_STEPS.PREVIEW;
         return (
-            <View className="bg-white rounded-3xl p-4 flex-row items-center shadow-lg shadow-gray-200 border border-gray-100 mb-6">
+            <View className="bg-white rounded-3xl p-4 flex-row items-center shadow-lg shadow-gray-200 border border-gray-100 mb-3">
                 <View className="w-24 h-20 rounded-2xl bg-gray-50 overflow-hidden items-center justify-center border border-gray-100">
                     {isLoading ? (
                         <Skeleton className="w-full h-full" />

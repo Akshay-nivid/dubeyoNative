@@ -206,7 +206,7 @@ export const useUserLocation = () => {
         ...location,
         loading,
         updateLocation,
-        refreshCurrentLocation: useCurrentLocation,
+        useCurrentLocation,
         getPlaceName,
         getCoordinatesFromName,
     };

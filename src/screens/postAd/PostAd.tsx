@@ -159,7 +159,7 @@ const PostAd = () => {
 
     const renderImagesSection = () => {
         return (
-            <View className="mb-4">
+            <View className="mb-8">
                 {photos.length === 0 ? (
                     /* Empty State - Click to Upload */
                     <TouchableOpacity
@@ -218,7 +218,7 @@ const PostAd = () => {
 
     return (
         <LinearGradient
-            colors={['#FFFFFF', '#F5F3FF', '#F0F9FF']} // White -> Very Light Purple -> Very Light Blue
+            colors={['#f7e2fbff', '#d8ecf9ff', '#d7d1f3ff']} // Very light Pink, Blue, Purple
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ flex: 1 }}

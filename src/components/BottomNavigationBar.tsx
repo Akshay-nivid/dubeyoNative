@@ -1,99 +1,26 @@
-import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Modal, Pressable, Text, View } from "react-native";
+import React from "react";
+import { Dimensions, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 interface BottomNavigationBarProps {
   onAIMascotPress?: () => void;
 }
+
+const { width } = Dimensions.get("window");
 
 const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
   onAIMascotPress,
 }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const [showAIModal, setShowAIModal] = useState(false);
-
-  // Animation values for AI mascot
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    // Pulsing animation
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 1500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    // Glow animation
-    // const glowAnimation = Animated.loop(
-    //   Animated.sequence([
-    //     Animated.timing(glowAnim, {
-    //       toValue: 1,
-    //       duration: 2000,
-    //       easing: Easing.inOut(Easing.ease),
-    //       useNativeDriver: false,
-    //     }),
-    //     Animated.timing(glowAnim, {
-    //       toValue: 0,
-    //       duration: 2000,
-    //       easing: Easing.inOut(Easing.ease),
-    //       useNativeDriver: false,
-    //     }),
-    //   ])
-    // );
-
-    // Rotation animation
-    // const rotateAnimation = Animated.loop(
-    //   Animated.timing(rotateAnim, {
-    //     toValue: 1,
-    //     duration: 3000,
-    //     easing: Easing.linear,
-    //     useNativeDriver: true,
-    //   })
-    // );
-
-    // pulseAnimation.start();
-    // glowAnimation.start();
-    // rotateAnimation.start();
-
-    return () => {
-      // pulseAnimation.stop();
-      // glowAnimation.stop();
-      // rotateAnimation.stop();
-    };
-  }, []);
-
-  const rotateInterpolate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
-
-  const glowOpacity = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.8],
-  });
 
   const isActive = (route: string) => {
     return pathname === route || pathname?.startsWith(route);
   };
+
+  const [showAIModal, setShowAIModal] = React.useState(false);
 
   const handleAIMascotPress = () => {
     if (onAIMascotPress) {
@@ -106,325 +33,119 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
   const navigationItems = [
     {
       id: "home",
+      route: "/home",
       label: "Home",
       icon: (active: boolean) => (
         <Ionicons
           name={active ? "home" : "home-outline"}
-          size={22}
-          color={active ? colors.primary : colors.text_tertiary}
+          size={24}
+          color={active ? "black" : "#4b5563"}
         />
       ),
-      route: "/home",
     },
     {
       id: "chat",
+      route: "/chat",
       label: "Chat",
       icon: (active: boolean) => (
         <Ionicons
           name={active ? "chatbubbles" : "chatbubbles-outline"}
-          size={22}
-          color={active ? colors.primary : colors.text_tertiary}
+          size={24}
+          color={active ? "black" : "#4b5563"}
         />
       ),
-      route: "/chat",
+    },
+    {
+      id: "ai-mascot",
+      isCenter: true,
+      onPress: handleAIMascotPress,
     },
     {
       id: "profile",
+      route: "/profile",
       label: "Profile",
       icon: (active: boolean) => (
         <Ionicons
           name={active ? "person" : "person-outline"}
-          size={22}
-          color={active ? colors.primary : colors.text_tertiary}
+          size={24}
+          color={active ? "black" : "#4b5563"}
         />
       ),
-      route: "/profile",
+    },
+    {
+      id: "postAd",
+      route: "/postAd",
+      label: "PostAd",
+      icon: (active: boolean) => (
+        <Ionicons
+          name="add"
+          size={32}
+          color={active ? "black" : "#4b5563"}
+        />
+      ),
     },
   ];
 
   return (
-    <>
-      {/* AI Mascot Button - Floating on Right Corner */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 80,
-          right: 20,
-          width: 80,
-          height: 80,
-          justifyContent: "center",
-          alignItems: "center",
-          zIndex: 1000,
-        }}
-      >
-        {/* Outer Glow Ring */}
-        {/* <Animated.View
-          style={{
-            position: "absolute",
-            width: 88,
-            height: 88,
-            borderRadius: 44,
-            borderWidth: 2.5,
-            borderColor: colors.primary,
-            opacity: glowOpacity,
-          }}
-        /> */}
+    <View style={styles.container}>
+      {/* Background Gradient Mesh */}
+      <LinearGradient
+        colors={['transparent', 'rgba(255,255,255,0.8)', '#ffffff']}
+        locations={[0, 0.55, 1]}
+        style={styles.backgroundGradient}
+        pointerEvents="none"
+      />
 
-        {/* Middle Glow Ring */}
-        {/* <Animated.View
-          style={{
-            position: "absolute",
-            width: 100,
-            height: 100,
-            borderRadius: 50,
-            borderWidth: 1,
-            borderColor: colors.primary,
-            opacity: glowAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.2, 0.6],
-            }),
-          }}
-        /> */}
-
-        {/* Animated Gradient Background */}
-        <Animated.View
-          style={{
-            transform: [{ scale: pulseAnim }, { rotate: rotateInterpolate }],
-            width: 80,
-            height: 80,
-            borderRadius: 40,
-            overflow: "hidden",
-            shadowColor: colors.primary,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.4,
-            shadowRadius: 12,
-            elevation: 12,
-          }}
-        >
-          <LinearGradient
-            colors={[colors.primary, "#8B5CF6", "#FF6B9D", colors.primary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              width: "100%",
-              height: "100%",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <View
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 36,
-                backgroundColor: "rgba(255, 255, 255, 0.98)",
-                justifyContent: "center",
-                alignItems: "center",
-                borderWidth: 3,
-                borderColor: "rgba(255, 255, 255, 1)",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 4,
-              }}
-            >
-              <Image
-                source={require("@/assets/images/fotor-ai-20260130115255.jpg")}
-                style={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: 30,
-                }}
-                contentFit="cover"
-                transition={200}
-              />
-            </View>
-          </LinearGradient>
-        </Animated.View>
-
-        {/* Pressable Overlay */}
-        <Pressable
-          onPress={handleAIMascotPress}
-          style={({ pressed }) => ({
-            position: "absolute",
-            width: 80,
-            height: 80,
-            borderRadius: 40,
-            opacity: pressed ? 0.8 : 1,
-          })}
-        />
-
-        {/* Floating Particles Effect */}
-        {/* <Animated.View
-          style={{
-            position: "absolute",
-            top: -10,
-            right: -10,
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: colors.primary,
-            opacity: glowAnim,
-            transform: [
-              {
-                translateY: glowAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -12],
-                }),
-              },
-            ],
-          }}
-        /> */}
-        {/* <Animated.View
-          style={{
-            position: "absolute",
-            bottom: -8,
-            left: -8,
-            width: 8,
-            height: 8,
-            borderRadius: 4,
-            backgroundColor: "#8B5CF6",
-            opacity: glowAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.5, 1],
-            }),
-            transform: [
-              {
-                translateY: glowAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 10],
-                }),
-              },
-            ],
-          }}
-        /> */}
-        {/* <Animated.View
-          style={{
-            position: "absolute",
-            top: 10,
-            left: -12,
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: "#FF6B9D",
-            opacity: glowAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.4, 0.9],
-            }),
-            transform: [
-              {
-                translateX: glowAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -8],
-                }),
-              },
-            ],
-          }}
-        /> */}
-      </View>
-
-      {/* Bottom Navigation Bar */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          alignItems: "center",
-          paddingBottom: 20,
-          paddingHorizontal: 16,
-          zIndex: 999,
-        }}
-      >
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "rgba(255, 255, 255, 0.7)",
-            borderRadius: 30,
-            paddingHorizontal: 8,
-            paddingVertical: 8,
-            minHeight: 64,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.15,
-            shadowRadius: 16,
-            elevation: 10,
-            width: "100%",
-            maxWidth: 400,
-            borderWidth: 1,
-            borderColor: "rgba(255, 255, 255, 0.8)",
-            overflow: "hidden",
-          }}
-        >
-          {/* Left Navigation Items */}
-          <View
-            style={{
-              flexDirection: "row",
-              flex: 1,
-              justifyContent: "space-around",
-              alignItems: "center",
-            }}
-          >
-            {navigationItems.map((item) => {
-              const active = isActive(item.route);
-              return (
+      {/* Bottom Icons Row */}
+      <View style={styles.iconRow}>
+        {navigationItems.map((item, index) => {
+          if (item.isCenter) {
+            return (
+              <View key={item.id} style={styles.centerButtonContainer}>
                 <Pressable
-                  key={item.id}
-                  onPress={() => router.push(item.route as any)}
-                  style={({ pressed }) => ({
-                    alignItems: "center",
-                    justifyContent: "center",
-                    paddingVertical: 4,
-                    paddingHorizontal: 12,
-                    minWidth: 60,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
+                  onPress={item.onPress}
+                  style={({ pressed }) => [
+                    styles.centerOrb,
+                    { transform: [{ scale: pressed ? 0.95 : 1 }], backgroundColor: 'transparent', shadowOpacity: 0.3 }
+                  ]}
                 >
-                  {item.icon(active)}
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      fontWeight: active ? "600" : "400",
-                      color: active ? colors.primary : colors.text_tertiary,
-                      marginTop: 2,
-                    }}
-                  >
-                    {item.label}
-                  </Text>
+                  <Image
+                    source={{ uri: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Crystal%20Ball.png' }}
+                    style={styles.mascotImage}
+                    resizeMode="contain"
+                  />
                 </Pressable>
-              );
-            })}
-          </View>
+              </View>
+            );
+          }
 
-          {/* Post Ad Button - Center */}
-          <Pressable
-            onPress={() => router.push("/postAd" as any)}
-            style={({ pressed }) => ({
-              width: 36,
-              height: 38,
-              borderRadius: 28,
-              backgroundColor: colors.primary,
-              justifyContent: "center",
-              alignItems: "center",
-              marginHorizontal: 8,
-              shadowColor: colors.primary,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 6,
-              opacity: pressed ? 0.8 : 1,
-            })}
-          >
-            <Ionicons name="add" size={28} color={colors.text_white} />
-          </Pressable>
-
-          {/* Right Spacer for AI Mascot */}
-          <View style={{ width: 60 }} />
-        </BlurView>
+          const active = item.route ? isActive(item.route) : false;
+          return (
+            <Pressable
+              key={item.id}
+              onPress={() => item.route && router.push(item.route as any)}
+              style={({ pressed }) => [
+                styles.navItem,
+                { opacity: pressed ? 0.6 : 1 },
+              ]}
+            >
+              <View style={{ height: 32, justifyContent: 'center', alignItems: 'center' }}>
+                {item.icon && item.icon(active)}
+              </View>
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: active ? "black" : "#6b7280",
+                  marginTop: 2,
+                  fontWeight: active ? "600" : "400",
+                  textAlign: "center",
+                }}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* AI Assistant Modal */}
@@ -444,7 +165,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
         >
           <Pressable
             style={{
-              backgroundColor: colors.bg_white,
+              backgroundColor: "white",
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               padding: 24,
@@ -464,13 +185,13 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
                 style={{
                   fontSize: 20,
                   fontWeight: "700",
-                  color: colors.text_primary,
+                  color: "#1f2937",
                 }}
               >
                 AI Assistant
               </Text>
               <Pressable onPress={() => setShowAIModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text_primary} />
+                <Ionicons name="close" size={24} color="#1f2937" />
               </Pressable>
             </View>
             <View
@@ -490,7 +211,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
                 }}
               >
                 <LinearGradient
-                  colors={[colors.primary, "#8B5CF6", colors.primary]}
+                  colors={['#60A5FA', '#A78BFA', '#F472B6']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={{
@@ -512,25 +233,13 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
                       borderColor: "rgba(255, 255, 255, 1)",
                     }}
                   >
-                    <Image
-                      source={{
-                        uri: "https://media.giphy.com/media/26BRv0ThflVHCVoDrK/giphy.gif",
-                      }}
-                      style={{
-                        width: 110,
-                        height: 110,
-                        borderRadius: 55,
-                      }}
-                      contentFit="cover"
-                      transition={200}
-                    />
                   </View>
                 </LinearGradient>
               </View>
               <Text
                 style={{
                   fontSize: 16,
-                  color: colors.text_tertiary,
+                  color: "#4b5563",
                   marginTop: 16,
                   textAlign: "center",
                 }}
@@ -541,8 +250,62 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
           </Pressable>
         </Pressable>
       </Modal>
-    </>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    alignItems: 'center',
+    paddingBottom: 5, // Moved down as requested
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 110, // Reduced height since pill is gone
+  },
+  iconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 25,
+    height: 60,
+  },
+  navItem: {
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerButtonContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerOrb: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    shadowColor: "#A78BFA",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  orbGradient: {
+    flex: 1,
+    borderRadius: 24,
+  },
+  mascotImage: {
+    width: '100%',
+    height: '100%',
+  }
+});
 
 export default BottomNavigationBar;
