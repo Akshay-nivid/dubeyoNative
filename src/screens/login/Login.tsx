@@ -1,4 +1,3 @@
-// import { colors } from "@/theme";
 import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
 import * as Google from "expo-auth-session/providers/google";
@@ -132,11 +131,11 @@ export default function LoginScreen() {
                                 value={email}
                                 onChangeText={setEmail}
                                 editable={!loading}
-                                className="w-full rounded-xl px-4 py-3.5 text-base bg-white border border-border_primary text-text_primary"
+                                className="w-full rounded-xl px-4 py-3.5 text-base bg-bg_white border border-border_primary text-text_primary"
                             />
                         </View>
                         <View className="mb-6 w-full">
-                            <View className="w-full rounded-xl px-4 py-3.5 flex-row items-center bg-white border border-border_primary">
+                            <View className="w-full rounded-xl px-4 py-3.5 flex-row items-center bg-bg_white border border-border_primary">
                                 <TextInput
                                     placeholder="Password"
                                     placeholderTextColor={colors.bg_gray_400}
@@ -169,19 +168,13 @@ export default function LoginScreen() {
                         <Pressable
                             onPress={handleEmailLogin}
                             disabled={loading}
-                            className={`mb-8 w-full rounded-xl py-4 ${loading ? 'bg-bg_gray_400' : 'bg-primary'}`}
-                            style={loading ? {} : {
-                                shadowColor: "#000",
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowOpacity: 0.15,
-                                shadowRadius: 4,
-                                elevation: 4,
-                            }}
+                            className={`mb-8 w-full rounded-xl py-4 shadow-md ${loading ? "bg-bg_gray_400" : "bg-primary"}`}
+                            style={loading ? undefined : { elevation: 4 }}
                         >
                             {loading ? (
                                 <ActivityIndicator color={colors.text_light} />
                             ) : (
-                                <Text className="text-center text-base font-semibold text-palette_light_cream">
+                                <Text className="text-center text-base font-semibold text-text_light">
                                     Sign in
                                 </Text>
                             )}
@@ -195,14 +188,8 @@ export default function LoginScreen() {
                             <Pressable
                                 onPress={handleGoogleLogin}
                                 disabled={googleLoading || !googleRequest}
-                                className="h-12 w-12 items-center justify-center rounded-xl border bg-white border-border_primary"
-                                style={{
-                                    shadowColor: "#000",
-                                    shadowOffset: { width: 0, height: 1 },
-                                    shadowOpacity: 0.05,
-                                    shadowRadius: 2,
-                                    elevation: 2,
-                                }}
+                                className="h-12 w-12 items-center justify-center rounded-xl border border-border_primary bg-bg_white shadow-sm"
+                                style={{ elevation: 2 }}
                             >
                                 {googleLoading ? (
                                     <ActivityIndicator size="small" color={colors.icon_primary} />
@@ -211,26 +198,14 @@ export default function LoginScreen() {
                                 )}
                             </Pressable>
                             <Pressable
-                                className="h-12 w-12 items-center justify-center rounded-xl bg-primary"
-                                style={{
-                                    shadowColor: "#000",
-                                    shadowOffset: { width: 0, height: 1 },
-                                    shadowOpacity: 0.05,
-                                    shadowRadius: 2,
-                                    elevation: 2,
-                                }}
+                                className="h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-sm"
+                                style={{ elevation: 2 }}
                             >
-                                <Text className="text-base font-bold text-palette_light_cream">f</Text>
+                                <Text className="text-base font-bold text-text_light">f</Text>
                             </Pressable>
                             <Pressable
-                                className="h-12 w-12 items-center justify-center rounded-xl border bg-white border-border_primary"
-                                style={{
-                                    shadowColor: "#000",
-                                    shadowOffset: { width: 0, height: 1 },
-                                    shadowOpacity: 0.05,
-                                    shadowRadius: 2,
-                                    elevation: 2,
-                                }}
+                                className="h-12 w-12 items-center justify-center rounded-xl border border-border_primary bg-bg_white shadow-sm"
+                                style={{ elevation: 2 }}
                             >
                                 <Text className="text-base font-bold text-text_primary">𝕏</Text>
                             </Pressable>

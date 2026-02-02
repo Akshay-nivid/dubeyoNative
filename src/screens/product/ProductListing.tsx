@@ -1,4 +1,5 @@
 import { Api } from "@/src/screens/home/Api";
+import { API_BASE_URL } from "@/src/constants/env";
 import { get } from "@/src/services/api";
 import api from "@/src/services/api/client";
 import { getImages } from "@/src/services/imageLink/image";
@@ -8,14 +9,14 @@ import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -37,127 +38,76 @@ interface ProductCardProps {
   onPress: () => void;
 }
 
-// No Image Fallback Component
 const NoImagePlaceholder = () => (
-  <View
-    style={{
-      width: "100%",
-      height: "100%",
-      backgroundColor: colors.bg_secondary,
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-  >
+  <View className="w-full h-full bg-bg_secondary justify-center items-center">
     <Ionicons name="image-outline" size={32} color={colors.text_tertiary} />
   </View>
 );
 
 const ProductCard: React.FC<ProductCardProps> = ({ item, onPress }) => {
-  const noImageUrl = "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg";
-  const imageUrl = item.image && !item.image.includes("undefined") ? item.image : null;
+  const noImageUrl =
+    "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg";
+  const imageUrl =
+    item.image && !item.image.includes("undefined") ? item.image : null;
   const hasImage = imageUrl && imageUrl !== noImageUrl;
+
+  const [imageError, setImageError] = useState(false);
+  useEffect(() => {
+    setImageError(false);
+  }, [imageUrl]);
+
+  const showImage = hasImage && !imageError;
 
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      style={{
-        backgroundColor: colors.bg_white,
-        borderRadius: 12,
-        marginBottom: 12,
-        marginHorizontal: 16,
-        flexDirection: "row",
-        overflow: "hidden",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        elevation: 2,
-      }}
+      className="bg-bg_white rounded-xl mb-3 mx-4 flex-row overflow-hidden"
+      style={{ elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}
     >
-      {/* Product Image - Left Side */}
-      <View
-        style={{
-          width: 120,
-          height: 120,
-          backgroundColor: colors.bg_secondary,
-        }}
-      >
-        {hasImage ? (
+      <View className="w-[120px] h-[120px] bg-bg_secondary overflow-hidden">
+        {showImage ? (
           <Image
-            source={{ uri: imageUrl }}
-            style={{ width: "100%", height: "100%" }}
+            source={{ uri: imageUrl ?? undefined }}
+            className="w-full h-full min-w-[120px] min-h-[120px]"
             contentFit="cover"
             transition={200}
+            recyclingKey={item.id != null ? String(item.id) : undefined}
+            onError={() => setImageError(true)}
+            style={{ width: 120, height: 120 }}
           />
         ) : (
           <NoImagePlaceholder />
         )}
       </View>
 
-      {/* Product Details - Right Side */}
-      <View
-        style={{
-          flex: 1,
-          padding: 12,
-          justifyContent: "space-between",
-        }}
-      >
-        {/* Top Section: Title */}
-        <View style={{ flex: 1 }}>
+      <View className="flex-1 p-3 justify-between">
+        <View className="flex-1">
           <Text
-            style={{
-              fontSize: 15,
-              fontWeight: "500",
-              color: colors.text_primary,
-              lineHeight: 20,
-              marginBottom: 8,
-            }}
+            className="text-[15px] font-medium text-text_primary leading-5 mb-2"
             numberOfLines={2}
           >
             {item.title || "Untitled Product"}
           </Text>
 
-          {/* Seller Info Row */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
+          <View className="flex-row items-center mb-2">
             {item.seller?.profilePic ? (
               <Image
                 source={{ uri: item.seller.profilePic }}
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  marginRight: 6,
-                }}
+                className="w-5 h-5 rounded-full mr-1.5"
                 contentFit="cover"
               />
             ) : (
-              <View
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: colors.bg_secondary,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  marginRight: 6,
-                }}
-              >
-                <Ionicons name="person" size={12} color={colors.text_tertiary} />
+              <View className="w-5 h-5 rounded-full bg-bg_secondary justify-center items-center mr-1.5">
+                <Ionicons
+                  name="person"
+                  size={12}
+                  color={colors.text_tertiary}
+                />
               </View>
             )}
             <Text
-              style={{
-                fontSize: 12,
-                color: colors.text_tertiary,
-                flex: 1,
-              }}
+              className="text-xs text-text_tertiary flex-1"
               numberOfLines={1}
             >
               {item.seller?.name || "Seller"}
@@ -165,35 +115,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress }) => {
           </View>
         </View>
 
-        {/* Bottom Section: Price */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "baseline",
-            gap: 6,
-          }}
-        >
+        <View className="flex-row items-baseline gap-1.5">
           {item.discountedPrice != null &&
             item.originalPrice != null &&
             item.originalPrice > item.discountedPrice && (
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "400",
-                  color: colors.text_tertiary,
-                  textDecorationLine: "line-through",
-                }}
-              >
+              <Text className="text-[13px] text-text_tertiary line-through">
                 {item.price}
               </Text>
             )}
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "700",
-              color: colors.primary,
-            }}
-          >
+          <Text className="text-lg font-bold text-primary">
             {item.price}
           </Text>
         </View>
@@ -219,8 +149,10 @@ const ProductListingScreen: React.FC = () => {
   const [subcategoryId, setSubcategoryId] = useState<string | null>(null);
   const [divisionTypes, setDivisionTypes] = useState<any[]>([]);
   const [selectedDivisionType, setSelectedDivisionType] = useState<any>(null);
-  const [signedImages, setSignedImages] = useState<Record<string | number, string>>({});
-  const [sellerData, setSellerData] = useState<Record<string | number, { name: string; profilePic?: string }>>({});
+  const [signedImages, setSignedImages] = useState<Record<string, string>>({});
+  const [sellerData, setSellerData] = useState<
+    Record<string | number, { name: string; profilePic?: string }>
+  >({});
 
   // Parse divisionTypes from params
   useEffect(() => {
@@ -247,7 +179,12 @@ const ProductListingScreen: React.FC = () => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.subcategoryId, params.subcategoryName, params.divisionTypes, params.selectedDivision]);
+  }, [
+    params.subcategoryId,
+    params.subcategoryName,
+    params.divisionTypes,
+    params.selectedDivision,
+  ]);
 
   // Fetch products when subcategoryId or selectedDivisionType changes
   useEffect(() => {
@@ -289,7 +226,10 @@ const ProductListingScreen: React.FC = () => {
 
       // Debug: Log first product to see structure
       if (productsList.length > 0) {
-        console.log('Sample product data:', JSON.stringify(productsList[0], null, 2));
+        console.log(
+          "Sample product data:",
+          JSON.stringify(productsList[0], null, 2),
+        );
       }
 
       setProducts(productsList);
@@ -315,27 +255,36 @@ const ProductListingScreen: React.FC = () => {
   };
 
   const fetchSignedUrls = async (list: any[]) => {
-    const result: Record<string | number, string> = {};
+    const result: Record<string, string> = {};
     await Promise.all(
       list.map(async (p) => {
-        const key = p?.product_id || p?.id;
+        const key = p?.product_id ?? p?.id ?? p?._id;
         if (!key) return;
         try {
           const res = await getImages(String(key));
-          const id = p.product_id || p.id || key;
+          const id = String(p.product_id ?? p.id ?? p._id ?? key);
           if (res && res.length > 0) {
-            result[id] = res[0];
+            let url = res[0];
+            if (typeof url === "string" && !/^https?:\/\//i.test(url)) {
+              url = API_BASE_URL + (url.startsWith("/") ? url : `/${url}`);
+            }
+            if (typeof url === "string" && !url.includes("undefined")) {
+              result[id] = url;
+            }
           }
         } catch (error) {
           console.error(`Failed to fetch image for product ${key}:`, error);
         }
-      })
+      }),
     );
     setSignedImages(result);
   };
 
   const fetchSellerData = async (list: any[]) => {
-    const result: Record<string | number, { name: string; profilePic?: string }> = {};
+    const result: Record<
+      string | number,
+      { name: string; profilePic?: string }
+    > = {};
 
     // First, check if seller data is already in the product
     list.forEach((p) => {
@@ -343,20 +292,29 @@ const ProductListingScreen: React.FC = () => {
       if (!id) return;
 
       // Check if seller data exists in product
-      if (p.seller && typeof p.seller === 'object') {
+      if (p.seller && typeof p.seller === "object") {
         let sellerName: string | undefined = undefined;
-        if (typeof p.seller.name === 'string' && p.seller.name.trim()) {
+        if (typeof p.seller.name === "string" && p.seller.name.trim()) {
           sellerName = p.seller.name.trim();
-        } else if (typeof p.seller.firstName === 'string' && typeof p.seller.lastName === 'string') {
+        } else if (
+          typeof p.seller.firstName === "string" &&
+          typeof p.seller.lastName === "string"
+        ) {
           sellerName = `${p.seller.firstName.trim()} ${p.seller.lastName.trim()}`;
-        } else if (typeof p.seller.firstName === 'string' && p.seller.firstName.trim()) {
+        } else if (
+          typeof p.seller.firstName === "string" &&
+          p.seller.firstName.trim()
+        ) {
           sellerName = p.seller.firstName.trim();
         }
 
         if (sellerName) {
           result[id] = {
             name: sellerName,
-            profilePic: typeof p.seller.profilePic === 'string' ? p.seller.profilePic : undefined,
+            profilePic:
+              typeof p.seller.profilePic === "string"
+                ? p.seller.profilePic
+                : undefined,
           };
         }
       }
@@ -384,25 +342,37 @@ const ProductListingScreen: React.FC = () => {
             const seller = productData.seller;
             let sellerName: string | undefined = undefined;
 
-            if (typeof seller.name === 'string' && seller.name.trim()) {
+            if (typeof seller.name === "string" && seller.name.trim()) {
               sellerName = seller.name.trim();
-            } else if (typeof seller.firstName === 'string' && typeof seller.lastName === 'string') {
+            } else if (
+              typeof seller.firstName === "string" &&
+              typeof seller.lastName === "string"
+            ) {
               sellerName = `${seller.firstName.trim()} ${seller.lastName.trim()}`;
-            } else if (typeof seller.firstName === 'string' && seller.firstName.trim()) {
+            } else if (
+              typeof seller.firstName === "string" &&
+              seller.firstName.trim()
+            ) {
               sellerName = seller.firstName.trim();
             }
 
             if (sellerName) {
               result[id] = {
                 name: sellerName,
-                profilePic: typeof seller.profilePic === 'string' ? seller.profilePic : undefined,
+                profilePic:
+                  typeof seller.profilePic === "string"
+                    ? seller.profilePic
+                    : undefined,
               };
             }
           }
         } catch (error) {
-          console.error(`Failed to fetch seller data for product ${id}:`, error);
+          console.error(
+            `Failed to fetch seller data for product ${id}:`,
+            error,
+          );
         }
-      })
+      }),
     );
 
     setSellerData(result);
@@ -410,7 +380,7 @@ const ProductListingScreen: React.FC = () => {
 
   const formatPrice = (val: any) => {
     if (val === null || val === undefined) return "Price on request";
-    if (typeof val === 'object') return "Price on request";
+    if (typeof val === "object") return "Price on request";
     if (val === 0 || val === "0" || val === "0.00") return "AED 0";
     const num = parseFloat(String(val));
     if (isNaN(num)) return "Price on request";
@@ -420,7 +390,10 @@ const ProductListingScreen: React.FC = () => {
   const filters = [
     { label: "All", value: null },
     ...divisionTypes.map((d) => ({
-      label: typeof d.name === 'string' ? d.name : String(d.name || d.label || 'Unknown'),
+      label:
+        typeof d.name === "string"
+          ? d.name
+          : String(d.name || d.label || "Unknown"),
       value: d,
     })),
   ];
@@ -430,26 +403,60 @@ const ProductListingScreen: React.FC = () => {
     fetchFilteredProducts();
   };
 
+  /** Get first image URL from product (API or embedded). */
+  const getProductImageUrl = (p: any): string | null => {
+    const id = p?.product_id ?? p?.id ?? p?._id;
+    const idStr = id != null ? String(id) : "";
+    const fromSigned = idStr && signedImages[idStr];
+    if (typeof fromSigned === "string" && !fromSigned.includes("undefined"))
+      return fromSigned;
+    if (typeof p?.image === "string" && !p.image.includes("undefined"))
+      return p.image;
+    if (typeof p?.thumbnail === "string" && !p.thumbnail.includes("undefined"))
+      return p.thumbnail;
+    const first = Array.isArray(p?.images) && p.images[0];
+    if (first) {
+      const url = typeof first === "string" ? first : first?.url ?? first?.link ?? first?.src;
+      if (typeof url === "string" && url.trim() && !url.includes("undefined"))
+        return url.trim();
+    }
+    return null;
+  };
+
   const renderProduct = ({ item: p, index }: { item: any; index: number }) => {
-    const id = p.product_id || p.id;
-    const noImageUrl = "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg";
-    const img = signedImages[id] && !signedImages[id].includes("undefined")
-      ? signedImages[id]
-      : noImageUrl;
+    const id = p.product_id ?? p.id;
+    const idStr = id != null ? String(id) : "";
+    const noImageUrl =
+      "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg";
+    const img = getProductImageUrl(p) ?? noImageUrl;
 
     // Ensure all values are primitives, not objects
-    const title = typeof p.title === 'string' ? p.title :
-      typeof p.product_name === 'string' ? p.product_name :
-        typeof p.title === 'object' ? JSON.stringify(p.title) :
-          "Untitled";
+    const title =
+      typeof p.title === "string"
+        ? p.title
+        : typeof p.product_name === "string"
+          ? p.product_name
+          : typeof p.title === "object"
+            ? JSON.stringify(p.title)
+            : "Untitled";
 
     const price = formatPrice(p.price);
-    const originalPrice = typeof p.originalPrice === 'number' ? p.originalPrice :
-      typeof p.price === 'number' ? p.price :
-        typeof p.price === 'string' ? parseFloat(p.price) || 0 : 0;
-    const discountedPrice = typeof p.finalPrice === 'number' ? p.finalPrice :
-      typeof p.price === 'number' ? p.price :
-        typeof p.price === 'string' ? parseFloat(p.price) || 0 : 0;
+    const originalPrice =
+      typeof p.originalPrice === "number"
+        ? p.originalPrice
+        : typeof p.price === "number"
+          ? p.price
+          : typeof p.price === "string"
+            ? parseFloat(p.price) || 0
+            : 0;
+    const discountedPrice =
+      typeof p.finalPrice === "number"
+        ? p.finalPrice
+        : typeof p.price === "number"
+          ? p.price
+          : typeof p.price === "string"
+            ? parseFloat(p.price) || 0
+            : 0;
 
     // Extract seller information - first check cached seller data, then product object
     let sellerName: string | undefined = undefined;
@@ -461,64 +468,99 @@ const ProductListingScreen: React.FC = () => {
       sellerProfilePic = sellerData[id].profilePic;
     }
     // Then check various possible seller data structures in the product object
-    else if (p.seller && typeof p.seller === 'object') {
+    else if (p.seller && typeof p.seller === "object") {
       // Direct seller object
-      if (typeof p.seller.name === 'string' && p.seller.name.trim()) {
+      if (typeof p.seller.name === "string" && p.seller.name.trim()) {
         sellerName = p.seller.name.trim();
-      } else if (typeof p.seller.firstName === 'string' && typeof p.seller.lastName === 'string') {
+      } else if (
+        typeof p.seller.firstName === "string" &&
+        typeof p.seller.lastName === "string"
+      ) {
         sellerName = `${p.seller.firstName.trim()} ${p.seller.lastName.trim()}`;
-      } else if (typeof p.seller.firstName === 'string' && p.seller.firstName.trim()) {
+      } else if (
+        typeof p.seller.firstName === "string" &&
+        p.seller.firstName.trim()
+      ) {
         sellerName = p.seller.firstName.trim();
-      } else if (typeof p.seller.username === 'string' && p.seller.username.trim()) {
+      } else if (
+        typeof p.seller.username === "string" &&
+        p.seller.username.trim()
+      ) {
         sellerName = p.seller.username.trim();
       }
 
-      if (typeof p.seller.profilePic === 'string' && p.seller.profilePic.trim()) {
+      if (
+        typeof p.seller.profilePic === "string" &&
+        p.seller.profilePic.trim()
+      ) {
         sellerProfilePic = p.seller.profilePic.trim();
-      } else if (typeof p.seller.profile_pic === 'string' && p.seller.profile_pic.trim()) {
+      } else if (
+        typeof p.seller.profile_pic === "string" &&
+        p.seller.profile_pic.trim()
+      ) {
         sellerProfilePic = p.seller.profile_pic.trim();
-      } else if (typeof p.seller.avatar === 'string' && p.seller.avatar.trim()) {
+      } else if (
+        typeof p.seller.avatar === "string" &&
+        p.seller.avatar.trim()
+      ) {
         sellerProfilePic = p.seller.avatar.trim();
       }
-    } else if (p.user && typeof p.user === 'object') {
+    } else if (p.user && typeof p.user === "object") {
       // Seller might be under 'user' key
-      if (typeof p.user.name === 'string' && p.user.name.trim()) {
+      if (typeof p.user.name === "string" && p.user.name.trim()) {
         sellerName = p.user.name.trim();
-      } else if (typeof p.user.firstName === 'string' && typeof p.user.lastName === 'string') {
+      } else if (
+        typeof p.user.firstName === "string" &&
+        typeof p.user.lastName === "string"
+      ) {
         sellerName = `${p.user.firstName.trim()} ${p.user.lastName.trim()}`;
-      } else if (typeof p.user.firstName === 'string' && p.user.firstName.trim()) {
+      } else if (
+        typeof p.user.firstName === "string" &&
+        p.user.firstName.trim()
+      ) {
         sellerName = p.user.firstName.trim();
       }
 
-      if (typeof p.user.profilePic === 'string' && p.user.profilePic.trim()) {
+      if (typeof p.user.profilePic === "string" && p.user.profilePic.trim()) {
         sellerProfilePic = p.user.profilePic.trim();
-      } else if (typeof p.user.profile_pic === 'string' && p.user.profile_pic.trim()) {
+      } else if (
+        typeof p.user.profile_pic === "string" &&
+        p.user.profile_pic.trim()
+      ) {
         sellerProfilePic = p.user.profile_pic.trim();
       }
-    } else if (p.createdBy && typeof p.createdBy === 'object') {
+    } else if (p.createdBy && typeof p.createdBy === "object") {
       // Seller might be under 'createdBy' key
-      if (typeof p.createdBy.name === 'string' && p.createdBy.name.trim()) {
+      if (typeof p.createdBy.name === "string" && p.createdBy.name.trim()) {
         sellerName = p.createdBy.name.trim();
-      } else if (typeof p.createdBy.firstName === 'string' && typeof p.createdBy.lastName === 'string') {
+      } else if (
+        typeof p.createdBy.firstName === "string" &&
+        typeof p.createdBy.lastName === "string"
+      ) {
         sellerName = `${p.createdBy.firstName.trim()} ${p.createdBy.lastName.trim()}`;
       }
 
-      if (typeof p.createdBy.profilePic === 'string' && p.createdBy.profilePic.trim()) {
+      if (
+        typeof p.createdBy.profilePic === "string" &&
+        p.createdBy.profilePic.trim()
+      ) {
         sellerProfilePic = p.createdBy.profilePic.trim();
       }
     }
 
-    const seller = sellerName ? {
-      name: sellerName,
-      profilePic: sellerProfilePic,
-    } : undefined;
+    const seller = sellerName
+      ? {
+          name: sellerName,
+          profilePic: sellerProfilePic,
+        }
+      : undefined;
 
     const productItem = {
       id: String(id),
       title: String(title),
       image: String(img),
       price: String(price),
-      status: typeof p.status === 'string' ? p.status : "available",
+      status: typeof p.status === "string" ? p.status : "available",
       originalPrice,
       discountedPrice,
       seller,
@@ -533,61 +575,52 @@ const ProductListingScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.bg_primary }} edges={['top']}>
-      {/* Header */}
-      <View
-        className="flex-row items-center justify-between px-4 py-3 border-b"
-        style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary }}
-      >
+    <SafeAreaView
+      className="flex-1 bg-bg_primary"
+      edges={["top"]}
+    >
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border_primary bg-bg_white">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2">
           <Ionicons name="arrow-back" size={24} color={colors.text_primary} />
         </Pressable>
-        <Text className="text-xl font-bold flex-1 text-center" style={{ color: colors.text_primary }}>
-          {typeof subcategoryName === 'string' ? subcategoryName : "Products"}
+        <Text className="text-xl font-bold flex-1 text-center text-text_primary">
+          {typeof subcategoryName === "string" ? subcategoryName : "Products"}
         </Text>
         <View className="w-10" />
       </View>
 
-      {/* Filters */}
       {divisionTypes.length > 0 && (
-        <View
-          className="px-4 py-3 border-b"
-          style={{ backgroundColor: colors.bg_white, borderColor: colors.border_primary }}
-        >
+        <View className="px-4 py-3 border-b border-border_primary bg-bg_white">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}
+            contentContainerStyle={{
+              flexDirection: "row",
+              gap: 12,
+              alignItems: "center",
+            }}
           >
             {filters.map((f) => {
-              const isSelected = f.value === null
-                ? selectedDivisionType === null
-                : selectedDivisionType?.id === f.value?.id;
-
-              const labelText = typeof f.label === 'string' ? f.label : String(f.label || '');
-
+              const isSelected =
+                f.value === null
+                  ? selectedDivisionType === null
+                  : selectedDivisionType?.id === f.value?.id;
+              const labelText =
+                typeof f.label === "string" ? f.label : String(f.label || "");
               return (
                 <Pressable
                   key={f.value?.id ?? "all"}
                   onPress={() => setSelectedDivisionType(f.value)}
-                  style={{
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    backgroundColor: isSelected ? colors.primary : colors.bg_white,
-                    borderColor: isSelected ? colors.primary : colors.border_primary,
-                    minHeight: 36,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
+                  className={`px-4 py-2 rounded-full border min-h-[36px] justify-center items-center ${
+                    isSelected
+                      ? "bg-primary border-primary"
+                      : "bg-bg_white border-border_primary"
+                  }`}
                 >
                   <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: '500',
-                      color: isSelected ? colors.text_white : colors.text_primary,
-                    }}
+                    className={`text-sm font-medium ${
+                      isSelected ? "text-text_white" : "text-text_primary"
+                    }`}
                   >
                     {labelText}
                   </Text>
@@ -598,26 +631,28 @@ const ProductListingScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Product List */}
       {loading && !refreshing ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text className="mt-4 text-base" style={{ color: colors.text_secondary }}>
+          <Text className="mt-4 text-base text-text_secondary">
             Loading products...
           </Text>
         </View>
       ) : error ? (
         <View className="flex-1 items-center justify-center px-6">
-          <Ionicons name="alert-circle-outline" size={64} color={colors.error} />
-          <Text className="mt-4 text-lg font-semibold text-center" style={{ color: colors.text_primary }}>
+          <Ionicons
+            name="alert-circle-outline"
+            size={64}
+            color={colors.error}
+          />
+          <Text className="mt-4 text-lg font-semibold text-center text-text_primary">
             {error}
           </Text>
           <Pressable
             onPress={() => router.push("/home" as any)}
-            className="mt-6 px-6 py-3 rounded-xl"
-            style={{ backgroundColor: colors.primary }}
+            className="mt-6 px-6 py-3 rounded-xl bg-primary"
           >
-            <Text className="text-base font-semibold" style={{ color: colors.text_white }}>
+            <Text className="text-base font-semibold text-text_white">
               Go to Home
             </Text>
           </Pressable>
@@ -626,62 +661,37 @@ const ProductListingScreen: React.FC = () => {
         <FlatList
           data={products}
           renderItem={renderProduct}
-          keyExtractor={(item) => String(item.product_id || item.id || Math.random())}
+          keyExtractor={(item) =>
+            String(item.product_id || item.id || Math.random())
+          }
           contentContainerStyle={{ paddingVertical: 16 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
           }
         />
       ) : (
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            paddingHorizontal: 24,
-            paddingVertical: 40,
-          }}
-        >
-          <Ionicons name="cube-outline" size={64} color={colors.text_tertiary} />
-          <Text
-            style={{
-              marginTop: 16,
-              fontSize: 18,
-              fontWeight: '600',
-              textAlign: 'center',
-              color: colors.text_primary
-            }}
-          >
+        <View className="flex-1 justify-center items-center px-6 py-10">
+          <Ionicons
+            name="cube-outline"
+            size={64}
+            color={colors.text_tertiary}
+          />
+          <Text className="mt-4 text-lg font-semibold text-center text-text_primary">
             No products found
           </Text>
-          <Text
-            style={{
-              marginTop: 8,
-              fontSize: 14,
-              textAlign: 'center',
-              color: colors.text_tertiary
-            }}
-          >
+          <Text className="mt-2 text-sm text-center text-text_tertiary">
             No products found for this subcategory.
           </Text>
           <Pressable
             onPress={() => router.push("/home" as any)}
-            style={{
-              marginTop: 24,
-              paddingHorizontal: 24,
-              paddingVertical: 12,
-              borderRadius: 12,
-              backgroundColor: colors.primary,
-            }}
+            className="mt-6 px-6 py-3 rounded-xl bg-primary"
           >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: colors.text_white
-              }}
-            >
+            <Text className="text-base font-semibold text-text_white">
               Go to Home
             </Text>
           </Pressable>
