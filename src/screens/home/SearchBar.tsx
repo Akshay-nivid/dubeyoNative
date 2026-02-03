@@ -1,14 +1,14 @@
+import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { TextInput, TouchableOpacity, View } from "react-native";
-import { colors } from "@/theme";
 
 const SearchBar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <View className="px-4 py-4">
-      <View className="flex-row items-center rounded-lg px-4 h-12" style={{ backgroundColor:colors.bg_white}}>
+      <View className="flex-row items-center rounded-lg px-4 h-12" style={{ backgroundColor: colors.bg_white }}>
         <Ionicons name="search" size={20} color={colors.bg_black} />
         <TextInput
           className="flex-1 ml-3 text-base h-full"

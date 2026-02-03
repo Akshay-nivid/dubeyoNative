@@ -38,18 +38,18 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
           {/* User Name */}
           {userName && (
             <Text
-              className="text-base font-semibold text-bg_black"
+              className="text-xl font-bold font-sans text-bg_black"
               numberOfLines={1}
             >
               Hi{userName ? ` ${userName}` : ""}
             </Text>
           )}
-          
+
           {/* Location */}
           <TouchableOpacity
             onPress={onLocationPress}
             activeOpacity={0.7}
-            className="flex-row items-center mt-0.5"
+            className="flex-row items-center mt-1"
           >
             <Ionicons
               name="location-sharp"
@@ -65,6 +65,18 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
           </TouchableOpacity>
         </View>
       </View>
+
+
+      {/* Notification Bell */}
+      <TouchableOpacity
+        className="w-10 h-10 rounded-full bg-white items-center justify-center shadow-sm ml-2"
+        style={{ elevation: 2 }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="notifications-outline" size={24} color={colors.text_primary} />
+        {/* Red Dot */}
+        <View className="absolute top-2.5 right-3 w-2 h-2 rounded-full bg-red-500 border-[1px] border-white" />
+      </TouchableOpacity>
     </View>
   );
 };

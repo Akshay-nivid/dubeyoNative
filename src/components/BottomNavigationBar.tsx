@@ -1,10 +1,12 @@
 
 import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
+import MaskedView from "@react-native-masked-view/masked-view";
+import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Dimensions, Image, Modal, Pressable, Text, View } from "react-native";
+import { Dimensions, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Defs, Path, Stop, LinearGradient as SvgLinearGradient } from "react-native-svg";
 
 interface BottomNavigationBarProps {
@@ -102,46 +104,95 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
     const leftHoleStart = center - holeWidth / 2;
     const rightHoleEnd = center + holeWidth / 2;
 
-    // Cleaner circular arc approximation
     return `
-      M 0 0
-      L ${leftHoleStart} 0
-      C ${leftHoleStart + 20} 0, ${center - 25} ${holeDepth}, ${center} ${holeDepth}
-      C ${center + 25} ${holeDepth}, ${rightHoleEnd - 20} 0, ${rightHoleEnd} 0
-      L ${width} 0
-      L ${width} ${tabHeight} 
-      L 0 ${tabHeight}
-Z
+      M 18 0
+      L ${center - 54} 0
+
+      C ${center - 36} 0, ${center - 30} 36, ${center} 36
+      C ${center + 30} 36, ${center + 36} 0, ${center + 54} 0
+
+      L ${width - 18} 0
+      Q ${width} 0, ${width} 18
+
+      L ${width} 84
+      L 0 84
+
+      L 0 18
+      Q 0 0, 18 0
+      Z
     `;
+
   }, []);
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 h-[84px] justify-end bg-transparent z-50">
+    <View className="absolute bottom-0 left-0 right-0 h-[70px] justify-end bg-transparent z-50">
       {/* Liquid Glass Background */}
-      <View className="absolute top-0 left-0 right-0 bottom-0">
-        <Svg
-          width={width}
-          height={100}
-          className="shadow-sm shadow-black/10"
-          style={{ elevation: 8 }} // Keep elevation for Android
+      <View className="absolute top-0 left-0 right-0 bottom-0 shadow-sm shadow-black/10" style={{ elevation: 8 }}>
+        <MaskedView
+          style={StyleSheet.absoluteFill}
+          maskElement={
+            <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+              <Svg
+                width={width}
+                height={84}
+                style={{ position: 'absolute', top: 0, left: 0 }}
+              >
+                <Path d={curveTabPath} fill="black" />
+              </Svg>
+            </View>
+          }
         >
-          <Defs>
-            <SvgLinearGradient id="glassGradient" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={colors.bg_white} stopOpacity="1" />
-              <Stop offset="1" stopColor={colors.bg_white} stopOpacity="1" />
-            </SvgLinearGradient>
-          </Defs>
-          <Path d={curveTabPath} fill="url(#glassGradient)" stroke="rgba(0,0,0,0.05)" strokeWidth={1} />
-        </Svg>
+          {/* Real Blur Effect */}
+          <BlurView
+            intensity={30}
+            tint="light"
+            experimentalBlurMethod="dimezisBlurView"
+            style={StyleSheet.absoluteFill}
+          />
+
+          {/* Frosted / Tint Overlay - Subtle White Gradient */}
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.57)', 'rgba(255, 255, 255, 0.34)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </MaskedView>
+
+        {/* Top Highlight Stroke - Light Refraction */}
+        <View className="absolute top-0 left-0 right-0 bottom-0" pointerEvents="none">
+          <Svg width={width} height={84}>
+            <Defs>
+              <SvgLinearGradient id="borderGradient" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor="rgba(255,255,255,0.7)" stopOpacity="1" />
+                <Stop offset="0.4" stopColor="rgba(255,255,255,0.3)" stopOpacity="1" />
+                <Stop offset="1" stopColor="rgba(255,255,255,0.05)" stopOpacity="1" />
+              </SvgLinearGradient>
+            </Defs>
+            <Path
+              d={curveTabPath}
+              fill="none"
+              stroke="url(#borderGradient)"
+              strokeWidth={1.5}
+            />
+          </Svg>
+        </View>
       </View>
 
-      <View className="flex-row items-center justify-between w-full px-5 h-[84px] pb-2.5">
+      <View className="flex-row items-center justify-between w-full px-5 h-[60px] pb-2.5">
         {navigationItems.map((item, index) => {
           if (item.isCenter) {
             return (
               <View
                 key={item.id}
-                className="absolute left-1/2 -top-[30px] -ml-[30px] w-[60px] h-[60px] items-center justify-center z-[1001]"
+                pointerEvents="box-none"
+                style={{
+                  width: 60,
+                  alignItems: "center",
+                  transform: [{ translateY: -36 }], // ✅ THIS WORKS ON MOBILE
+                  zIndex: 1001,
+                  elevation: 20,
+                }}
               >
                 <Pressable
                   onPress={item.onPress}
@@ -149,7 +200,8 @@ Z
                   style={({ pressed }) => ({
                     transform: [{ scale: pressed ? 0.96 : 1 }],
                     elevation: 8,
-                    borderRadius: 30, // Force radius
+                    borderRadius: 30,
+                    marginTop: -30,
                   })}
                 >
                   <LinearGradient
@@ -157,7 +209,7 @@ Z
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     className="w-full h-full rounded-full justify-center items-center"
-                    style={{ borderRadius: 30 }} // Explicit style for gradient
+                    style={{ borderRadius: 30 }}
                   >
                     <Image
                       source={require("@/assets/images/ai icon.png")}
