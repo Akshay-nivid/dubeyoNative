@@ -41,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
               className="text-xl font-bold font-sans text-bg_black"
               numberOfLines={1}
             >
-              Hi{userName ? ` ${userName}` : ""}
+              Hey,{userName ? ` ${userName}` : ""}
             </Text>
           )}
 

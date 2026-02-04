@@ -251,7 +251,7 @@ const PostAd = () => {
                 >
                     <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
                         {/* New Gradient Header Moved Here */}
-                        <View className="px-5 mb-2">
+                        <View className="px-5 mb-2 mt-10">
                             <View className="items-center mb-4">
                                 <Image
                                     source={require("@/assets/images/ai icon.png")}
@@ -290,7 +290,7 @@ const PostAd = () => {
                             </Text>
                         </View>
 
-                        <View className="pb-20 mt-6">
+                        <View className="pb-8 mt-6">
                             {renderImagesSection()}
 
                             <View className="bg-white/80 rounded-[22px] p-5 shadow-xl shadow-black/10 border-2 border-white/90">
@@ -310,29 +310,32 @@ const PostAd = () => {
                                         textAlignVertical="top"
                                     />
                                 </View>
-                                <View className="flex-row items-center justify-between mt-2 px-1">
+                                <View className="flex-row items-center justify-end mt-2 px-1">
                                     {/* Waveform Icon */}
-                                    <TouchableOpacity className="flex-row items-center h-8 gap-[3px]" activeOpacity={0.7}>
-                                        <View className="w-[3px] h-3 bg-black rounded-full" />
-                                        <View className="w-[3px] h-5 bg-black rounded-full" />
-                                        <View className="w-[3px] h-8 bg-black rounded-full" />
-                                        <View className="w-[3px] h-5 bg-black rounded-full" />
-                                        <View className="w-[3px] h-3 bg-black rounded-full" />
-                                    </TouchableOpacity>
+
 
                                     <TouchableOpacity
-                                        onPress={handleContinue}
-                                        disabled={loading || !description.trim() || photos.length === 0}
-                                        className={`w-12 h-12 rounded-xl items-center justify-center ${(!description.trim() || photos.length === 0) ? 'bg-gray-200' : 'bg-black'}`}
+                                        onPress={description.trim() ? handleContinue : () => { }}
+                                        disabled={loading}
+                                        className={`w-12 h-12 rounded-xl items-center justify-center ${(description.trim() && photos.length === 0) ? 'bg-gray-200' : 'bg-black'}`}
                                     >
-                                        <Ionicons name="arrow-up" size={24} color="#FFF" />
+                                        {description.trim() ? (
+                                            <Ionicons name="arrow-up" size={24} color={(description.trim() && photos.length === 0) ? "#9CA3AF" : "#FFF"} />
+                                        ) : (
+                                            /* Waveform Animation (Simulated) inside button */
+                                            <View className="flex-row items-center gap-[2px]">
+                                                <View className="w-[2px] h-2 bg-white rounded-full" />
+                                                <View className="w-[2px] h-3 bg-white rounded-full" />
+                                                <View className="w-[2px] h-4 bg-white rounded-full" />
+                                                <View className="w-[2px] h-3 bg-white rounded-full" />
+                                                <View className="w-[2px] h-2 bg-white rounded-full" />
+                                            </View>
+                                        )}
                                     </TouchableOpacity>
                                 </View>
                             </View>
                         </View>
                     </ScrollView>
-
-
                 </KeyboardAvoidingView>
             </SafeAreaView>
         </LinearGradient >

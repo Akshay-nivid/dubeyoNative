@@ -35,7 +35,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
               activeOpacity={0.7}
             >
               <View
-                className="w-full aspect-square rounded-lg items-center justify-center"
+                className="w-full aspect-square rounded-xl items-center justify-center"
                 style={{
                   backgroundColor: colors.bg_secondary,
                   paddingTop: 12,

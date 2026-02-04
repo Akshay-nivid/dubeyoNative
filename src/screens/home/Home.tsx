@@ -1,5 +1,4 @@
 
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -51,10 +50,10 @@ const HomeScreen = () => {
     <>
       {/* Full Screen Gradient Background */}
       <LinearGradient
-        colors={['#ffb5b5ff', '#cfedfeff']}
-        start={{ x: 0, y: 0.2 }}
-        end={{ x: 0.6, y: 0.3 }}
-        style={StyleSheet.absoluteFill}
+        colors={['#f7e2fbff', '#d8ecf9ff', '#d7d1f3ff']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '25%' }}
       />
 
       <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
@@ -90,16 +89,9 @@ const HomeScreen = () => {
             <Animated.View
               style={[
                 StyleSheet.absoluteFill,
-                { opacity: headerOpacity, overflow: 'hidden' }
+                { opacity: headerOpacity, backgroundColor: 'rgba(255,255,255,0.95)' }
               ]}
-            >
-              <BlurView
-                intensity={40}
-                tint="light"
-                experimentalBlurMethod="dimezisBlurView"
-                style={StyleSheet.absoluteFill}
-              />
-            </Animated.View>
+            />
             <SearchBar />
           </View>
 

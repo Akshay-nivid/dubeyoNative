@@ -198,7 +198,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
           activeOpacity={0.7}
         />
         <Animated.View
-          className="rounded-t-[30px] w-full overflow-hidden"
+          className="rounded-t-[20px] w-full overflow-hidden"
           style={{
             backgroundColor: colors.bg_white,
             maxHeight: '75%',

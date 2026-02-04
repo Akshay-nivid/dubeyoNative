@@ -1,8 +1,7 @@
 
 import { colors } from "@/theme";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import MaskedView from "@react-native-masked-view/masked-view";
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import React, { useMemo } from "react";
@@ -41,8 +40,8 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
       route: "/home",
       label: "Home",
       icon: (active: boolean) => (
-        <Ionicons
-          name={active ? "home" : "home-outline"}
+        <Feather
+          name="home"
           size={24}
           color={active ? "black" : "#4b5563"}
         />
@@ -53,8 +52,8 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
       route: "/chat",
       label: "Chat",
       icon: (active: boolean) => (
-        <Ionicons
-          name={active ? "chatbubbles" : "chatbubbles-outline"}
+        <Feather
+          name="message-circle"
           size={24}
           color={active ? "black" : "#4b5563"}
         />
@@ -70,8 +69,8 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
       route: "/profile",
       label: "Profile",
       icon: (active: boolean) => (
-        <Ionicons
-          name={active ? "person" : "person-outline"}
+        <Feather
+          name="user"
           size={24}
           color={active ? "black" : "#4b5563"}
         />
@@ -143,18 +142,19 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
           }
         >
           {/* Real Blur Effect */}
-          <BlurView
-            intensity={30}
-            tint="light"
-            experimentalBlurMethod="dimezisBlurView"
-            style={StyleSheet.absoluteFill}
-          />
+
 
           {/* Frosted / Tint Overlay - Subtle White Gradient */}
+          {/* Liquid Glass Gradient - Glossy Reflection */}
           <LinearGradient
-            colors={['rgba(255, 255, 255, 0.57)', 'rgba(255, 255, 255, 0.34)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
+            colors={[
+              'rgba(255, 255, 255, 0.95)', // Almost solid top
+              'rgba(255, 255, 255, 0.85)', // Frosted middle
+              'rgba(255, 255, 255, 0.95)'  // Solid bottom
+            ]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            locations={[0, 0.5, 1]}
             style={StyleSheet.absoluteFill}
           />
         </MaskedView>
@@ -164,9 +164,9 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
           <Svg width={width} height={84}>
             <Defs>
               <SvgLinearGradient id="borderGradient" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="rgba(255,255,255,0.7)" stopOpacity="1" />
-                <Stop offset="0.4" stopColor="rgba(255,255,255,0.3)" stopOpacity="1" />
-                <Stop offset="1" stopColor="rgba(255,255,255,0.05)" stopOpacity="1" />
+                <Stop offset="0" stopColor="rgba(255,255,255,0.9)" stopOpacity="1" />
+                <Stop offset="0.4" stopColor="rgba(255,255,255,0.2)" stopOpacity="1" />
+                <Stop offset="1" stopColor="rgba(255,255,255,0.6)" stopOpacity="1" />
               </SvgLinearGradient>
             </Defs>
             <Path
