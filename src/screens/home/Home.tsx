@@ -1,4 +1,3 @@
-
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -20,7 +19,7 @@ const HomeScreen = () => {
   const router = useRouter();
 
   const {
-    loading,
+    loading,  
     place,
     profile,
     userName,

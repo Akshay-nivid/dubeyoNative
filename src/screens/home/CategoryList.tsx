@@ -1,8 +1,17 @@
 import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { categoryIcons } from "./Api";
+
+const propertyIcon = require("../../../assets/images/home.png");
+const carIcon = require("../../../assets/images/car.png");
+const jobIcon = require("../../../assets/images/jobs.png");
+const mobileIcon = require("../../../assets/images/mobile.png");
+const professionalsIcon = require("../../../assets/images/professionals.png");
+const classifiedsIcon = require("../../../assets/images/classifieds.png");
+const furnitureGardenIcon = require("../../../assets/images/furnituregarden.png");
+
 interface Category {
   key: string;
   name: string;
@@ -38,28 +47,127 @@ const CategoryList: React.FC<CategoryListProps> = ({
                 className="w-full aspect-square rounded-xl items-center justify-center"
                 style={{
                   backgroundColor: colors.bg_secondary,
-                  paddingTop: 12,
-                  paddingBottom: 8,
+                  paddingTop:
+                    c.name === "Property" ||
+                    c.name === "Mobiles Tablets" ||
+                    c.name === "Professional For Hire" ||
+                    c.name === "Professinal For Hire"
+                      ? 6
+                      : c.name === "Motors" || c.name === "Job" || c.name === "Classifieds" || c.name === "Furniture Garden"
+                        ? 0
+                        : 12,
+                  paddingBottom:
+                    c.name === "Motors" || c.name === "Job" || c.name === "Classifieds" || c.name === "Furniture Garden" ? 6 : 8,
                   paddingHorizontal: 8,
                 }}
               >
                 {isOthers ? (
-                  <Ionicons name="grid-outline" size={24} color={colors.text_primary} />
+                  <Ionicons
+                    name="grid-outline"
+                    size={24}
+                    color={colors.text_primary}
+                  />
+                ) : c.name === "Property" ? (
+                  <Image
+                    source={propertyIcon}
+                    style={{ width: 48, height: 48 }}
+                    resizeMode="contain"
+                  />
+                ) : c.name === "Motors" ? (
+                  <View style={{ marginTop: -10, alignItems: "center" }}>
+                    <Image
+                      source={carIcon}
+                      style={{ width: 60, height: 60 }}
+                      resizeMode="contain"
+                    />
+                    <Text
+                      className="text-[10px] text-center font-bold leading-3"
+                      style={{ color: colors.text_primary, marginTop: -3 }}
+                      numberOfLines={2}
+                    >
+                      {c.name}
+                    </Text>
+                  </View>
+                ) : c.name === "Job" ? (
+                  <View style={{ marginTop: -17, alignItems: "center" }}>
+                    <Image
+                      source={jobIcon}
+                      style={{ width: 80, height: 80 }}
+                      resizeMode="contain"
+                    />
+                    <Text
+                      className="text-[10px] text-center font-bold leading-3"
+                      style={{ color: colors.text_primary, marginTop: -8 }}
+                      numberOfLines={2}
+                    >
+                      {c.name}
+                    </Text>
+                  </View>
+                ) : c.name === "Mobiles Tablets" ? (
+                  <Image
+                    source={mobileIcon}
+                    style={{ width: 49, height: 49 }}
+                    resizeMode="contain"
+                  />
+                ) : c.name === "Classifieds" ? (
+                  <View style={{ marginTop: -8, alignItems: "center" }}>
+                    <Image
+                      source={classifiedsIcon}
+                      style={{ width: 59, height: 59 }}
+                      resizeMode="contain"
+                    />
+                    <Text
+                      className="text-[10px] text-center font-bold leading-3"
+                      style={{ color: colors.text_primary, marginTop: 2 }}
+                      numberOfLines={2}
+                    >
+                      {c.name}
+                    </Text>
+                  </View>
+                ) : c.name === "Furniture Garden" ? (
+                  <View style={{ marginTop: -14, alignItems: "center" }}>
+                    <Image
+                      source={furnitureGardenIcon}
+                      style={{ width: 63, height: 63 }}
+                      resizeMode="contain"
+                    />
+                    <Text
+                      className="text-[10px] text-center font-bold leading-3"
+                      style={{ color: colors.text_primary, marginTop: 2 }}
+                      numberOfLines={2}
+                    >
+                      {c.name}
+                    </Text>
+                  </View>
+                ) : c.name === "Professional For Hire" || c.name === "Professinal For Hire" ? (
+                  <Image
+                    source={professionalsIcon}
+                    style={{ width: 66, height: 66 }}
+                    resizeMode="contain"
+                  />
                 ) : (
                   IconComponent && (
                     <IconComponent size={24} color={colors.text_primary} />
                   )
                 )}
-                <Text
-                  className="text-[10px] text-center font-bold leading-3"
-                  style={{
-                    color: colors.text_primary,
-                    marginTop: 8,
-                  }}
-                  numberOfLines={2}
-                >
-                  {c.name}
-                </Text>
+                {c.name !== "Motors" && c.name !== "Job" && c.name !== "Classifieds" && c.name !== "Furniture Garden" && (
+                  <Text
+                    className="text-[10px] text-center font-bold leading-3"
+                    style={{
+                      color: colors.text_primary,
+                      marginTop:
+                        c.name === "Property" || c.name === "Mobiles Tablets"
+                          ? 2
+                          : c.name === "Professional For Hire" ||
+                            c.name === "Professinal For Hire"
+                          ? -13
+                          : 6,
+                    }}
+                    numberOfLines={2}
+                  >
+                    {c.name}
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
           );
