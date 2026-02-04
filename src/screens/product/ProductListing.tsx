@@ -15,6 +15,7 @@ import {
     RefreshControl,
     ScrollView,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -149,6 +150,7 @@ const ProductListingScreen: React.FC = () => {
   const [subcategoryId, setSubcategoryId] = useState<string | null>(null);
   const [divisionTypes, setDivisionTypes] = useState<any[]>([]);
   const [selectedDivisionType, setSelectedDivisionType] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [signedImages, setSignedImages] = useState<Record<string, string>>({});
   const [sellerData, setSellerData] = useState<
     Record<string | number, { name: string; profilePic?: string }>
@@ -403,6 +405,13 @@ const ProductListingScreen: React.FC = () => {
     fetchFilteredProducts();
   };
 
+  const filteredProducts = searchQuery.trim()
+    ? products.filter((p) => {
+        const title = p.title ?? p.product_name ?? "";
+        return String(title).toLowerCase().includes(searchQuery.trim().toLowerCase());
+      })
+    : products;
+
   /** Get first image URL from product (API or embedded). */
   const getProductImageUrl = (p: any): string | null => {
     const id = p?.product_id ?? p?.id ?? p?._id;
@@ -589,6 +598,19 @@ const ProductListingScreen: React.FC = () => {
         <View className="w-10" />
       </View>
 
+      <View className="px-4 py-3 bg-bg_white">
+        <View className="flex-row items-center rounded-xl px-4 h-12 bg-bg_secondary border border-border_secondary">
+          <Ionicons name="search" size={20} color={colors.text_tertiary} />
+          <TextInput
+            className="flex-1 ml-3 text-base text-text_primary"
+            placeholder={`Search in ${(subcategoryName || "products").toLowerCase()}`}
+            placeholderTextColor={colors.text_tertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      </View>
+
       {divisionTypes.length > 0 && (
         <View className="px-4 py-3 border-b border-border_primary bg-bg_white">
           <ScrollView
@@ -659,12 +681,15 @@ const ProductListingScreen: React.FC = () => {
         </View>
       ) : products.length > 0 ? (
         <FlatList
-          data={products}
+          data={filteredProducts}
           renderItem={renderProduct}
           keyExtractor={(item) =>
             String(item.product_id || item.id || Math.random())
           }
-          contentContainerStyle={{ paddingVertical: 16 }}
+          contentContainerStyle={{
+            paddingVertical: 16,
+            flexGrow: 1,
+          }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -672,6 +697,16 @@ const ProductListingScreen: React.FC = () => {
               onRefresh={handleRefresh}
               tintColor={colors.primary}
             />
+          }
+          ListEmptyComponent={
+            searchQuery.trim() ? (
+              <View className="py-10 items-center justify-center px-6">
+                <Ionicons name="search-outline" size={48} color={colors.text_tertiary} />
+                <Text className="mt-3 text-base text-center text-text_secondary">
+                  No results for "{searchQuery.trim()}"
+                </Text>
+              </View>
+            ) : null
           }
         />
       ) : (

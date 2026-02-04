@@ -1,4 +1,3 @@
-
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -21,7 +20,7 @@ const HomeScreen = () => {
   const router = useRouter();
 
   const {
-    loading,
+    loading,  
     place,
     profile,
     userName,
