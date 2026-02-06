@@ -51,17 +51,17 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
             activeOpacity={0.7}
             className="flex-row items-center mt-1"
           >
-            <Ionicons
-              name="location-sharp"
-              size={14}
-              color={colors.icon_primary}
-            />
             <Text
-              className="ml-1 text-sm font-medium text-text_primary"
+              className="text-sm font-medium text-text_primary mr-1"
               numberOfLines={1}
             >
               {place && place.trim() ? place : "Your location"}
             </Text>
+            <Ionicons
+              name="chevron-down"
+              size={14}
+              color={colors.text_primary}
+            />
           </TouchableOpacity>
         </View>
       </View>

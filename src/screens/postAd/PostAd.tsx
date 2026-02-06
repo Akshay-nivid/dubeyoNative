@@ -254,7 +254,7 @@ const PostAd = () => {
                         <View className="px-5 mb-2 mt-10">
                             <View className="items-center mb-4">
                                 <Image
-                                    source={require("@/assets/images/ai icon.png")}
+                                    source={require("@/assets/images/ai_modal_icon.png")}
                                     style={{ width: 60, height: 60 }}
                                     contentFit="contain"
                                 />
@@ -293,45 +293,55 @@ const PostAd = () => {
                         <View className="pb-8 mt-6">
                             {renderImagesSection()}
 
-                            <View className="bg-white/80 rounded-[22px] p-5 shadow-xl shadow-black/10 border-2 border-white/90">
-                                <View className="flex-row">
-                                    {!description && (
-                                        <View className="mr-2 mt-1">
-                                            <Ionicons name="sparkles" size={18} color="#9CA3AF" />
-                                        </View>
-                                    )}
-                                    <TextInput
-                                        placeholder="Type the Description...."
-                                        className="flex-1 text-base text-gray-900 min-h-[80px] pt-0.5"
-                                        value={description}
-                                        onChangeText={setDescription}
-                                        placeholderTextColor="#9CA3AF"
-                                        multiline
-                                        textAlignVertical="top"
-                                    />
-                                </View>
-                                <View className="flex-row items-center justify-end mt-2 px-1">
-                                    {/* Waveform Icon */}
-
-
-                                    <TouchableOpacity
-                                        onPress={description.trim() ? handleContinue : () => { }}
-                                        disabled={loading}
-                                        className={`w-12 h-12 rounded-xl items-center justify-center ${(description.trim() && photos.length === 0) ? 'bg-gray-200' : 'bg-black'}`}
-                                    >
-                                        {description.trim() ? (
-                                            <Ionicons name="arrow-up" size={24} color={(description.trim() && photos.length === 0) ? "#9CA3AF" : "#FFF"} />
-                                        ) : (
-                                            /* Waveform Animation (Simulated) inside button */
-                                            <View className="flex-row items-center gap-[2px]">
-                                                <View className="w-[2px] h-2 bg-white rounded-full" />
-                                                <View className="w-[2px] h-3 bg-white rounded-full" />
-                                                <View className="w-[2px] h-4 bg-white rounded-full" />
-                                                <View className="w-[2px] h-3 bg-white rounded-full" />
-                                                <View className="w-[2px] h-2 bg-white rounded-full" />
+                            <View className="bg-white rounded-[22px] overflow-hidden border border-gray-200 shadow-sm">
+                                {/* Inner Shadow Effect */}
+                                <LinearGradient
+                                    colors={['rgba(0,0,0,0.06)', 'rgba(0,0,0,0)']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 0, y: 0.3 }}
+                                    style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 20, zIndex: 1 }}
+                                    pointerEvents="none"
+                                />
+                                <View className="p-5">
+                                    <View className="flex-row">
+                                        {!description && (
+                                            <View className="mr-2 mt-1 z-10">
+                                                <Ionicons name="sparkles" size={18} color="#9CA3AF" />
                                             </View>
                                         )}
-                                    </TouchableOpacity>
+                                        <TextInput
+                                            placeholder="Type the Description...."
+                                            className="flex-1 text-base text-gray-900 min-h-[80px] pt-0.5"
+                                            value={description}
+                                            onChangeText={setDescription}
+                                            placeholderTextColor="#9CA3AF"
+                                            multiline
+                                            textAlignVertical="top"
+                                        />
+                                    </View>
+                                    <View className="flex-row items-center justify-end mt-2 px-1">
+                                        {/* Waveform Icon */}
+
+
+                                        <TouchableOpacity
+                                            onPress={description.trim() ? handleContinue : () => { }}
+                                            disabled={loading}
+                                            className={`w-12 h-12 rounded-xl items-center justify-center ${(description.trim() && photos.length === 0) ? 'bg-gray-200' : 'bg-black'}`}
+                                        >
+                                            {description.trim() ? (
+                                                <Ionicons name="arrow-up" size={24} color={(description.trim() && photos.length === 0) ? "#9CA3AF" : "#FFF"} />
+                                            ) : (
+                                                /* Waveform Animation (Simulated) inside button */
+                                                <View className="flex-row items-center gap-[2px]">
+                                                    <View className="w-[2px] h-2 bg-white rounded-full" />
+                                                    <View className="w-[2px] h-3 bg-white rounded-full" />
+                                                    <View className="w-[2px] h-4 bg-white rounded-full" />
+                                                    <View className="w-[2px] h-3 bg-white rounded-full" />
+                                                    <View className="w-[2px] h-2 bg-white rounded-full" />
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             </View>
                         </View>

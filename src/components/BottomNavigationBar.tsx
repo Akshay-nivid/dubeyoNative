@@ -208,15 +208,16 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
                     colors={[colors.palette_dark_blue, colors.primary, '#d8b4fe']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    className="w-full h-full rounded-full justify-center items-center"
+                    className="w-full h-full rounded-full justify-center items-center p-[3px]"
                     style={{ borderRadius: 30 }}
                   >
-                    <Image
-                      source={require("@/assets/images/ai icon.png")}
-                      className="w-8 h-8"
-                      resizeMode="contain"
-                      style={{ tintColor: colors.text_white }}
-                    />
+                    <View className="w-full h-full bg-white rounded-full items-center justify-center">
+                      <Image
+                        source={require("@/assets/images/ai_modal_icon.png")}
+                        className="w-10 h-10"
+                        resizeMode="contain"
+                      />
+                    </View>
                   </LinearGradient>
                 </Pressable>
               </View>
@@ -294,7 +295,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
                 >
                   <View className="w-[104px] h-[104px] rounded-full bg-white/90 justify-center items-center border-2 border-white">
                     <Image
-                      source={require("@/assets/images/ai icon.png")}
+                      source={require("@/assets/images/ai_modal_icon.png")}
                       className="w-16 h-16"
                       resizeMode="contain"
                     />

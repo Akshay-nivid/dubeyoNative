@@ -9,7 +9,17 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar backgroundColor="white" barStyle="dark-content" />
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="home" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="search-drag"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+      </Stack>
       <Toast
         position="top"
         topOffset={60}

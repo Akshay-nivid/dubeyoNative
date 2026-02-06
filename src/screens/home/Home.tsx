@@ -95,7 +95,7 @@ const HomeScreen = () => {
           </View>
 
           {/* Content Sheet - Starts below search, scrolls under */}
-          <View className="flex-1 rounded-t-[35px] overflow-hidden min-h-screen" style={{ backgroundColor: '#F6F6F6' }}>
+          <View className="flex-1 rounded-t-[20px] overflow-hidden min-h-screen" style={{ backgroundColor: '#F6F6F6' }}>
             <View style={{ paddingTop: 20 }}>
               <CategoryList
                 categories={categoriesToRender}
