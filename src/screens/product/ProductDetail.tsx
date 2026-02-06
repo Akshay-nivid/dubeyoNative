@@ -1,3 +1,4 @@
+// import { t } from "@/src/localization/i18n";
 import { Api } from "@/src/screens/home/Api";
 import { get } from "@/src/services/api";
 import { getImages } from "@/src/services/imageLink/image";
@@ -7,19 +8,29 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    Linking,
-    Pressable,
-    ScrollView,
-    Share,
-    Text,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  Linking,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  Share,
+  Text,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Standard icon sizes for the detail screen
+const ICON = {
+  sm: 14,   // badges, tiny inline
+  md: 16,   // inline with text (specs, disclaimer)
+  lg: 20,   // header buttons, list icons, bottom bar
+  xl: 32,   // empty states, placeholders
+} as const;
 
 interface ProductDetailProps {
   productId: string;
@@ -30,11 +41,24 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllDetails, setShowAllDetails] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [activeTab, setActiveTab] = useState<'description' | 'details' | 'location'>('description');
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [isLocationVisible, setIsLocationVisible] = useState(false);
   const imageScrollRef = useRef<ScrollView>(null);
+  const mainScrollRef = useRef<ScrollView>(null);
+  const descriptionRef = useRef<View>(null);
+  const detailsRef = useRef<View>(null);
+  const locationRef = useRef<View>(null);
+  const [sectionPositions, setSectionPositions] = useState<{
+    description: number;
+    details: number;
+    location: number;
+  }>({ description: 0, details: 0, location: 0 });
 
   // Initialize carousel position when images load
   useEffect(() => {
@@ -122,6 +146,79 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
     });
   };
 
+  // Measure section positions using onLayout
+  const handleDescriptionLayout = (event: any) => {
+    const { y } = event.nativeEvent.layout;
+    setSectionPositions(prev => ({ ...prev, description: y }));
+  };
+
+  const handleDetailsLayout = (event: any) => {
+    const { y } = event.nativeEvent.layout;
+    setSectionPositions(prev => ({ ...prev, details: y }));
+  };
+
+  const handleLocationLayout = (event: any) => {
+    const { y } = event.nativeEvent.layout;
+    setSectionPositions(prev => ({ ...prev, location: y }));
+  };
+
+  // Handle scroll to detect active section
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (isScrolling) return; // Don't update tab while programmatically scrolling
+    
+    const scrollYValue = event.nativeEvent.contentOffset.y;
+    const viewportHeight = Dimensions.get('window').height;
+    const headerHeight = SCREEN_WIDTH + 100; // Image carousel + product info
+    const viewportCenter = scrollYValue + viewportHeight / 2;
+
+    // Skip if sections haven't been measured yet
+    if (sectionPositions.description === 0 && sectionPositions.details === 0 && sectionPositions.location === 0) {
+      return;
+    }
+
+    // onLayout gives positions relative to ScrollView content, so add header height
+    const descriptionPos = sectionPositions.description + headerHeight;
+    const detailsPos = sectionPositions.details + headerHeight;
+    const locationPos = sectionPositions.location + headerHeight;
+
+    // Determine active tab based on which section center is closest to viewport center
+    // Use a threshold to avoid rapid switching
+    const threshold = 100;
+    
+    if (sectionPositions.location > 0 && viewportCenter >= locationPos - threshold) {
+      setActiveTab('location');
+    } else if (sectionPositions.details > 0 && viewportCenter >= detailsPos - threshold) {
+      setActiveTab('details');
+    } else if (sectionPositions.description > 0 && viewportCenter >= descriptionPos - threshold) {
+      setActiveTab('description');
+    }
+  };
+
+  // Scroll to section when tab is pressed
+  const scrollToSection = (section: 'description' | 'details' | 'location') => {
+    setIsScrolling(true);
+    setActiveTab(section);
+    
+    const ref = section === 'description' ? descriptionRef : section === 'details' ? detailsRef : locationRef;
+    const headerHeight = SCREEN_WIDTH + 100;
+    const tabBarHeight = 60; // Approximate tab bar height
+    
+    // Use measureInWindow for accurate positioning
+    ref.current?.measureInWindow((x, y) => {
+      if (mainScrollRef.current) {
+        // Calculate scroll position: window Y position minus header height, minus offset for sticky tab bar
+        const scrollY = Math.max(0, y - headerHeight - tabBarHeight - 20);
+        mainScrollRef.current.scrollTo({
+          y: scrollY,
+          animated: true,
+        });
+        setTimeout(() => setIsScrolling(false), 600);
+      } else {
+        setIsScrolling(false);
+      }
+    });
+  };
+
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-bg_primary">
@@ -147,7 +244,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
             className="px-6 py-3 rounded-xl bg-primary"
           >
             <Text className="text-base font-semibold text-text_white">
-              Go Back
+              Go back
             </Text>
           </Pressable>
         </View>
@@ -172,7 +269,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
 
   const specs = product.specs || {};
   const specsEntries = Object.entries(specs);
-  const initialLimit = 5;
+  const initialLimit = 3; // Show only 3 specs initially
   const hasMoreSpecs = specsEntries.length > initialLimit;
   const displayedSpecs = showAllDetails
     ? specsEntries
@@ -195,6 +292,58 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
       return product[key];
     }
     return fallback;
+  };
+
+  // Get icon name for spec type
+  const getSpecIcon = (specKey: string): { name: keyof typeof Ionicons.glyphMap; type: 'ionicons' } => {
+    const key = specKey.toLowerCase();
+    if (key.includes('shape') || key.includes('form')) {
+      return { name: 'shapes-outline', type: 'ionicons' };
+    }
+    if (key.includes('material') || key.includes('fabric') || key.includes('texture')) {
+      return { name: 'cube-outline', type: 'ionicons' };
+    }
+    if (key.includes('type') || key.includes('decor') || key.includes('category') || key.includes('style')) {
+      return { name: 'grid-outline', type: 'ionicons' };
+    }
+    if (key.includes('placement') || key.includes('location') || key.includes('position') || key.includes('mount')) {
+      return { name: 'location-outline', type: 'ionicons' };
+    }
+    if (key.includes('handcrafted') || key.includes('handmade') || key.includes('craft')) {
+      return { name: 'hand-left-outline', type: 'ionicons' };
+    }
+    if (key.includes('capacity') || key.includes('seats') || key.includes('people')) {
+      return { name: 'people-outline', type: 'ionicons' };
+    }
+    if (key.includes('engine') || key.includes('power') || key.includes('engineout') || key.includes('hp')) {
+      return { name: 'construct-outline', type: 'ionicons' };
+    }
+    if (key.includes('speed') || key.includes('max') || key.includes('km/h')) {
+      return { name: 'speedometer-outline', type: 'ionicons' };
+    }
+    if (key.includes('color') || key.includes('colour')) {
+      return { name: 'color-palette-outline', type: 'ionicons' };
+    }
+    if (key.includes('size') || key.includes('dimension')) {
+      return { name: 'resize-outline', type: 'ionicons' };
+    }
+    if (key.includes('weight')) {
+      return { name: 'scale-outline', type: 'ionicons' };
+    }
+    if (key.includes('brand') || key.includes('manufacturer')) {
+      return { name: 'business-outline', type: 'ionicons' };
+    }
+    if (key.includes('year') || key.includes('model')) {
+      return { name: 'calendar-outline', type: 'ionicons' };
+    }
+    if (key.includes('mileage') || key.includes('km')) {
+      return { name: 'speedometer-outline', type: 'ionicons' };
+    }
+    if (key.includes('fuel') || key.includes('gas')) {
+      return { name: 'car-outline', type: 'ionicons' };
+    }
+    // Default icon
+    return { name: 'information-circle-outline', type: 'ionicons' };
   };
 
   const year =
@@ -225,9 +374,13 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
       edges={["top"]}
     >
       <ScrollView
+        ref={mainScrollRef}
         className="flex-1"
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
         contentContainerStyle={{ paddingBottom: 100 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        stickyHeaderIndices={[3]}
       >
         <View className="absolute top-0 left-0 right-0 z-10 flex-row justify-between items-center px-4 pt-2 pb-2">
           <Pressable
@@ -235,17 +388,23 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
             className="w-10 h-10 items-center justify-center rounded-full bg-white/90 shadow-md"
             style={{ elevation: 4 }}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text_primary} />
+            <Ionicons name="arrow-back" size={ICON.lg} color={colors.text_primary} />
           </Pressable>
           <Pressable
             onPress={handleShare}
-            className="w-10 h-10 items-center justify-center rounded-full bg-white/90 shadow-md"
-            style={{ elevation: 4 }}
+            className="w-10 h-10 items-center justify-center rounded-full bg-white/95 shadow-lg"
+            style={{ 
+              elevation: 6,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.15,
+              shadowRadius: 4,
+            }}
           >
             <Ionicons
-              name="share-outline"
-              size={24}
-              color={colors.text_primary}
+              name="share-social"
+              size={ICON.lg}
+              color={colors.primary}
             />
           </Pressable>
         </View>
@@ -258,13 +417,20 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                 ref={imageScrollRef}
                 horizontal
                 pagingEnabled
-                showsHorizontalScrollIndicator={false}
+                showsHorizontalScrollIndicator={true}
                 onMomentumScrollEnd={(e) => {
                   const index = Math.round(
                     e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
                   );
                   setCurrentImageIndex(index);
                 }}
+                onScroll={(e) => {
+                  const index = Math.round(
+                    e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
+                  );
+                  setCurrentImageIndex(index);
+                }}
+                scrollEventThrottle={16}
               >
                 {imageUrls.map((url, index) => (
                   <View key={index} style={{ width: SCREEN_WIDTH }}>
@@ -278,6 +444,18 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                 ))}
               </ScrollView>
 
+              {/* Scroll Progress Bar */}
+              {imageUrls.length > 1 && (
+                <View className="absolute bottom-0 left-0 right-0 h-1 bg-white/30">
+                  <View
+                    className="h-full bg-white"
+                    style={{
+                      width: `${(scrollProgress * 100) || ((currentImageIndex + 1) / imageUrls.length * 100)}%`,
+                    }}
+                  />
+                </View>
+              )}
+
               {/* Pagination Dots */}
               {imageUrls.length > 1 && (
                 <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-2">
@@ -287,14 +465,6 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                       className={`rounded-full h-2 mx-0.5 ${index === currentImageIndex ? "w-6 bg-text_white" : "w-2 bg-white/50"}`}
                     />
                   ))}
-                </View>
-              )}
-
-              {imageUrls.length > 1 && (
-                <View className="absolute bottom-4 left-4 px-3 py-1 rounded bg-white/80">
-                  <Text className="text-sm font-semibold text-text_primary">
-                    {currentImageIndex + 1}/{imageUrls.length}
-                  </Text>
                 </View>
               )}
             </>
@@ -311,7 +481,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
             >
               <Ionicons
                 name="image-outline"
-                size={64}
+                size={ICON.xl}
                 color={colors.text_tertiary}
               />
               <Text className="mt-4 text-base text-text_tertiary">
@@ -321,7 +491,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
           )}
         </View>
 
-        <View className="bg-bg_white rounded-t-3xl -mt-6 px-6 pt-4 pb-3">
+        <View className="bg-bg_white rounded-t-3xl -mt-8 px-6 pt-4 pb-3">
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-2xl font-bold text-text_primary">
               {finalPrice > 0
@@ -341,7 +511,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                 <View className="flex-row items-center">
                   <Ionicons
                     name="time-outline"
-                    size={16}
+                    size={ICON.md}
                     color={colors.text_tertiary}
                   />
                   <Text className="text-sm ml-1 text-text_tertiary">
@@ -353,7 +523,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                 <View className="flex-row items-center">
                   <Ionicons
                     name="speedometer-outline"
-                    size={16}
+                    size={ICON.md}
                     color={colors.text_tertiary}
                   />
                   <Text className="text-sm ml-1 text-text_tertiary">
@@ -365,7 +535,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                 <View className="flex-row items-center">
                   <Ionicons
                     name="car-outline"
-                    size={16}
+                    size={ICON.md}
                     color={colors.text_tertiary}
                   />
                   <Text className="text-sm ml-1 text-text_tertiary">
@@ -390,7 +560,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                     key={index}
                     className="px-3 py-1 rounded-full flex-row items-center bg-success"
                   >
-                    <Ionicons name="checkmark" size={14} color={colors.text_white} />
+                    <Ionicons name="checkmark" size={ICON.sm} color={colors.text_white} />
                     <Text className="text-xs font-semibold ml-1 text-text_white">
                       {featureName}
                     </Text>
@@ -404,7 +574,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
           <View className="flex-row items-start mb-2">
             <Ionicons
               name="alert-circle"
-              size={16}
+              size={ICON.md}
               color={colors.error}
               style={{ marginTop: 2 }}
             />
@@ -415,75 +585,187 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
           </View>
         </View>
 
-        {specsEntries.length > 0 && (
-          <View className="bg-bg_white mx-4 mt-3 rounded-2xl p-4">
-            <View className="flex-row justify-between items-center mb-3">
-              <Text className="text-lg font-bold text-text_primary">
-                Details
-              </Text>
-              {hasMoreSpecs && (
-                <Pressable onPress={() => setShowAllDetails(!showAllDetails)}>
-                  <Text className="text-md font-bold text-bg_black">
-                    {showAllDetails ? "Less" : "More"}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-            <View className="gap-1">
-              {displayedSpecs.map(([key, value]) => {
-                const specValue =
-                  value && typeof value === "object" && "value" in value
-                    ? (value as any).value
-                    : value;
-                const displayKey =
-                  value && typeof value === "object" && "label" in value
-                    ? (value as any).label
-                    : key;
-                const displayValue =
-                  specValue !== null && specValue !== undefined
-                    ? String(specValue)
-                    : "";
-                return (
-                  <View
-                    key={key}
-                    className="flex-row justify-between items-center py-1.5 border-b border-border_primary"
-                  >
-                    <Text className="text-sm flex-1 text-text_tertiary">
-                      {displayKey}:
-                    </Text>
-                    <Text className="text-sm font-semibold flex-1 text-right text-text_primary">
-                      {displayValue}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {description && (
-          <View className="bg-bg_white mx-4 mt-3 rounded-2xl p-4">
-            <Text className="text-lg font-bold mb-2 text-text_primary">
-              Description
-            </Text>
-            <Text className="text-base leading-6 text-text_primary">
-              {displayDescription}
-              {hasMoreDescription && (
+        {/* Tab Bar - Sticky */}
+        <View 
+          className="bg-bg_white border-b border-border_primary shadow-sm"
+          style={{ 
+            elevation: 4,
+          }}
+        >
+          <View className="px-4 pt-4">
+            <View className="flex-row justify-around items-center">
+              <Pressable
+                onPress={() => scrollToSection('description')}
+                className="flex-1 items-center pb-3"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Text
-                  onPress={() => setShowFullDescription(!showFullDescription)}
-                  className="font-bold text-bg_black"
+                  className={`text-base font-bold ${
+                    activeTab === 'description' ? 'text-primary' : 'text-text_tertiary'
+                  }`}
                 >
-                  {showFullDescription ? " Less" : " More"}
+                  Description
                 </Text>
-              )}
-            </Text>
+                {activeTab === 'description' && (
+                  <View className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-primary rounded-full" style={{ width: '50%' }} />
+                )}
+              </Pressable>
+              <Pressable
+                onPress={() => scrollToSection('details')}
+                className="flex-1 items-center pb-3"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text
+                  className={`text-base font-bold ${
+                    activeTab === 'details' ? 'text-primary' : 'text-text_tertiary'
+                  }`}
+                >
+                  Details
+                </Text>
+                {activeTab === 'details' && (
+                  <View className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-primary rounded-full" style={{ width: '50%' }} />
+                )}
+              </Pressable>
+              <Pressable
+                onPress={() => scrollToSection('location')}
+                className="flex-1 items-center pb-3"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text
+                  className={`text-base font-bold ${
+                    activeTab === 'location' ? 'text-primary' : 'text-text_tertiary'
+                  }`}
+                >
+                  Location
+                </Text>
+                {activeTab === 'location' && (
+                  <View className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-primary rounded-full" style={{ width: '50%' }} />
+                )}
+              </Pressable>
+            </View>
           </View>
-        )}
+        </View>
 
+        {/* Combined Description & Details Section */}
+        <View className="bg-bg_white rounded-b-2xl shadow-sm" style={{ elevation: 2 }}>
+
+          {/* Description Section */}
+          <View 
+            ref={descriptionRef} 
+            onLayout={handleDescriptionLayout}
+            className="px-4 py-4"
+          >
+            {description ? (
+              <>
+                <Text className="text-lg font-bold mb-2 text-text_primary">
+                  Description
+                </Text>
+                <Text className="text-base leading-6 text-text_primary">
+                  {displayDescription}
+                  {hasMoreDescription && (
+                    <Text
+                      onPress={() => setShowFullDescription(!showFullDescription)}
+                      className="font-bold text-bg_black"
+                    >
+                      {showFullDescription ? " Read less" : " Read more"}
+                    </Text>
+                  )}
+                </Text>
+              </>
+            ) : (
+              <View className="py-4">
+                <Text className="text-base text-text_tertiary text-center">
+                  No description
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Details Section */}
+          {specsEntries.length > 0 && (
+            <View 
+              ref={detailsRef} 
+              onLayout={handleDetailsLayout}
+              className="px-4 py-4"
+            >
+              <View className="flex-row justify-between items-center mb-4">
+                <Text className="text-xl font-bold text-text_primary">
+                  Details
+                </Text>
+                {hasMoreSpecs && (
+                  <Pressable onPress={() => setShowAllDetails(!showAllDetails)}>
+                    <Text className="text-md font-bold text-bg_black">
+                      {showAllDetails ? "Less" : "More"}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+              <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+                {displayedSpecs.map(([key, value]) => {
+                  const specValue =
+                    value && typeof value === "object" && "value" in value
+                      ? (value as any).value
+                      : value;
+                  const displayKey =
+                    value && typeof value === "object" && "label" in value
+                      ? (value as any).label
+                      : key;
+                  const displayValue =
+                    specValue !== null && specValue !== undefined
+                      ? String(specValue)
+                      : "";
+                  
+                  // Get icon for this spec (use both key and displayKey for better matching)
+                  const iconInfo = getSpecIcon(displayKey || key);
+                  
+                  return (
+                    <View
+                      key={key}
+                      className="bg-bg_white rounded-xl p-3 items-center"
+                      style={{
+                        width: '30%',
+                        minHeight: 100,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 4,
+                        elevation: 3,
+                      }}
+                    >
+                      {/* Icon Circle */}
+                      <View
+                        className="w-8 h-8 rounded-full items-center justify-center mb-2"
+                        style={{ backgroundColor: '#E6F7FA' }}
+                      >
+                        <Ionicons
+                          name={iconInfo.name}
+                          size={ICON.md}
+                          color={colors.text_primary}
+                        />
+                      </View>
+                      
+                      {/* Spec Content */}
+                      <View className="items-center">
+                        <Text className="text-xs text-bg_black mb-1 text-center" numberOfLines={2} style={{ lineHeight: 14 }}>
+                          {displayKey}
+                        </Text>
+                        <Text className="text-sm font-bold text-bg_black text-center" numberOfLines={2} style={{ lineHeight: 18 }}>
+                          {displayValue}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Posted On Section */}
         {product.createdAt && (
           <View className="bg-bg_white mx-4 mt-3 rounded-2xl p-4">
             <Text className="text-sm text-text_tertiary">
-              Posted On:{" "}
+              Posted on{" "}
               {new Date(product.createdAt).toLocaleDateString("en-US", {
                 day: "numeric",
                 month: "long",
@@ -493,7 +775,12 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
           </View>
         )}
 
-        <View className="bg-bg_white mx-4 mt-3 rounded-2xl p-4">
+        {/* Location Section */}
+        <View 
+          ref={locationRef} 
+          onLayout={handleLocationLayout}
+          className="bg-bg_white mx-4 mt-3 rounded-2xl p-4"
+        >
           <Text className="text-lg font-bold mb-2 text-text_primary">
             Location
           </Text>
@@ -509,18 +796,20 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
               </Text>
             </Pressable>
           </View>
-          <View className="bg-border_secondary rounded-lg overflow-hidden min-h-[200px]">
-            <View className="items-center justify-center min-h-[200px]">
-              <Ionicons
-                name="map-outline"
-                size={48}
-                color={colors.text_tertiary}
-              />
-              <Text className="mt-4 text-base font-semibold text-text_primary">
-                Map View
-              </Text>
+          {(activeTab === 'location' || isLocationVisible) && (
+            <View className="bg-border_secondary rounded-lg overflow-hidden min-h-[200px]">
+              <View className="items-center justify-center min-h-[200px]">
+                <Ionicons
+                  name="map-outline"
+                  size={ICON.xl}
+                  color={colors.text_tertiary}
+                />
+                <Text className="mt-4 text-base font-semibold text-text_primary">
+                  Map view
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
         </View>
 
         <View className="mx-4 mt-3 mb-6">
@@ -547,7 +836,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
               <View className="flex-1 items-center justify-center">
                 <Ionicons
                   name="person"
-                  size={24}
+                  size={ICON.lg}
                   color={colors.text_tertiary}
                 />
               </View>
@@ -566,7 +855,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
               onPress={handleCall}
               className="w-12 h-12 rounded-full items-center justify-center bg-primary"
             >
-              <Ionicons name="call" size={22} color={colors.text_white} />
+              <Ionicons name="call" size={ICON.lg} color={colors.text_white} />
             </Pressable>
             <Pressable
               onPress={handleChat}
@@ -574,7 +863,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
             >
               <Ionicons
                 name="chatbubble-outline"
-                size={22}
+                size={ICON.lg}
                 color={colors.text_primary}
               />
             </Pressable>
