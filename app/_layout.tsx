@@ -1,6 +1,4 @@
-import { getToken } from "@/src/services/storage/tokenStorage";
 import { Stack, useRouter } from "expo-router";
-import { useEffect } from "react";
 import { StatusBar } from "react-native";
 import "react-native-css-interop/jsx-runtime";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -10,7 +8,7 @@ import "../global.css";
 export default function RootLayout() {
   const router = useRouter();
 
-  useEffect(() => {
+  /* useEffect(() => {
     const checkAuth = async () => {
       try {
         const token = await getToken();
@@ -23,7 +21,7 @@ export default function RootLayout() {
     };
 
     checkAuth();
-  }, []);
+  }, []); */
 
   return (
     <SafeAreaProvider>

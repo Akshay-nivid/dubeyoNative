@@ -1,23 +1,23 @@
-import { Api } from "@/src/screens/home/Api";
 import { API_BASE_URL } from "@/src/constants/env";
+import { Api } from "@/src/screens/home/Api";
 import { get } from "@/src/services/api";
 import api from "@/src/services/api/client";
 import { getImages } from "@/src/services/imageLink/image";
 import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -34,6 +34,10 @@ interface ProductCardProps {
     seller?: {
       name?: string;
       profilePic?: string;
+    };
+    location?: {
+      type: string;
+      coordinates: number[];
     };
   };
   onPress: () => void;
@@ -53,9 +57,43 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress }) => {
   const hasImage = imageUrl && imageUrl !== noImageUrl;
 
   const [imageError, setImageError] = useState(false);
+  const [address, setAddress] = useState<string>("");
+
   useEffect(() => {
     setImageError(false);
   }, [imageUrl]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAddress = async () => {
+      console.log("Item Location:", item.location); // DEBUG
+      if (item.location?.coordinates && item.location.coordinates.length === 2) {
+        try {
+          const [lon, lat] = item.location.coordinates;
+          console.log(`Geocoding: ${lat}, ${lon}`); // DEBUG
+          const [result] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+          console.log("Geocode Result:", result); // DEBUG
+
+          if (isMounted) {
+            if (result) {
+              const place = result.city || result.district || result.region || result.subregion || result.name;
+              setAddress(place || `${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+            } else {
+              setAddress(`${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+            }
+          }
+        } catch (e) {
+          console.log("Geocoding failed", e);
+          if (isMounted) setAddress(`${item.location.coordinates[1].toFixed(2)}, ${item.location.coordinates[0].toFixed(2)}`);
+        }
+      } else {
+        console.log("No coordinates found for item", item.id);
+      }
+    };
+
+    fetchAddress();
+    return () => { isMounted = false; };
+  }, [item.location]);
 
   const showImage = hasImage && !imageError;
 
@@ -128,10 +166,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress }) => {
             {item.price}
           </Text>
         </View>
+
+        {address ? (
+          <View className="flex-row items-center mt-1">
+            <Ionicons name="location-sharp" size={12} color="red" />
+            <Text className="text-[11px] text-red-500 ml-1" numberOfLines={1}>
+              {address}
+            </Text>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
 };
+
+import FilterModal from "@/src/components/FilterModal";
 
 const ProductListingScreen: React.FC = () => {
   const router = useRouter();
@@ -150,6 +199,7 @@ const ProductListingScreen: React.FC = () => {
   const [subcategoryId, setSubcategoryId] = useState<string | null>(null);
   const [divisionTypes, setDivisionTypes] = useState<any[]>([]);
   const [selectedDivisionType, setSelectedDivisionType] = useState<any>(null);
+  const [showFilter, setShowFilter] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [signedImages, setSignedImages] = useState<Record<string, string>>({});
   const [sellerData, setSellerData] = useState<
@@ -407,9 +457,9 @@ const ProductListingScreen: React.FC = () => {
 
   const filteredProducts = searchQuery.trim()
     ? products.filter((p) => {
-        const title = p.title ?? p.product_name ?? "";
-        return String(title).toLowerCase().includes(searchQuery.trim().toLowerCase());
-      })
+      const title = p.title ?? p.product_name ?? "";
+      return String(title).toLowerCase().includes(searchQuery.trim().toLowerCase());
+    })
     : products;
 
   /** Get first image URL from product (API or embedded). */
@@ -557,11 +607,14 @@ const ProductListingScreen: React.FC = () => {
       }
     }
 
+    // DEBUG LOG
+    if (index === 0) console.log("RenderProduct P:", JSON.stringify(p.location, null, 2));
+
     const seller = sellerName
       ? {
-          name: sellerName,
-          profilePic: sellerProfilePic,
-        }
+        name: sellerName,
+        profilePic: sellerProfilePic,
+      }
       : undefined;
 
     const productItem = {
@@ -573,6 +626,7 @@ const ProductListingScreen: React.FC = () => {
       originalPrice,
       discountedPrice,
       seller,
+      location: p.location, // Pass location data
     };
 
     return (
@@ -588,7 +642,7 @@ const ProductListingScreen: React.FC = () => {
       className="flex-1 bg-bg_primary"
       edges={["top"]}
     >
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border_primary bg-bg_white">
+      <View className="flex-row items-center justify-between px-4 py-3 bg-bg_white">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2">
           <Ionicons name="arrow-back" size={24} color={colors.text_primary} />
         </Pressable>
@@ -598,8 +652,8 @@ const ProductListingScreen: React.FC = () => {
         <View className="w-10" />
       </View>
 
-      <View className="px-4 py-3 bg-bg_white">
-        <View className="flex-row items-center rounded-xl px-4 h-12 bg-bg_secondary border border-border_secondary">
+      <View className="px-4 py-3 bg-bg_white flex-row items-center gap-3">
+        <View className="flex-1 flex-row items-center rounded-xl px-4 h-12 bg-bg_secondary border border-border_secondary">
           <Ionicons name="search" size={20} color={colors.text_tertiary} />
           <TextInput
             className="flex-1 ml-3 text-base text-text_primary"
@@ -609,49 +663,24 @@ const ProductListingScreen: React.FC = () => {
             onChangeText={setSearchQuery}
           />
         </View>
+        <TouchableOpacity
+          onPress={() => setShowFilter(!showFilter)}
+          className="h-12 w-12 items-center justify-center rounded-xl bg-primary border border-primary"
+        >
+          <Ionicons name="options-outline" size={24} color="white" />
+        </TouchableOpacity>
       </View>
 
-      {divisionTypes.length > 0 && (
-        <View className="px-4 py-3 border-b border-border_primary bg-bg_white">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              flexDirection: "row",
-              gap: 12,
-              alignItems: "center",
-            }}
-          >
-            {filters.map((f) => {
-              const isSelected =
-                f.value === null
-                  ? selectedDivisionType === null
-                  : selectedDivisionType?.id === f.value?.id;
-              const labelText =
-                typeof f.label === "string" ? f.label : String(f.label || "");
-              return (
-                <Pressable
-                  key={f.value?.id ?? "all"}
-                  onPress={() => setSelectedDivisionType(f.value)}
-                  className={`px-4 py-2 rounded-full border min-h-[36px] justify-center items-center ${
-                    isSelected
-                      ? "bg-primary border-primary"
-                      : "bg-bg_white border-border_primary"
-                  }`}
-                >
-                  <Text
-                    className={`text-sm font-medium ${
-                      isSelected ? "text-text_white" : "text-text_primary"
-                    }`}
-                  >
-                    {labelText}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      )}
+      {/* Inline filters removed. FilterModal used instead. */}
+
+      <FilterModal
+        visible={showFilter}
+        onClose={() => setShowFilter(false)}
+        onApply={(division) => setSelectedDivisionType(division)}
+        onReset={() => setSelectedDivisionType(null)}
+        divisionTypes={divisionTypes}
+        selectedDivision={selectedDivisionType}
+      />
 
       {loading && !refreshing ? (
         <View className="flex-1 items-center justify-center">

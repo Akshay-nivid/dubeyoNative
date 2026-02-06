@@ -28,7 +28,7 @@ const GENERATION_STEPS = {
 const PostAdDetails = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const { coordinates } = useUserLocation();
+    const { coordinates, useCurrentLocation } = useUserLocation();
 
     // From params
     const initialDescription = params.description as string;
@@ -419,8 +419,16 @@ const PostAdDetails = () => {
 
 
 
-        if (!coordinates?.lat) {
-            Toast.show({ type: "error", text1: "Location Required", text2: "Enable location to post ad" });
+        // Check if coordinates valid (not 0,0 and passed existence check)
+        if (!coordinates || !coordinates.lat || coordinates.lat === 0) {
+            Toast.show({ type: "info", text1: "Location Required", text2: "Requesting location permission..." });
+            try {
+                // once the state updates.
+                useCurrentLocation();
+            } catch (err) {
+                console.error("Failed to request location", err);
+            }
+            Toast.show({ type: "error", text1: "Location not found", text2: "Please enable location and try again" });
             setClicked(false);
             return;
         }
@@ -482,15 +490,8 @@ const PostAdDetails = () => {
             const res = await post(PostAdApi.createProduct, payload);
 
             if (res.status === 200 || res.status === 201) {
-                // Toast.show({ type: 'success', text1: 'Success', text2: 'Ad posted successfully!' });
-                // Extract Product ID
-                const createdProduct = res.data?.data || res.data;
-                const newProductId = createdProduct?.id || createdProduct?._id;
-
-                router.replace({
-                    pathname: "/post-success",
-                    params: { productId: newProductId }
-                });
+                Toast.show({ type: 'success', text1: 'Success', text2: 'Ad posted successfully!' });
+                router.replace("/home");
             } else {
 
                 let errorMsg = res.message || 'Failed to submit';

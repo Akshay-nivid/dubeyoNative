@@ -5,6 +5,7 @@ import { getImages } from "@/src/services/imageLink/image";
 import { colors } from "@/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import * as ExpoLocation from 'expo-location';
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -49,6 +50,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
   const [activeTab, setActiveTab] = useState<'description' | 'details' | 'location'>('description');
   const [isScrolling, setIsScrolling] = useState(false);
   const [isLocationVisible, setIsLocationVisible] = useState(false);
+  const [address, setAddress] = useState<string>("");
   const imageScrollRef = useRef<ScrollView>(null);
   const mainScrollRef = useRef<ScrollView>(null);
   const descriptionRef = useRef<View>(null);
@@ -67,6 +69,36 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
       setCurrentImageIndex(0);
     }
   }, [imageUrls.length]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAddress = async () => {
+      if (product?.location?.coordinates && product.location.coordinates.length === 2) {
+        try {
+          const [lon, lat] = product.location.coordinates;
+          const [result] = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+
+          if (isMounted && result) {
+            const place = result.city || result.district || result.region || result.subregion || result.name;
+            if (place) {
+              setAddress(place);
+            } else {
+              setAddress(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+            }
+          }
+        } catch (e) {
+          if (isMounted) setAddress(`${product.location.coordinates[1].toFixed(4)}, ${product.location.coordinates[0].toFixed(4)}`);
+        }
+      } else if (product?.address) {
+        setAddress(product.address);
+      }
+    };
+
+    if (product) {
+      fetchAddress();
+    }
+    return () => { isMounted = false; };
+  }, [product]);
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -165,7 +197,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
   // Handle scroll to detect active section
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (isScrolling) return; // Don't update tab while programmatically scrolling
-    
+
     const scrollYValue = event.nativeEvent.contentOffset.y;
     const viewportHeight = Dimensions.get('window').height;
     const headerHeight = SCREEN_WIDTH + 100; // Image carousel + product info
@@ -184,7 +216,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
     // Determine active tab based on which section center is closest to viewport center
     // Use a threshold to avoid rapid switching
     const threshold = 100;
-    
+
     if (sectionPositions.location > 0 && viewportCenter >= locationPos - threshold) {
       setActiveTab('location');
     } else if (sectionPositions.details > 0 && viewportCenter >= detailsPos - threshold) {
@@ -198,11 +230,11 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
   const scrollToSection = (section: 'description' | 'details' | 'location') => {
     setIsScrolling(true);
     setActiveTab(section);
-    
+
     const ref = section === 'description' ? descriptionRef : section === 'details' ? detailsRef : locationRef;
     const headerHeight = SCREEN_WIDTH + 100;
     const tabBarHeight = 60; // Approximate tab bar height
-    
+
     // Use measureInWindow for accurate positioning
     ref.current?.measureInWindow((x, y) => {
       if (mainScrollRef.current) {
@@ -256,8 +288,8 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
     imageUrls?.length > 0
       ? imageUrls[currentImageIndex]
       : product.images?.[0] &&
-          (product.images[0].startsWith("http://") ||
-            product.images[0].startsWith("https://"))
+        (product.images[0].startsWith("http://") ||
+          product.images[0].startsWith("https://"))
         ? product.images[0]
         : null;
 
@@ -393,7 +425,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
           <Pressable
             onPress={handleShare}
             className="w-10 h-10 items-center justify-center rounded-full bg-white/95 shadow-lg"
-            style={{ 
+            style={{
               elevation: 6,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
@@ -586,9 +618,9 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
         </View>
 
         {/* Tab Bar - Sticky */}
-        <View 
+        <View
           className="bg-bg_white border-b border-border_primary shadow-sm"
-          style={{ 
+          style={{
             elevation: 4,
           }}
         >
@@ -600,9 +632,8 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text
-                  className={`text-base font-bold ${
-                    activeTab === 'description' ? 'text-primary' : 'text-text_tertiary'
-                  }`}
+                  className={`text-base font-bold ${activeTab === 'description' ? 'text-primary' : 'text-text_tertiary'
+                    }`}
                 >
                   Description
                 </Text>
@@ -616,9 +647,8 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text
-                  className={`text-base font-bold ${
-                    activeTab === 'details' ? 'text-primary' : 'text-text_tertiary'
-                  }`}
+                  className={`text-base font-bold ${activeTab === 'details' ? 'text-primary' : 'text-text_tertiary'
+                    }`}
                 >
                   Details
                 </Text>
@@ -632,9 +662,8 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text
-                  className={`text-base font-bold ${
-                    activeTab === 'location' ? 'text-primary' : 'text-text_tertiary'
-                  }`}
+                  className={`text-base font-bold ${activeTab === 'location' ? 'text-primary' : 'text-text_tertiary'
+                    }`}
                 >
                   Location
                 </Text>
@@ -650,8 +679,8 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
         <View className="bg-bg_white rounded-b-2xl shadow-sm" style={{ elevation: 2 }}>
 
           {/* Description Section */}
-          <View 
-            ref={descriptionRef} 
+          <View
+            ref={descriptionRef}
             onLayout={handleDescriptionLayout}
             className="px-4 py-4"
           >
@@ -683,8 +712,8 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
 
           {/* Details Section */}
           {specsEntries.length > 0 && (
-            <View 
-              ref={detailsRef} 
+            <View
+              ref={detailsRef}
               onLayout={handleDetailsLayout}
               className="px-4 py-4"
             >
@@ -714,10 +743,10 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                     specValue !== null && specValue !== undefined
                       ? String(specValue)
                       : "";
-                  
+
                   // Get icon for this spec (use both key and displayKey for better matching)
                   const iconInfo = getSpecIcon(displayKey || key);
-                  
+
                   return (
                     <View
                       key={key}
@@ -743,7 +772,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                           color={colors.text_primary}
                         />
                       </View>
-                      
+
                       {/* Spec Content */}
                       <View className="items-center">
                         <Text className="text-xs text-bg_black mb-1 text-center" numberOfLines={2} style={{ lineHeight: 14 }}>
@@ -776,8 +805,8 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
         )}
 
         {/* Location Section */}
-        <View 
-          ref={locationRef} 
+        <View
+          ref={locationRef}
           onLayout={handleLocationLayout}
           className="bg-bg_white mx-4 mt-3 rounded-2xl p-4"
         >
@@ -786,9 +815,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
           </Text>
           <View className="flex-row justify-between items-start mb-2">
             <Text className="text-base flex-1 text-text_primary">
-              {product.location ||
-                product.address ||
-                "P.O. Box 39613, Dubai, UAE Emirates"}
+              {address || "P.O. Box 39613, Dubai, UAE Emirates"}
             </Text>
             <Pressable>
               <Text className="text-sm font-semibold text-primary">
