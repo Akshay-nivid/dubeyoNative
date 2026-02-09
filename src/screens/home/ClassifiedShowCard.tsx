@@ -1,5 +1,6 @@
 import { get, post } from "@/src/services/api";
 import { colors } from "@/theme";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -9,17 +10,20 @@ import {
   Modal,
   PanResponder,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { Api } from "./Api";
+
 interface ClassifiedShowCardProps {
   open: boolean;
   onClose: () => void;
   category: any;
 }
+
 const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
   open,
   onClose,
@@ -35,7 +39,9 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const panY = useRef(new Animated.Value(0)).current;
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -66,6 +72,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       },
     })
   ).current;
+
   useEffect(() => {
     if (open && category) {
       panY.setValue(0);
@@ -78,12 +85,14 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       setData({ subcategoryId: "", divisionId: "" });
     }
   }, [category, open]);
+
   const fetchSubcategories = async () => {
     setLoading(true);
     setError(null);
     try {
       let categoryId = category?.categoryId || category?.id || category?.value;
       let name = category?.name || category?.label || "";
+
       // If no categoryId, try to find it from categories list
       if (!categoryId && name) {
         try {
@@ -94,6 +103,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
             const searchName = name.toLowerCase().trim();
             return catName === searchName;
           });
+
           if (matchedCategory) {
             categoryId = matchedCategory.value || matchedCategory.id || matchedCategory.category_id || matchedCategory.categoryId;
             name = matchedCategory.label || matchedCategory.name || name;
@@ -102,12 +112,15 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
           console.error("Error fetching categories:", err);
         }
       }
+
       if (!categoryId) {
         setError("Category not found. Please try selecting a different category.");
         setLoading(false);
         return;
       }
+
       setCategoryName(name);
+
       // Fetch subcategories
       const res = await post(Api.SubcategoriesByCategory, { categoryId });
       if (res?.status === 200) {
@@ -119,6 +132,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
             division_type: sub.division_type || [],
           }))
         );
+
         if (list.length > 0) {
           setSelectedSubcategory({
             id: list[0].id,
@@ -141,12 +155,14 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       setLoading(false);
     }
   };
+
   const handleSelectDivision = (division: any) => {
     setData((prev) => ({
       ...prev,
       divisionId: division.id,
     }));
   };
+
   const handleChangeSubCategory = (sub: any) => {
     setSelectedSubcategory(sub);
     setData((prev) => ({
@@ -155,6 +171,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       divisionId: "",
     }));
   };
+
   const handleViewItems = () => {
     if (!data.subcategoryId) {
       Toast.show({
@@ -164,12 +181,15 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       });
       return;
     }
+
     onClose();
+
     // Navigate to product listing with params
     const divisionTypes = selectedSubcategory?.division_type || [];
     const selectedDivision = data.divisionId
       ? divisionTypes.find((d: any) => d.id === data.divisionId)
       : null;
+
     router.push({
       pathname: "/products" as any,
       params: {
@@ -180,6 +200,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       },
     });
   };
+
   return (
     <Modal
       visible={open}
@@ -200,7 +221,6 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
         <Animated.View
           className="rounded-t-[25px] w-full overflow-hidden"
           style={{
-            backgroundColor: colors.bg_white,
             maxHeight: '75%',
             zIndex: 10001,
             marginBottom: 0,
@@ -209,6 +229,18 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
           }}
           {...panResponder.panHandlers}
         >
+          {/* Gradient Background */}
+          <LinearGradient
+            colors={[
+              colors.main_bg_gradient_start,
+              colors.main_bg_gradient_middle,
+              colors.main_bg_gradient_end,
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+
           {/* Drag Handle */}
           <View className="pt-3 pb-2 items-center">
             <View
@@ -220,6 +252,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
               }}
             />
           </View>
+
           {/* Header */}
           <View
             className="px-6 pb-6 border-b items-center"
@@ -234,6 +267,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
               {categoryName || category?.name || "Category"}
             </Text>
           </View>
+
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ flexGrow: 0 }}
@@ -252,7 +286,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
             ) : subcategories.length > 0 ? (
               <>
                 {/* Subcategories Section - Top */}
-                <View className="p-4 pb-3" style={{ backgroundColor: colors.bg_white }}>
+                <View className="p-4 pb-3">
                   <Text
                     className="text-base font-bold mb-4"
                     style={{ color: colors.text_primary }}
@@ -268,11 +302,11 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                         style={{
                           backgroundColor:
                             selectedSubcategory?.id === sub.id
-                              ? colors.primary
-                              : colors.bg_white,
+                              ? colors.bg_black
+                              : 'transparent',
                           borderColor:
                             selectedSubcategory?.id === sub.id
-                              ? colors.primary
+                              ? colors.bg_black
                               : colors.border_primary,
                         }}
                       >
@@ -291,15 +325,16 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                     ))}
                   </View>
                 </View>
+
                 {/* Divider */}
                 <View
                   className="h-px w-full"
                   style={{ backgroundColor: colors.border_primary }}
                 />
+
                 {/* Type/Division Section - Bottom */}
                 <View
                   className="p-4 pt-3"
-                  style={{ backgroundColor: colors.bg_white }}
                 >
                   <Text
                     className="text-base font-bold mb-4"
@@ -317,11 +352,11 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                           style={{
                             backgroundColor:
                               data.divisionId === d.id
-                                ? colors.primary
-                                : colors.bg_white,
+                                ? colors.bg_black
+                                : 'transparent',
                             borderColor:
                               data.divisionId === d.id
-                                ? colors.primary
+                                ? colors.bg_black
                                 : colors.border_primary,
                           }}
                         >
@@ -355,21 +390,22 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
               </View>
             )}
           </ScrollView>
+
           <View
             className="p-4 border-t shadow-lg"
             style={{
               borderColor: colors.border_primary,
-              backgroundColor: colors.bg_white,
+              backgroundColor: 'transparent', // Transparent to show gradient
             }}
           >
             <TouchableOpacity
               className="items-center justify-center py-4 rounded-xl shadow-md"
-              style={{ backgroundColor: colors.primary }}
+              style={{ backgroundColor: colors.bg_black }}
               onPress={handleViewItems}
             >
               <Text
                 className="font-bold text-base tracking-wide"
-                style={{ color: colors.text_light }}
+                style={{ color: colors.text_white }}
               >
                 VIEW ITEMS
               </Text>
@@ -380,4 +416,5 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
     </Modal>
   );
 };
+
 export default ClassifiedShowCard;

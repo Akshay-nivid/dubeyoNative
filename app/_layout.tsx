@@ -1,3 +1,4 @@
+import ThemedBackground from "@/src/components/ThemedBackground";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "react-native";
 import "react-native-css-interop/jsx-runtime";
@@ -25,18 +26,26 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar backgroundColor="white" barStyle="dark-content" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="home" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="search-drag"
-          options={{
-            presentation: 'modal',
-            animation: 'slide_from_bottom',
+      <StatusBar backgroundColor="transparent" barStyle="dark-content" translucent />
+      <ThemedBackground style={{ flex: 1 }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: 'transparent' },
+            animation: 'slide_from_right',
           }}
-        />
-      </Stack>
+        >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="home" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="search-drag"
+            options={{
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+        </Stack>
+      </ThemedBackground>
       <Toast
         position="top"
         topOffset={60}

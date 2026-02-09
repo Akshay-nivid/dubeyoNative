@@ -1,3 +1,4 @@
+import ThemedBackground from "@/src/components/ThemedBackground";
 import { Api, fetchProductImages } from "@/src/screens/home/Api";
 import { get } from "@/src/services/api";
 import { colors } from "@/theme";
@@ -65,34 +66,42 @@ const ProductCard: React.FC<ProductCardProps> = ({
       </View>
 
       {/* Product Details - Right Side */}
-      <View className="flex-1 p-3 justify-center relative">
-        {/* Edit Icon - Top Right */}
-        {onEdit && (
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-            className="absolute top-2 right-2 p-1"
-            activeOpacity={0.7}
-          >
-            <Ionicons name="create-outline" size={20} color={colors.text_primary} />
-          </TouchableOpacity>
-        )}
-        <Text
-          className={`text-base font-semibold text-text_primary mb-1 ${onEdit ? "pr-8" : ""}`}
-          numberOfLines={2}
-        >
-          {productTitle}
-        </Text>
-        <Text className="text-lg font-bold text-primary mt-1">
-          {productPrice
-            ? `AED ${productPrice.toLocaleString("en-US", {
+      <View className="flex-1 p-3 justify-between">
+        <View className="flex-1">
+          <View className="flex-row justify-between items-start">
+            <Text
+              className="text-[15px] font-medium text-text_primary leading-5 mb-2 flex-1 mr-2"
+              numberOfLines={2}
+            >
+              {productTitle}
+            </Text>
+            {/* Edit Icon - Top Right */}
+            {onEdit && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                className="p-1"
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={20} color={colors.text_primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+        </View>
+
+        <View className="flex-row items-baseline gap-1.5">
+          <Text className="text-lg font-bold text-primary">
+            {productPrice
+              ? `AED ${productPrice.toLocaleString("en-US", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}`
-            : "Price on request"}
-        </Text>
+              : "Price on request"}
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -167,8 +176,8 @@ export default function MyAds() {
         error?.response?.status === 404
           ? "API endpoint not found. Please check backend routing."
           : error?.response?.data?.message ||
-            error?.message ||
-            "Failed to load your ads";
+          error?.message ||
+          "Failed to load your ads";
 
       Toast.show({
         type: "error",
@@ -275,129 +284,129 @@ export default function MyAds() {
 
   if (loading && products.length === 0) {
     return (
-      <SafeAreaView className="flex-1 bg-bg_primary">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text className="mt-3 text-text_tertiary">Loading your ads...</Text>
-        </View>
-      </SafeAreaView>
+      <ThemedBackground>
+        <SafeAreaView className="flex-1" edges={["top"]}>
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text className="mt-3 text-text_tertiary">Loading your ads...</Text>
+          </View>
+        </SafeAreaView>
+      </ThemedBackground>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-bg_primary">
-      {/* Header */}
-      <View className="flex-row items-center px-4 py-4 bg-bg_white border-b border-border_primary">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="mr-8"
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text_primary} />
-        </TouchableOpacity>
-        <Text className="text-xl font-bold text-text_primary flex-1 text-center">
-          My Ads
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.push("/postAd" as any)}
-          className="w-7 h-7 rounded-full bg-primary justify-center items-center ml-8"
-          activeOpacity={0.7}
-        >
-          <Ionicons name="add" size={18} color={colors.text_white} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Filter Buttons */}
-      <View className="flex-row px-4 py-3 bg-bg_primary gap-2">
-        <TouchableOpacity
-          onPress={() => handleFilterChange("active")}
-          className={`flex-1 py-2.5 px-4 rounded-lg items-center ${
-            activeFilter === "active" ? "bg-primary" : "bg-bg_white"
-          }`}
-          activeOpacity={0.7}
-        >
-          <Text
-            className={`text-sm font-semibold ${
-              activeFilter === "active" ? "text-text_white" : "text-text_primary"
-            }`}
+    <ThemedBackground>
+      <SafeAreaView className="flex-1" edges={["top"]}>
+        {/* Header */}
+        <View className="px-5 py-4 flex-row items-center border-b border-white/50 bg-white/50 backdrop-blur-md">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-10 h-10 items-center justify-center bg-white rounded-full shadow-sm"
+            activeOpacity={0.7}
           >
-            Active
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => handleFilterChange("draft")}
-          className={`flex-1 py-2.5 px-4 rounded-lg items-center ${
-            activeFilter === "draft" ? "bg-primary" : "bg-bg_white"
-          }`}
-          activeOpacity={0.7}
-        >
-          <Text
-            className={`text-sm font-semibold ${
-              activeFilter === "draft" ? "text-text_white" : "text-text_primary"
-            }`}
-          >
-            Draft
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {products.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Ionicons
-            name="list-outline"
-            size={64}
-            color={colors.text_tertiary}
-          />
-          <Text className="text-lg font-semibold text-text_primary mt-4 mb-2">
-            No ads yet
-          </Text>
-          <Text className="text-sm text-text_tertiary text-center mb-6">
-            You haven't posted any ads yet. Start by creating your first ad!
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text className="text-xl font-black flex-1 text-center text-gray-900">
+            My Ads
           </Text>
           <TouchableOpacity
             onPress={() => router.push("/postAd" as any)}
-            className="bg-primary px-6 py-3 rounded-lg"
-            activeOpacity={0.8}
+            className="w-10 h-10 rounded-full bg-primary justify-center items-center shadow-sm"
+            activeOpacity={0.7}
           >
-            <Text className="text-text_white font-semibold text-base">
-              Post an Ad
+            <Ionicons name="add" size={24} color={colors.text_white} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Filter Buttons */}
+        <View className="flex-row px-4 py-3 gap-2">
+          <TouchableOpacity
+            onPress={() => handleFilterChange("active")}
+            className={`flex-1 py-2.5 px-4 rounded-lg items-center ${activeFilter === "active" ? "bg-primary" : "bg-bg_white"
+              }`}
+            activeOpacity={0.7}
+          >
+            <Text
+              className={`text-sm font-semibold ${activeFilter === "active" ? "text-text_white" : "text-text_primary"
+                }`}
+            >
+              Active
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleFilterChange("draft")}
+            className={`flex-1 py-2.5 px-4 rounded-lg items-center ${activeFilter === "draft" ? "bg-primary" : "bg-bg_white"
+              }`}
+            activeOpacity={0.7}
+          >
+            <Text
+              className={`text-sm font-semibold ${activeFilter === "draft" ? "text-text_white" : "text-text_primary"
+                }`}
+            >
+              Draft
             </Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <FlatList
-          data={products}
-          keyExtractor={(item, index) =>
-            String(item.id || item.product_id || item._id || index)
-          }
-          renderItem={({ item }) => {
-            const productId = item.id || item.product_id || item._id;
-            const imageUrl =
-              signedImages[productId] ||
-              item.image ||
-              (Array.isArray(item.images) && item.images[0]?.url) ||
-              (Array.isArray(item.images) && item.images[0]) ||
-              "";
-            return (
-              <ProductCard
-                item={item}
-                imageUrl={imageUrl}
-                onPress={() => handleProductPress(item)}
-                onEdit={() => handleEditPress(item)}
-              />
-            );
-          }}
-          contentContainerStyle={{ paddingVertical: 16 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListEmptyComponent={
-            <View className="flex-1 items-center justify-center py-20">
-              <Text className="text-text_tertiary">No products found</Text>
-            </View>
-          }
-        />
-      )}
-    </SafeAreaView>
+
+        {products.length === 0 ? (
+          <View className="flex-1 items-center justify-center px-6">
+            <Ionicons
+              name="list-outline"
+              size={64}
+              color={colors.text_tertiary}
+            />
+            <Text className="text-lg font-semibold text-text_primary mt-4 mb-2">
+              No ads yet
+            </Text>
+            <Text className="text-sm text-text_tertiary text-center mb-6">
+              You haven't posted any ads yet. Start by creating your first ad!
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push("/postAd" as any)}
+              className="bg-primary px-6 py-3 rounded-lg"
+              activeOpacity={0.8}
+            >
+              <Text className="text-text_white font-semibold text-base">
+                Post an Ad
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={products}
+            keyExtractor={(item, index) =>
+              String(item.id || item.product_id || item._id || index)
+            }
+            renderItem={({ item }) => {
+              const productId = item.id || item.product_id || item._id;
+              const imageUrl =
+                signedImages[productId] ||
+                item.image ||
+                (Array.isArray(item.images) && item.images[0]?.url) ||
+                (Array.isArray(item.images) && item.images[0]) ||
+                "";
+              return (
+                <ProductCard
+                  item={item}
+                  imageUrl={imageUrl}
+                  onPress={() => handleProductPress(item)}
+                  onEdit={() => handleEditPress(item)}
+                />
+              );
+            }}
+            contentContainerStyle={{ paddingVertical: 16 }}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            ListEmptyComponent={
+              <View className="flex-1 items-center justify-center py-20">
+                <Text className="text-text_tertiary">No products found</Text>
+              </View>
+            }
+          />
+        )}
+      </SafeAreaView>
+    </ThemedBackground>
   );
 }

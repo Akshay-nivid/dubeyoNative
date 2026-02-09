@@ -1,3 +1,4 @@
+import LocationPicker from "@/src/components/LocationPicker";
 import { get, post } from "@/src/services/api";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -11,7 +12,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -25,10 +26,129 @@ const GENERATION_STEPS = {
     DONE: 3,
 };
 
+const AISuggestedTag = () => (
+    <View className="flex-row items-center self-start px-2.5 py-1 rounded-full border border-purple-200 mb-3 bg-purple-50/50">
+        <Text className="text-yellow-500 mr-1.5 text-xs">✨</Text>
+        <Text className="text-purple-600 font-bold text-[10px] tracking-wider uppercase">AI Suggested</Text>
+    </View>
+);
+
+const Skeleton = ({ className = "", style = {} }: any) => {
+    const animatedValue = React.useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(animatedValue, {
+                    toValue: 1,
+                    duration: 800,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(animatedValue, {
+                    toValue: 0,
+                    duration: 800,
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, []);
+
+    const opacity = animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.4, 0.8],
+    });
+
+    return (
+        <Animated.View style={[{ opacity }, style]} className={`overflow-hidden ${className}`}>
+            <LinearGradient
+                colors={['#f7e2fbff', '#d8ecf9ff', '#d7d1f3ff']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ flex: 1 }}
+            />
+        </Animated.View>
+    );
+};
+
+const EditableRow = ({ label, value, onChange, placeholder, type = "default" }: any) => (
+    <View className="mb-4">
+        <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">{label}</Text>
+        <View className="bg-white border border-gray-100 rounded-2xl px-4 h-12 justify-center shadow-sm shadow-gray-100">
+            <TextInput
+                value={value?.toString()}
+                onChangeText={onChange}
+                placeholder={placeholder}
+                placeholderTextColor="#9CA3AF"
+                keyboardType={type === "number" ? "numeric" : "default"}
+                className="text-gray-900 text-sm font-medium"
+            />
+        </View>
+    </View>
+);
+
+const SelectRow = ({ label, value, options, onSelect, isLoading = false }: any) => {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <View className="mb-4">
+            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">{label}</Text>
+            <TouchableOpacity
+                onPress={() => {
+                    if (isLoading) return;
+
+                    setOpen(!open);
+                }}
+                disabled={isLoading}
+                className={`bg-white border border-gray-100 rounded-2xl px-4 h-12 shadow-sm shadow-gray-100 flex-row justify-between items-center ${isLoading ? 'opacity-50' : ''}`}
+            >
+                <Text className={`text-sm font-medium ${value ? 'text-gray-900' : 'text-gray-400'}`}>
+                    {isLoading ? 'Loading...' : (value || `Select ${label}`)}
+                </Text>
+                <View className="flex-row items-center">
+                    {isLoading && <ActivityIndicator size="small" color="#A855F7" className="mr-2" />}
+                    {!isLoading && options?.length > 0 && null}
+                    <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color="#9CA3AF" />
+                </View>
+            </TouchableOpacity>
+            {open && options?.length > 0 && (
+                <View className="mt-2 bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-xl shadow-black/5 max-h-64">
+                    <ScrollView nestedScrollEnabled>
+                        {options.map((opt: any) => (
+                            <TouchableOpacity
+                                key={opt.id || opt._id || opt.value}
+                                onPress={() => {
+
+                                    onSelect(opt);
+                                    setOpen(false);
+                                }}
+                                className="px-4 py-3 border-b border-gray-50 active:bg-gray-50"
+                            >
+                                <Text className="text-sm text-gray-700">{opt.name || opt.label}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
+            {open && (!options || options.length === 0) && (
+                <View className="mt-2 bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                    <Text className="text-gray-400 text-sm text-center italic">No options available</Text>
+                </View>
+            )}
+        </View>
+    );
+};
+
 const PostAdDetails = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const { coordinates, useCurrentLocation } = useUserLocation();
+    const {
+        coordinates,
+        place,
+        updateLocation,
+        useCurrentLocation,
+        getPlaceName,
+        getCoordinatesFromName
+    } = useUserLocation();
 
     // From params
     const initialDescription = params.description as string;
@@ -63,6 +183,9 @@ const PostAdDetails = () => {
     // Division fallback state
     const [divisions, setDivisions] = useState<any[]>([]);
     const [isLoadingDivisions, setIsLoadingDivisions] = useState(false);
+
+    // Location Picker State
+    const [locationPickerVisible, setLocationPickerVisible] = useState(false);
 
     const normalizeFieldKey = (field: string) =>
         field
@@ -163,11 +286,19 @@ const PostAdDetails = () => {
 
         if (!specs || typeof specs !== 'object') return {};
 
+        // Helper to check for valid value
+        const isValid = (val: any) => {
+            if (val === null || val === undefined || val === '') return false;
+            // Check for string "null"
+            if (typeof val === 'string' && val.toLowerCase() === 'null') return false;
+            return true;
+        };
+
         // Handle array format (if backend sends array)
         if (Array.isArray(specs)) {
             const normalized = Object.fromEntries(
                 specs
-                    .filter((s: any) => s.value !== null && s.value !== undefined && s.value !== '')
+                    .filter((s: any) => isValid(s.value))
                     .map((s: any) => [s.key || s.name || s.field || s.label, s.value])
             );
 
@@ -185,11 +316,11 @@ const PostAdDetails = () => {
                     // If spec is an object with a value property, check if value is valid
                     if (typeof spec === 'object' && 'value' in spec) {
                         const val = (spec as any).value;
-                        return val !== null && val !== undefined && val !== '';
+                        return isValid(val);
                     }
 
                     // If spec is a primitive value, check if it's valid
-                    return spec !== null && spec !== undefined && spec !== '';
+                    return isValid(spec);
                 })
                 .map(([key, spec]) => {
                     // Extract the actual value
@@ -360,8 +491,11 @@ const PostAdDetails = () => {
             const finalPayload = res.data ?? res;
 
             // Extract questions from various possible locations
-            const questionsData = finalPayload.questions || finalPayload.dynamicQuestions || finalPayload.additionalQuestions || [];
-
+           const questionsData = [
+                ...(finalPayload.questions || []),
+                ...(finalPayload.dynamicQuestions || []),
+                ...(finalPayload.additionalQuestions || [])
+            ];
             if (questionsData && questionsData.length > 0) {
                 setQuestions(questionsData);
             }
@@ -521,49 +655,7 @@ const PostAdDetails = () => {
     };
 
     /* ---------------- RENDER HELPERS ---------------- */
-    const AISuggestedTag = () => (
-        <View className="flex-row items-center self-start px-2.5 py-1 rounded-full border border-purple-200 mb-3 bg-purple-50/50">
-            <Text className="text-yellow-500 mr-1.5 text-xs">✨</Text>
-            <Text className="text-purple-600 font-bold text-[10px] tracking-wider uppercase">AI Suggested</Text>
-        </View>
-    );
 
-    const Skeleton = ({ className = "", style = {} }: any) => {
-        const animatedValue = React.useRef(new Animated.Value(0)).current;
-
-        useEffect(() => {
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(animatedValue, {
-                        toValue: 1,
-                        duration: 800,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(animatedValue, {
-                        toValue: 0,
-                        duration: 800,
-                        useNativeDriver: true,
-                    }),
-                ])
-            ).start();
-        }, []);
-
-        const opacity = animatedValue.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.4, 0.8],
-        });
-
-        return (
-            <Animated.View style={[{ opacity }, style]} className={`overflow-hidden ${className}`}>
-                <LinearGradient
-                    colors={['#f7e2fbff', '#d8ecf9ff', '#d7d1f3ff']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{ flex: 1 }}
-                />
-            </Animated.View>
-        );
-    };
 
     const ImagePreviewCard = () => {
         const isLoading = generationStep === GENERATION_STEPS.PREVIEW;
@@ -605,73 +697,7 @@ const PostAdDetails = () => {
         );
     };
 
-    const EditableRow = ({ label, value, onChange, placeholder, type = "default" }: any) => (
-        <View className="mb-4">
-            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">{label}</Text>
-            <View className="bg-white border border-gray-100 rounded-2xl px-4 h-12 justify-center shadow-sm shadow-gray-100">
-                <TextInput
-                    value={value?.toString()}
-                    onChangeText={onChange}
-                    placeholder={placeholder}
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType={type === "number" ? "numeric" : "default"}
-                    className="text-gray-900 text-sm font-medium"
-                />
-            </View>
-        </View>
-    );
 
-    const SelectRow = ({ label, value, options, onSelect, isLoading = false }: any) => {
-        const [open, setOpen] = useState(false);
-
-        return (
-            <View className="mb-4">
-                <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">{label}</Text>
-                <TouchableOpacity
-                    onPress={() => {
-                        if (isLoading) return;
-
-                        setOpen(!open);
-                    }}
-                    disabled={isLoading}
-                    className={`bg-white border border-gray-100 rounded-2xl px-4 h-12 shadow-sm shadow-gray-100 flex-row justify-between items-center ${isLoading ? 'opacity-50' : ''}`}
-                >
-                    <Text className={`text-sm font-medium ${value ? 'text-gray-900' : 'text-gray-400'}`}>
-                        {isLoading ? 'Loading...' : (value || `Select ${label}`)}
-                    </Text>
-                    <View className="flex-row items-center">
-                        {isLoading && <ActivityIndicator size="small" color="#A855F7" className="mr-2" />}
-                        {!isLoading && options?.length > 0 && null}
-                        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color="#9CA3AF" />
-                    </View>
-                </TouchableOpacity>
-                {open && options?.length > 0 && (
-                    <View className="mt-2 bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-xl shadow-black/5 max-h-64">
-                        <ScrollView nestedScrollEnabled>
-                            {options.map((opt: any) => (
-                                <TouchableOpacity
-                                    key={opt.id || opt._id || opt.value}
-                                    onPress={() => {
-
-                                        onSelect(opt);
-                                        setOpen(false);
-                                    }}
-                                    className="px-4 py-3 border-b border-gray-50 active:bg-gray-50"
-                                >
-                                    <Text className="text-sm text-gray-700">{opt.name || opt.label}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </View>
-                )}
-                {open && (!options || options.length === 0) && (
-                    <View className="mt-2 bg-gray-50 border border-gray-100 rounded-2xl p-4">
-                        <Text className="text-gray-400 text-sm text-center italic">No options available</Text>
-                    </View>
-                )}
-            </View>
-        );
-    };
 
     return (
         <SafeAreaView className="flex-1" edges={['top']}>
@@ -733,6 +759,8 @@ const PostAdDetails = () => {
                         )}
                     </View>
 
+                   
+
                     {/* Specs */}
                     {generationStep >= GENERATION_STEPS.BASIC_FORM && (generationStep < GENERATION_STEPS.SPECS_FORM || hasValidSpecs || !data.division || !!data.division) && (
                         <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
@@ -755,19 +783,26 @@ const PostAdDetails = () => {
                                         </View>
                                     )}
 
-                                    {Object.entries(data.specs || {})
-                                        .filter(([_, v]) => v !== null && v !== "")
-                                        .map(([key, value]) => (
-                                            <View key={key} className="mb-4">
-                                                <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1 capitalize">{key}</Text>
-                                                <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-0.5">
-                                                    <TextInput
-                                                        value={value?.toString()}
-                                                        onChangeText={(v) => setData({ ...data, specs: { ...data.specs, [key]: v } })}
-                                                        className="text-gray-900 text-sm font-medium"
-                                                    />
-                                                </View>
-                                            </View>
+                                    {/* Specs List */}
+                                    {data.specs && Object.entries(data.specs as Record<string, any>)
+                                        .filter(([_, val]) => {
+                                            // Stricter check: non-null, defined, not empty string, not string "null"
+                                            if (val === null || val === undefined) return false;
+                                            const strVal = String(val).trim().toLowerCase();
+                                            return strVal !== '' && strVal !== 'null' && strVal !== 'undefined';
+                                        })
+                                        .map(([key, val]) => (
+                                            <EditableRow
+                                                key={key}
+                                                label={key.replace(/_/g, " ")}
+                                                value={val}
+                                                onChange={(text: string) =>
+                                                    setData((prev: any) => ({
+                                                        ...prev,
+                                                        specs: { ...prev.specs, [key]: text },
+                                                    }))
+                                                }
+                                            />
                                         ))}
 
                                     {/* Division Fallback (Dropdown) */}
@@ -788,7 +823,7 @@ const PostAdDetails = () => {
                     )}
 
                     {/* Questions */}
-                    {generationStep >= GENERATION_STEPS.SPECS_FORM && (
+                     {(generationStep < GENERATION_STEPS.DONE || questions.length > 0) && generationStep >= GENERATION_STEPS.SPECS_FORM && (
                         <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
                             <AISuggestedTag />
                             <Text className="text-xl font-bold text-gray-900 mb-5">Helpful Details</Text>
@@ -798,43 +833,54 @@ const PostAdDetails = () => {
                                     <Skeleton className="h-20 w-full rounded-xl mb-3" />
                                 </>
                             ) : (
-                                questions.length > 0 ? questions.map((q, idx) => {
+                                questions.map((q, idx) => {
                                     const fieldKey = q.key || q.slug || normalizeFieldKey(q.field || q.label || "question");
                                     return (
                                         <View key={idx} className="mb-6">
                                             <Text className="text-gray-800 text-sm font-bold mb-3 ml-1">{q.question || q.label || q.field}</Text>
                                             <View className="flex-row flex-wrap gap-2">
-                                                {(q.options || []).map((opt: string) => (
-                                                    <TouchableOpacity
-                                                        key={opt}
-                                                        onPress={() => setQuestionAnswers({ ...questionAnswers, [fieldKey]: opt })}
-                                                        style={{
-                                                            paddingHorizontal: 16,
-                                                            paddingVertical: 10,
-                                                            borderRadius: 16,
-                                                            borderWidth: 1,
-                                                            borderColor: questionAnswers[fieldKey] === opt ? '#000' : '#f3f4f6', // gray-100
-                                                            backgroundColor: questionAnswers[fieldKey] === opt ? '#000' : '#fff',
-                                                            shadowColor: "#000",
-                                                            shadowOffset: { width: 0, height: 2 },
-                                                            shadowOpacity: questionAnswers[fieldKey] === opt ? 0.2 : 0,
-                                                            shadowRadius: 4,
-                                                            elevation: questionAnswers[fieldKey] === opt ? 4 : 0
-                                                        }}
-                                                    >
-                                                        <Text style={{
-                                                            fontSize: 12,
-                                                            fontWeight: questionAnswers[fieldKey] === opt ? '700' : '400',
-                                                            color: questionAnswers[fieldKey] === opt ? '#fff' : '#4b5563' // gray-600
-                                                        }}>{opt}</Text>
-                                                    </TouchableOpacity>
-                                                ))}
+                                                {(q.options || []).map((opt: string) => {
+                                                    const isSelected = questionAnswers[fieldKey] === opt;
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={opt}
+                                                            onPress={() => {
+                                                                setQuestionAnswers((prev: any) => {
+                                                                    const newState = { ...prev };
+                                                                    if (isSelected) {
+                                                                        delete newState[fieldKey]; // Unselect if already selected
+                                                                    } else {
+                                                                        newState[fieldKey] = opt; // Select if not selected
+                                                                    }
+                                                                    return newState;
+                                                                });
+                                                            }}
+                                                            style={{
+                                                                paddingHorizontal: 16,
+                                                                paddingVertical: 10,
+                                                                borderRadius: 16,
+                                                                borderWidth: 1,
+                                                                borderColor: isSelected ? '#000' : '#f3f4f6', // gray-100
+                                                                backgroundColor: isSelected ? '#000' : '#fff',
+                                                                shadowColor: "#000",
+                                                                shadowOffset: { width: 0, height: 2 },
+                                                                shadowOpacity: isSelected ? 0.2 : 0,
+                                                                shadowRadius: 4,
+                                                                elevation: isSelected ? 4 : 0
+                                                            }}
+                                                        >
+                                                            <Text style={{
+                                                                fontSize: 12,
+                                                                fontWeight: isSelected ? '700' : '400',
+                                                                color: isSelected ? '#fff' : '#4b5563' // gray-600
+                                                            }}>{opt}</Text>
+                                                        </TouchableOpacity>
+                                                    );
+                                                })}
                                             </View>
                                         </View>
                                     );
-                                }) : (
-                                    <Text className="text-gray-400 italic text-sm text-center py-4">All set! No extra details needed.</Text>
-                                )
+                                })
                             )}
                         </View>
                     )}
@@ -866,7 +912,26 @@ const PostAdDetails = () => {
                                     <Text className="text-gray-700 font-bold text-sm">Allow Price Negotiation</Text>
                                 </TouchableOpacity>
                             </View>
+                         {/* Location Section */}
+                    <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
+                        <Text className="text-xl font-bold text-gray-900 mb-5">Location</Text>
 
+                        <View className="mb-4">
+                            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">Current Location</Text>
+                            <TouchableOpacity
+                                onPress={() => setLocationPickerVisible(true)}
+                                className="bg-white border border-gray-100 rounded-2xl px-4 h-12 flex-row justify-between items-center shadow-sm shadow-gray-100"
+                            >
+                                <View className="flex-row items-center flex-1 mr-2">
+                                    <Ionicons name="location-sharp" size={18} color="#A855F7" />
+                                    <Text numberOfLines={1} className="text-gray-900 text-sm font-medium ml-2 flex-1">
+                                        {place || "Select Location"}
+                                    </Text>
+                                </View>
+                                <Text className="text-purple-600 text-xs font-bold">Change</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                             {/* Description */}
                             <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-10">
                                 <AISuggestedTag />
@@ -909,6 +974,20 @@ const PostAdDetails = () => {
                     )}
                 </ScrollView>
             </LinearGradient>
+
+            {/* Location Picker Modal */}
+            <LocationPicker
+                visible={locationPickerVisible}
+                onClose={() => setLocationPickerVisible(false)}
+                currentLocation={{
+                    coordinates: { lat: coordinates?.lat || 0, lon: coordinates?.lon || 0 },
+                    place: place || "Your location",
+                }}
+                onSelectLocation={updateLocation}
+                onUseCurrentLocation={useCurrentLocation}
+                getPlaceName={getPlaceName}
+                getCoordinatesFromName={getCoordinatesFromName}
+            />
         </SafeAreaView >
     );
 };

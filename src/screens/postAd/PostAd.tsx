@@ -1,5 +1,5 @@
-import { post } from "@/src/services/api";
 import { Ionicons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -12,7 +12,6 @@ import GradientText from "../../components/GradientText";
 import { useUserLocation } from "../../hooks/useUserLocation";
 import { fetchProfile } from "../../screens/home/Api"; // Import from Home API
 import { getToken } from "../../services/storage/tokenStorage";
-import { PostAdApi } from "./Api";
 
 const PostAd = () => {
     const router = useRouter();
@@ -53,9 +52,11 @@ const PostAd = () => {
         checkGuest();
     }, [router]);
 
-    const MAX_SIZE = 10 * 1024 * 1024; // Updated to 10MB as per user request
+    const MAX_SIZE = 5 * 1024 * 1024; // Updated to 10MB as per user request
+    const [isPickerActive, setIsPickerActive] = useState(false);
 
     const pickImage = async () => {
+        if (isPickerActive) return;
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
             Alert.alert("Permission", "Permission to access camera roll is required!");
@@ -63,7 +64,6 @@ const PostAd = () => {
         }
 
         if (photos.length >= 4) {
-            setImageError("You can upload up to 4 images only");
             Toast.show({
                 type: 'error',
                 text1: 'Limit Reached',
@@ -72,37 +72,79 @@ const PostAd = () => {
             return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsMultipleSelection: true,
-            selectionLimit: 4 - photos.length,
-            quality: 1,
-        });
+        try {
+            setIsPickerActive(true);
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsMultipleSelection: true,
+                selectionLimit: 4 - photos.length,
+                quality: 1,
+            });
 
-        if (!result.canceled) {
-            const incoming = result.assets;
-            const validFiles: ImagePicker.ImagePickerAsset[] = [];
+            if (!result.canceled) {
+                const incoming = result.assets;
+                const validFiles: ImagePicker.ImagePickerAsset[] = [];
+                let rejectedCount = 0;
+                let rejectionReason = "";
 
-            for (const file of incoming) {
-                if (file.fileSize && file.fileSize > MAX_SIZE) {
+                for (const file of incoming) {
+                    let fileSize = file.fileSize;
+
+                    // Fallback to FileSystem if size is missing
+                    if (!fileSize) {
+                        try {
+                            const info = await FileSystem.getInfoAsync(file.uri);
+                            if (info.exists) {
+                                fileSize = info.size;
+                            }
+                        } catch (e) {
+                            console.warn("Failed to get file info", e);
+                        }
+                    }
+
+                    if (fileSize && fileSize > MAX_SIZE) {
+                        rejectedCount++;
+                        rejectionReason = "Size > 10MB";
+                        continue;
+                    }
+                    validFiles.push(file);
+                }
+
+                if (rejectedCount > 0) {
                     Toast.show({
                         type: 'error',
-                        text1: 'File too large',
-                        text2: `Image size is larger than 10MB`
+                        text1: 'Some images skipped',
+                        text2: `${rejectedCount} image(s) exceeded 10MB limit.`
                     });
-                    continue;
+                    setImageError(`${rejectedCount} image(s) were skipped because they exceed 10MB.`);
+                } else {
+                    setImageError("");
                 }
-                validFiles.push(file);
-            }
 
-            if (photos.length + validFiles.length > 4) {
-                setImageError("You can upload up to 4 images only");
-                const allowed = validFiles.slice(0, 4 - photos.length);
-                setPhotos((prev) => [...prev, ...allowed]);
-            } else {
-                setImageError("");
-                setPhotos((prev) => [...prev, ...validFiles]);
+                if (validFiles.length > 0) {
+                    setPhotos((prev) => {
+                        const newPhotos = [...prev, ...validFiles];
+                        if (newPhotos.length > 4) {
+                            Toast.show({
+                                type: 'error',
+                                text1: 'Limit Reached',
+                                text2: 'Only first 4 images were added.'
+                            });
+                            return newPhotos.slice(0, 4);
+                        }
+                        return newPhotos;
+                    });
+                }
             }
+        } catch (err) {
+            console.error("Image picker error", err);
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to pick images'
+            });
+        } finally {
+            setIsPickerActive(false);
         }
     };
 
@@ -110,50 +152,32 @@ const PostAd = () => {
         setPhotos((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const uploadImages = async (): Promise<string[]> => {
-        const uploadedUrls: string[] = [];
-        for (const photo of photos) {
-            const formData = new FormData();
-            const uri = photo.uri;
-            const fileName = uri.split('/').pop() || "image.jpg";
-            const fileType = fileName.split('.').pop() || "jpg";
 
-            // @ts-ignore
-            formData.append('image', {
-                uri,
-                name: fileName,
-                type: `image/${fileType}`
-            });
 
-            try {
-                const response = await post(PostAdApi.Image, formData, {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                });
+    const handleContinue = async () => {
+        if (photos.length < 1 || !description.trim()) return;
 
-                if (response.data?.url) {
-                    uploadedUrls.push(response.data.url);
-                } else if (typeof response.data === 'string') {
-                    uploadedUrls.push(response.data);
-                }
-            } catch (error) {
-                console.error("Failed to upload image:", uri, error);
-                throw new Error(`Failed to upload one or more images`);
-            }
-        }
-        return uploadedUrls;
-    };
+        try {
+            setLoading(true);
 
-    const handleContinue = () => {
-        if (photos.length >= 1 && description.trim().length > 0) {
+            // Pass local URIs directly to PostAdDetails
+            const imageUris = photos.map((p) => p.uri);
+
             router.push({
                 pathname: "/postAdDetails",
                 params: {
-                    description: description,
-                    images: JSON.stringify(photos.map(p => p.uri)),
-                }
+                    description,
+                    images: JSON.stringify(imageUris),
+                },
             });
+        } catch (err) {
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Something went wrong",
+            });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -170,7 +194,7 @@ const PostAd = () => {
                         <Ionicons name="add-circle-outline" size={32} color="#1e3a8a" />
                         <Text className="text-[#1e3a8a] font-semibold text-lg mt-2">Upload Image</Text>
                         <Text className="text-gray-400 text-xs mt-1">
-                            Max 4 images. JPG, PNG, JPEG. Max 10MB.
+                            Max 4 images. JPG, PNG, JPEG. Max 5MB.
                         </Text>
                     </TouchableOpacity>
                 ) : (
@@ -204,7 +228,7 @@ const PostAd = () => {
                             )}
                         </View>
                         <Text className="text-gray-400 text-xs mt-4 text-center">
-                            Max 4 images. JPG, PNG, JPEG. Max 10MB.
+                            Max 4 images. JPG, PNG, JPEG. Max 5MB.
                         </Text>
                     </View>
                 )}
@@ -235,10 +259,7 @@ const PostAd = () => {
 
                     <View className="ml-4">
                         <Text className="text-xl font-bold text-gray-900">Post ad</Text>
-                        <TouchableOpacity className="flex-row items-center">
-                            <Text className="text-gray-600 text-sm mr-1">{place || "Detecting location..."}</Text>
-                            <Ionicons name="caret-down-sharp" size={12} color="#000" />
-                        </TouchableOpacity>
+
                     </View>
                 </View>
 

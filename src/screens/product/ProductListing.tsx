@@ -182,6 +182,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress }) => {
 
 import FilterModal from "@/src/components/FilterModal";
 
+import ThemedBackground from "@/src/components/ThemedBackground"; // Added import
+
 const ProductListingScreen: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -638,130 +640,134 @@ const ProductListingScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-bg_primary"
-      edges={["top"]}
-    >
-      <View className="flex-row items-center justify-between px-4 py-3 bg-bg_white">
-        <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-          <Ionicons name="arrow-back" size={24} color={colors.text_primary} />
-        </Pressable>
-        <Text className="text-xl font-bold flex-1 text-center text-text_primary">
-          {typeof subcategoryName === "string" ? subcategoryName : "Products"}
-        </Text>
-        <View className="w-10" />
-      </View>
-
-      <View className="px-4 py-3 bg-bg_white flex-row items-center gap-3">
-        <View className="flex-1 flex-row items-center rounded-xl px-4 h-12 bg-bg_secondary border border-border_secondary">
-          <Ionicons name="search" size={20} color={colors.text_tertiary} />
-          <TextInput
-            className="flex-1 ml-3 text-base text-text_primary"
-            placeholder={`Search in ${(subcategoryName || "products").toLowerCase()}`}
-            placeholderTextColor={colors.text_tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-        <TouchableOpacity
-          onPress={() => setShowFilter(!showFilter)}
-          className="h-12 w-12 items-center justify-center rounded-xl bg-primary border border-primary"
-        >
-          <Ionicons name="options-outline" size={24} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Inline filters removed. FilterModal used instead. */}
-
-      <FilterModal
-        visible={showFilter}
-        onClose={() => setShowFilter(false)}
-        onApply={(division) => setSelectedDivisionType(division)}
-        onReset={() => setSelectedDivisionType(null)}
-        divisionTypes={divisionTypes}
-        selectedDivision={selectedDivisionType}
-      />
-
-      {loading && !refreshing ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text className="mt-4 text-base text-text_secondary">
-            Loading products...
-          </Text>
-        </View>
-      ) : error ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Ionicons
-            name="alert-circle-outline"
-            size={64}
-            color={colors.error}
-          />
-          <Text className="mt-4 text-lg font-semibold text-center text-text_primary">
-            {error}
-          </Text>
-          <Pressable
-            onPress={() => router.push("/home" as any)}
-            className="mt-6 px-6 py-3 rounded-xl bg-primary"
+    <ThemedBackground>
+      <SafeAreaView
+        className="flex-1"
+        edges={["top"]}
+      >
+        <View className="px-5 py-4 flex-row items-center border-b border-white/50 bg-white/50 backdrop-blur-md">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-10 h-10 items-center justify-center bg-white rounded-full shadow-sm"
           >
-            <Text className="text-base font-semibold text-text_white">
-              Go to Home
-            </Text>
-          </Pressable>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text className="text-xl font-black flex-1 text-center text-gray-900 mr-10">
+            {typeof subcategoryName === "string" ? subcategoryName : "Products"}
+          </Text>
         </View>
-      ) : products.length > 0 ? (
-        <FlatList
-          data={filteredProducts}
-          renderItem={renderProduct}
-          keyExtractor={(item) =>
-            String(item.product_id || item.id || Math.random())
-          }
-          contentContainerStyle={{
-            paddingVertical: 16,
-            flexGrow: 1,
-          }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
+
+        <View className="px-4 py-3 flex-row items-center gap-3">
+          <View className="flex-1 flex-row items-center rounded-xl px-4 h-12 bg-bg_secondary border border-border_secondary">
+            <Ionicons name="search" size={20} color={colors.text_tertiary} />
+            <TextInput
+              className="flex-1 ml-3 text-base text-text_primary"
+              placeholder={`Search in ${(subcategoryName || "products").toLowerCase()}`}
+              placeholderTextColor={colors.text_tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
-          }
-          ListEmptyComponent={
-            searchQuery.trim() ? (
-              <View className="py-10 items-center justify-center px-6">
-                <Ionicons name="search-outline" size={48} color={colors.text_tertiary} />
-                <Text className="mt-3 text-base text-center text-text_secondary">
-                  No results for "{searchQuery.trim()}"
-                </Text>
-              </View>
-            ) : null
-          }
-        />
-      ) : (
-        <View className="flex-1 justify-center items-center px-6 py-10">
-          <Ionicons
-            name="cube-outline"
-            size={64}
-            color={colors.text_tertiary}
-          />
-          <Text className="mt-4 text-lg font-semibold text-center text-text_primary">
-            No products found
-          </Text>
-          <Text className="mt-2 text-sm text-center text-text_tertiary">
-            No products found for this subcategory.
-          </Text>
-          <Pressable
-            onPress={() => router.push("/home" as any)}
-            className="mt-6 px-6 py-3 rounded-xl bg-primary"
+          </View>
+          <TouchableOpacity
+            onPress={() => setShowFilter(!showFilter)}
+            className="h-12 w-12 items-center justify-center rounded-xl bg-primary border border-primary"
           >
-            <Text className="text-base font-semibold text-text_white">
-              Go to Home
-            </Text>
-          </Pressable>
+            <Ionicons name="options-outline" size={24} color="white" />
+          </TouchableOpacity>
         </View>
-      )}
-    </SafeAreaView>
+
+        {/* Inline filters removed. FilterModal used instead. */}
+
+        <FilterModal
+          visible={showFilter}
+          onClose={() => setShowFilter(false)}
+          onApply={(division) => setSelectedDivisionType(division)}
+          onReset={() => setSelectedDivisionType(null)}
+          divisionTypes={divisionTypes}
+          selectedDivision={selectedDivisionType}
+        />
+
+        {loading && !refreshing ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text className="mt-4 text-base text-text_secondary">
+              Loading products...
+            </Text>
+          </View>
+        ) : error ? (
+          <View className="flex-1 items-center justify-center px-6">
+            <Ionicons
+              name="alert-circle-outline"
+              size={64}
+              color={colors.error}
+            />
+            <Text className="mt-4 text-lg font-semibold text-center text-text_primary">
+              {error}
+            </Text>
+            <Pressable
+              onPress={() => router.push("/home" as any)}
+              className="mt-6 px-6 py-3 rounded-xl bg-primary"
+            >
+              <Text className="text-base font-semibold text-text_white">
+                Go to Home
+              </Text>
+            </Pressable>
+          </View>
+        ) : products.length > 0 ? (
+          <FlatList
+            data={filteredProducts}
+            renderItem={renderProduct}
+            keyExtractor={(item) =>
+              String(item.product_id || item.id || Math.random())
+            }
+            contentContainerStyle={{
+              paddingVertical: 16,
+              flexGrow: 1,
+            }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.primary}
+              />
+            }
+            ListEmptyComponent={
+              searchQuery.trim() ? (
+                <View className="py-10 items-center justify-center px-6">
+                  <Ionicons name="search-outline" size={48} color={colors.text_tertiary} />
+                  <Text className="mt-3 text-base text-center text-text_secondary">
+                    No results for "{searchQuery.trim()}"
+                  </Text>
+                </View>
+              ) : null
+            }
+          />
+        ) : (
+          <View className="flex-1 justify-center items-center px-6 py-10">
+            <Ionicons
+              name="cube-outline"
+              size={64}
+              color={colors.text_tertiary}
+            />
+            <Text className="mt-4 text-lg font-semibold text-center text-text_primary">
+              No products found
+            </Text>
+            <Text className="mt-2 text-sm text-center text-text_tertiary">
+              No products found for this subcategory.
+            </Text>
+            <Pressable
+              onPress={() => router.push("/home" as any)}
+              className="mt-6 px-6 py-3 rounded-xl bg-primary"
+            >
+              <Text className="text-base font-semibold text-text_white">
+                Go to Home
+              </Text>
+            </Pressable>
+          </View>
+        )}
+      </SafeAreaView>
+    </ThemedBackground>
   );
 };
 
