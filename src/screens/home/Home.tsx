@@ -1,10 +1,10 @@
+import BottomNavigationBar from "@/src/components/BottomNavigationBar";
+import LocationPicker from "@/src/components/LocationPicker";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Animated, Platform, RefreshControl, StatusBar, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Defs, RadialGradient, Rect, Stop, Svg } from "react-native-svg";
-import BottomNavigationBar from "@/src/components/BottomNavigationBar";
-import LocationPicker from "@/src/components/LocationPicker";
 import CategoryList from "./CategoryList";
 import ClassifiedShowCard from "./ClassifiedShowCard";
 import Header from "./Header";
@@ -127,16 +127,19 @@ const HomeScreen = () => {
                     ? signedImages.nearest
                     : signedImages.trending
                 }
+                onSeeAll={() => router.push({ pathname: "/section/popular", params: { title: "Popular Near You" } } as any)}
               />
               <ProductSection
                 title="Suggested Items"
                 products={suggestedProducts}
                 images={signedImages.suggested}
+                onSeeAll={() => router.push({ pathname: "/section/suggested", params: { title: "Suggested Items" } } as any)}
               />
               <ProductSection
                 title="New Ads"
                 products={newAdsProducts}
                 images={signedImages.newads}
+                onSeeAll={() => router.push({ pathname: "/section/new", params: { title: "New Ads" } } as any)}
               />
               <View className="h-40" />
             </View>

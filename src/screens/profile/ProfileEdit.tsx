@@ -558,7 +558,7 @@ export default function ProfileEditScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 20 }}
             >
-                <View className="flex-row items-center px-4 pt-4 pb-6 bg-bg_white border-b border-border_primary">
+                <View className="flex-row items-center px-4 pt-14 pb-6 bg-bg_white border-b border-border_primary">
                     <TouchableOpacity
                         onPress={() => router.back()}
                         className="p-2 -ml-2"

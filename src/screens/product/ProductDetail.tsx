@@ -818,9 +818,9 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
               {address || "P.O. Box 39613, Dubai, UAE Emirates"}
             </Text>
             <Pressable>
-              <Text className="text-sm font-semibold text-primary">
+              {/* <Text className="text-sm font-semibold text-primary">
                 Edit
-              </Text>
+              </Text> */}
             </Pressable>
           </View>
           {(activeTab === 'location' || isLocationVisible) && (

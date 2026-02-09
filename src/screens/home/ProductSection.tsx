@@ -8,12 +8,14 @@ interface ProductSectionProps {
   title: string;
   products: any[];
   images: Record<string | number, string>;
+  onSeeAll?: () => void;
 }
 
 const ProductSection: React.FC<ProductSectionProps> = ({
   title,
   products,
   images,
+  onSeeAll,
 }) => {
   const router = useRouter();
 
@@ -23,7 +25,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
     <View className="mb-6">
       <View className="flex-row justify-between items-center px-4 mb-3">
         <Text className="text-lg font-bold" style={{ color: colors.text_primary }}>{title}</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onSeeAll}>
           <Text className="font-medium text-sm flex-row items-center" style={{ color: colors.text_primary }}>
             See all <Ionicons name="arrow-forward" size={14} color={colors.text_secondary} />
           </Text>

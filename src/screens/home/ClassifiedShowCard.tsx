@@ -1,6 +1,5 @@
 import { get, post } from "@/src/services/api";
 import { colors } from "@/theme";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -10,7 +9,6 @@ import {
   Modal,
   PanResponder,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View
@@ -225,21 +223,11 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
             zIndex: 10001,
             marginBottom: 0,
             paddingBottom: 0,
+            backgroundColor: 'white',
             transform: [{ translateY: panY }]
           }}
           {...panResponder.panHandlers}
         >
-          {/* Gradient Background */}
-          <LinearGradient
-            colors={[
-              colors.main_bg_gradient_start,
-              colors.main_bg_gradient_middle,
-              colors.main_bg_gradient_end,
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
 
           {/* Drag Handle */}
           <View className="pt-3 pb-2 items-center">
@@ -270,7 +258,8 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
 
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ flexGrow: 0 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            style={{ backgroundColor: '#FFFFFF' }}
           >
             {loading ? (
               <View className="py-12 justify-center items-center">
@@ -395,7 +384,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
             className="p-4 border-t shadow-lg"
             style={{
               borderColor: colors.border_primary,
-              backgroundColor: 'transparent', // Transparent to show gradient
+              backgroundColor: '#FFFFFF', // Changed to white
             }}
           >
             <TouchableOpacity
