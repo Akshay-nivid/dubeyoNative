@@ -451,13 +451,28 @@ const ProductListingScreen: React.FC = () => {
       }
     }
 
-    // DEBUG LOG
-    if (index === 0) console.log("RenderProduct P:", JSON.stringify(p.location, null, 2));
+    // Extract images array
+    const imagesArray = p.images && Array.isArray(p.images) && p.images.length > 0
+      ? p.images.map((img: any) => {
+          if (typeof img === 'string') return img;
+          if (img && typeof img === 'object') {
+            return img.url || img.image || img.src || null;
+          }
+          return null;
+        }).filter((img: string | null): img is string => img !== null)
+      : (img ? [img] : []);
+
+    // Extract specifications
+    const specs = p.specs || p.specifications || {};
+
+    // Extract features/tags
+    const features = p.features || p.tags || p.verificationBadges || [];
 
     const seller = sellerName
       ? {
         name: sellerName,
         profilePic: sellerProfilePic,
+        verified: p.seller?.verified || p.seller?.isVerified || false,
       }
       : undefined;
 
@@ -465,10 +480,13 @@ const ProductListingScreen: React.FC = () => {
       id: String(id),
       title: String(title),
       image: String(img),
+      images: imagesArray,
       price: String(price),
       status: typeof p.status === "string" ? p.status : "available",
       originalPrice,
       discountedPrice,
+      specs,
+      features,
       seller,
       location: p.location, // Pass location data
     };
@@ -477,6 +495,7 @@ const ProductListingScreen: React.FC = () => {
       <ProductCard
         item={productItem}
         onPress={() => router.push(`/product/${id}` as any)}
+        variant="vertical"
       />
     );
   };
@@ -562,7 +581,10 @@ const ProductListingScreen: React.FC = () => {
             keyExtractor={(item) =>
               String(item.product_id || item.id || Math.random())
             }
+            numColumns={2}
+            columnWrapperStyle={{ justifyContent: 'space-between' }}
             contentContainerStyle={{
+              paddingHorizontal: 16,
               paddingVertical: 16,
               flexGrow: 1,
             }}

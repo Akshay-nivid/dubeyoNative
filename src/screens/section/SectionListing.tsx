@@ -233,10 +233,22 @@ const SectionListingScreen = () => {
         const title = item.title || item.product_name || "Untitled";
         const price = item.price || item.product_price || "Price on request";
         const image = item.image || (item.images && item.images[0]) || null;
+        
+        // Extract images array
+        const imagesArray = item.images && Array.isArray(item.images) && item.images.length > 0
+            ? item.images
+            : (image ? [image] : []);
+
+        // Extract specifications
+        const specs = item.specs || item.specifications || {};
+
+        // Extract features/tags
+        const features = item.features || item.tags || item.verificationBadges || [];
 
         // Extract seller information
         let sellerName: string | undefined = sellerData[id]?.name;
         let sellerProfilePic: string | undefined = sellerData[id]?.profilePic;
+        let sellerVerified: boolean | undefined = item.seller?.verified || item.seller?.isVerified || false;
 
         if (!sellerName) {
 
@@ -260,6 +272,12 @@ const SectionListingScreen = () => {
                 } else if (typeof obj.avatar === "string" && obj.avatar.trim()) {
                     sellerProfilePic = obj.avatar.trim();
                 }
+
+                if (typeof obj.verified === "boolean") {
+                    sellerVerified = obj.verified;
+                } else if (typeof obj.isVerified === "boolean") {
+                    sellerVerified = obj.isVerified;
+                }
             };
 
             if (item.seller && typeof item.seller === 'object') {
@@ -277,14 +295,18 @@ const SectionListingScreen = () => {
 
         const sellerObj = sellerName ? {
             name: sellerName,
-            profilePic: sellerProfilePic
+            profilePic: sellerProfilePic,
+            verified: sellerVerified
         } : undefined;
 
         const productItem = {
             id,
             title,
             image,
+            images: imagesArray,
             price: typeof price === 'number' ? `AED ${price}` : price, // Simple formatting
+            specs,
+            features,
             seller: sellerObj,
             location: item.location
         };
@@ -315,7 +337,7 @@ const SectionListingScreen = () => {
 
             {/* Search & Filter Bar */}
             <View className="px-4 py-3 flex-row items-center gap-3">
-                <View className="flex-1 flex-row items-center rounded-xl px-4 h-12 bg-bg_secondary border border-border_secondary">
+                <View className="flex-1 flex-row items-center rounded-full px-4 h-12 bg-white">
                     <Ionicons name="search" size={20} color={colors.text_tertiary} />
                     <TextInput
                         className="flex-1 ml-3 text-base text-text_primary"
@@ -325,7 +347,16 @@ const SectionListingScreen = () => {
                         onChangeText={setSearchQuery}
                     />
                 </View>
-                {/* Optional: Filter button logic could be added here if needed */}
+                <TouchableOpacity
+                    className="w-12 h-12 rounded-2xl items-center justify-center"
+                    style={{ backgroundColor: colors.primary }}
+                    onPress={() => {
+                        // Filter button action - can be implemented later
+                        console.log("Filter pressed");
+                    }}
+                >
+                    <Ionicons name="options" size={24} color="#ffffff" />
+                </TouchableOpacity>
             </View>
 
             {/* Content */}
