@@ -16,12 +16,30 @@ import {
     View,
 } from "react-native";
 import Toast from "react-native-toast-message";
+import { colors } from "../../../theme";
 import DatePicker from "../../components/DatePicker";
 import Dropdown from "../../components/Dropdown";
-import { Api } from "../home/Api";
 import { get } from "../../services/api";
 import { UserService } from "../../services/user/userService";
-import { colors } from "../../../theme";
+import { Api } from "../home/Api";
+
+const COUNTRY_OPTIONS = [
+    { value: "United Arab Emirates", label: "United Arab Emirates" },
+    { value: "India", label: "India" },
+    { value: "Pakistan", label: "Pakistan" },
+    { value: "Bangladesh", label: "Bangladesh" },
+    { value: "Philippines", label: "Philippines" },
+    { value: "Egypt", label: "Egypt" },
+    { value: "Other", label: "Other" },
+];
+
+const normalizeCountry = (apiCountry: string): string => {
+    if (!apiCountry) return "";
+    const matched = COUNTRY_OPTIONS.find(
+        opt => opt.value.toLowerCase() === apiCountry.toLowerCase()
+    );
+    return matched ? matched.value : apiCountry;
+};
 
 export default function ProfileEditScreen() {
     const router = useRouter();
@@ -125,7 +143,7 @@ export default function ProfileEditScreen() {
                 address: user.address || "",
                 cityState: user.cityState || user.city_state || user.city || "",
                 pin: user.pin || user.pinCode || user.pincode || "",
-                country: user.country || "",
+                country: normalizeCountry(user.country || ""),
                 profilePic: profileImageUrl,
                 verified: !!user.verified || !!user.isVerified,
             });
@@ -181,10 +199,10 @@ export default function ProfileEditScreen() {
                 });
                 await fetchProfile();
             } else {
-                const errorMessage = response?.message || 
-                    (response?.status === 404 ? "Update endpoint not found. Please contact support." : 
-                     response?.status === 400 ? "Invalid data. Please check your inputs." :
-                     "Failed to update profile");
+                const errorMessage = response?.message ||
+                    (response?.status === 404 ? "Update endpoint not found. Please contact support." :
+                        response?.status === 400 ? "Invalid data. Please check your inputs." :
+                            "Failed to update profile");
                 Toast.show({
                     type: "error",
                     text1: "Error",
@@ -310,18 +328,18 @@ export default function ProfileEditScreen() {
 
             // Create FormData
             const formData = new FormData();
-            
+
             // Extract filename and type from URI
             // Handle both file:// and content:// URIs (Android)
             let filename = imageUri.split('/').pop() || 'profile.jpg';
-            
+
             // Remove query parameters if any
             filename = filename.split('?')[0];
-            
+
             // Determine MIME type
             const extension = filename.split('.').pop()?.toLowerCase() || 'jpg';
             let mimeType = 'image/jpeg';
-            
+
             switch (extension) {
                 case 'png':
                     mimeType = 'image/png';
@@ -362,13 +380,13 @@ export default function ProfileEditScreen() {
                 // So response.data = userObject (the updated user), response.message = success message
                 const userData = response?.data;
                 const imageKey = userData?.profilePic;
-                
+
                 if (imageKey) {
                     // Fetch the signed URL for the image
                     try {
                         const imageResponse = await get(`${Api.Image}?key=${imageKey}`);
                         const imageUrl = imageResponse?.data?.url || imageResponse?.data || imageUri;
-                        
+
                         // Update form data with new profile picture URL
                         setFormData((prev) => ({
                             ...prev,
@@ -403,10 +421,10 @@ export default function ProfileEditScreen() {
                     });
                 }
             } else {
-                const errorMessage = response?.message || 
+                const errorMessage = response?.message ||
                     (response?.status === 400 ? "Invalid image file" :
-                     response?.status === 413 ? "Image file too large" :
-                     "Failed to update profile picture");
+                        response?.status === 413 ? "Image file too large" :
+                            "Failed to update profile picture");
                 Toast.show({
                     type: "error",
                     text1: "Error",
@@ -415,7 +433,7 @@ export default function ProfileEditScreen() {
             }
         } catch (error: any) {
             console.error("Error uploading profile picture:", error);
-            
+
             // Provide more specific error messages
             let errorMessage = "Failed to upload profile picture";
             if (error?.message?.includes("Network Error") || error?.message?.includes("network")) {
@@ -427,7 +445,7 @@ export default function ProfileEditScreen() {
             } else if (error?.response?.status === 400) {
                 errorMessage = "Invalid image file. Please try again.";
             }
-            
+
             Toast.show({
                 type: "error",
                 text1: "Error",
@@ -603,15 +621,14 @@ export default function ProfileEditScreen() {
                         </Text>
 
                         <TouchableOpacity
-                            className={`mt-2 px-6 py-2 rounded-full ${
-                                verificationStatus === "verified"
-                                    ? "bg-success"
-                                    : verificationStatus === "pending"
+                            className={`mt-2 px-6 py-2 rounded-full ${verificationStatus === "verified"
+                                ? "bg-success"
+                                : verificationStatus === "pending"
                                     ? "bg-warning"
                                     : verificationStatus === "rejected"
-                                    ? "bg-error"
-                                    : "bg-bg_black"
-                            } ${verificationStatus === "verified" || verificationStatus === "pending" ? "opacity-60" : ""}`}
+                                        ? "bg-error"
+                                        : "bg-bg_black"
+                                } ${verificationStatus === "verified" || verificationStatus === "pending" ? "opacity-60" : ""}`}
                             onPress={handleVerifyButtonClick}
                             disabled={verificationStatus === "verified" || verificationStatus === "pending"}
                             activeOpacity={0.7}
@@ -742,13 +759,10 @@ export default function ProfileEditScreen() {
                             placeholder="Select country"
                             options={[
                                 { value: "", label: "Select country" },
-                                { value: "United Arab Emirates", label: "United Arab Emirates" },
-                                { value: "India", label: "India" },
-                                { value: "Pakistan", label: "Pakistan" },
-                                { value: "Bangladesh", label: "Bangladesh" },
-                                { value: "Philippines", label: "Philippines" },
-                                { value: "Egypt", label: "Egypt" },
-                                { value: "Other", label: "Other" },
+                                ...COUNTRY_OPTIONS,
+                                ...(formData.country && !COUNTRY_OPTIONS.some(o => o.value === formData.country)
+                                    ? [{ value: formData.country, label: formData.country }]
+                                    : [])
                             ]}
                         />
 

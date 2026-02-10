@@ -1,7 +1,7 @@
 
 import { colors } from "@/theme";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import MaskedView from "@react-native-masked-view/masked-view";
+import MaskedView from "@react-native-masked-view/masked-view"; 
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import React, { useMemo } from "react";
@@ -66,7 +66,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
     },
     {
       id: "profile",
-      route: "/profile",
+      route: "/profile/profilescreen",
       label: "Profile",
       icon: (active: boolean) => (
         <Feather
@@ -228,7 +228,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
           return (
             <Pressable
               key={item.id}
-              onPress={() => item.route && router.push(item.route)}
+              onPress={() => item.route && router.push(item.route as any)}
               className={`w-[60px] h-[60px] items-center justify-center ${active ? 'opacity-100' : 'opacity-100'}`}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
             >

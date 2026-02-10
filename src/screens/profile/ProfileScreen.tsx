@@ -11,9 +11,9 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import { Api } from "../home/Api";
 import { get } from "../../services/api";
 import { UserService } from "../../services/user/userService";
+import { Api } from "../home/Api";
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -117,8 +117,8 @@ export default function ProfileScreen() {
                         <ImageBackground
                             source={require("../../../assets/images/banner.png")}
                             resizeMode="cover"
-                            style={{ 
-                                width: '100%', 
+                            style={{
+                                width: '100%',
                                 height: '100%',
                                 justifyContent: 'flex-start',
                                 alignItems: 'flex-start'
@@ -136,7 +136,7 @@ export default function ProfileScreen() {
                     {/* Profile Card Overlay */}
                     <View className="px-4 -mt-12 flex-row items-end">
                         {/* Avatar */}
-                        <View 
+                        <View
                             className="rounded-full p-1 bg-white shadow-sm"
                             style={{ borderWidth: 4, borderColor: 'white' }}
                         >
@@ -207,22 +207,22 @@ export default function ProfileScreen() {
                 <View className="mt-6 px-4">
                     <Text className="text-lg font-bold text-gray-900 mb-3 ml-1">Personal</Text>
                     <View className="bg-white rounded-3xl p-4 shadow-sm">
-                        <MenuItem 
-                            icon="person-outline" 
-                            label="Profile Setting" 
+                        <MenuItem
+                            icon="person-outline"
+                            label="Profile Setting"
                             onPress={() => router.push("/profileditscreen" as any)}
                         />
                         <MenuItem icon="settings-outline" label="Account Setting" />
-                        <MenuItem 
-                            icon="list-outline" 
-                            label="My ads" 
+                        <MenuItem
+                            icon="list-outline"
+                            label="My ads"
                             onPress={() => router.push("/my-ads" as any)}
                         />
                         <MenuItem icon="notifications-outline" label="Notification Setting" />
-                        <MenuItem 
-                            icon="lock-closed-outline" 
-                            label="Security" 
-                            isLast 
+                        <MenuItem
+                            icon="lock-closed-outline"
+                            label="Security"
+                            isLast
                             onPress={() => router.push("/profile/security" as any)}
                         />
                     </View>
@@ -242,7 +242,12 @@ export default function ProfileScreen() {
                     <Text className="text-lg font-bold text-gray-900 mb-3 ml-1">Others</Text>
                     <View className="bg-white rounded-3xl p-4 shadow-sm">
                         <MenuItem icon="headset-outline" label="Support" />
-                        <MenuItem icon="call-outline" label="Call us" isLast />
+                        <MenuItem
+                            icon="call-outline"
+                            label="Call us"
+                            isLast
+                            onPress={() => router.push("/profile/call-us" as any)}
+                        />
                     </View>
                 </View>
 

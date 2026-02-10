@@ -18,7 +18,7 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
         {/* Profile Picture */}
         <TouchableOpacity
           className="w-12 h-12 rounded-full overflow-hidden border border-border_primary bg-bg_secondary mr-3"
-          onPress={() => router.push("/profile")}
+          onPress={() => router.push("/profile/profilescreen")}
           activeOpacity={0.8}
         >
           <Image

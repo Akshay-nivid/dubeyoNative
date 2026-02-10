@@ -20,11 +20,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
-import ProductCard from "@/src/components/ProductCard";
-
 import FilterModal from "@/src/components/FilterModal";
-
-import ThemedBackground from "@/src/components/ThemedBackground"; // Added import
+import ProductCard from "@/src/components/ProductCard";
+import ThemedBackground from "@/src/components/ThemedBackground";
+import { normalizeProduct } from "@/src/utils/productMapper";
 
 const ProductListingScreen: React.FC = () => {
   const router = useRouter();
@@ -74,7 +73,6 @@ const ProductListingScreen: React.FC = () => {
         setSelectedDivisionType(null);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params.subcategoryId,
     params.subcategoryName,
@@ -118,14 +116,6 @@ const ProductListingScreen: React.FC = () => {
         productsList = response.data.data;
       } else if (response?.data && Array.isArray(response.data)) {
         productsList = response.data;
-      }
-
-      // Debug: Log first product to see structure
-      if (productsList.length > 0) {
-        console.log(
-          "Sample product data:",
-          JSON.stringify(productsList[0], null, 2),
-        );
       }
 
       setProducts(productsList);
@@ -182,47 +172,23 @@ const ProductListingScreen: React.FC = () => {
       { name: string; profilePic?: string }
     > = {};
 
-    // First, check if seller data is already in the product
+    // 1. Populate from existing data in list using mapper logic
     list.forEach((p) => {
-      const id = p?.product_id || p?.id;
-      if (!id) return;
-
-      // Check if seller data exists in product
-      if (p.seller && typeof p.seller === "object") {
-        let sellerName: string | undefined = undefined;
-        if (typeof p.seller.name === "string" && p.seller.name.trim()) {
-          sellerName = p.seller.name.trim();
-        } else if (
-          typeof p.seller.firstName === "string" &&
-          typeof p.seller.lastName === "string"
-        ) {
-          sellerName = `${p.seller.firstName.trim()} ${p.seller.lastName.trim()}`;
-        } else if (
-          typeof p.seller.firstName === "string" &&
-          p.seller.firstName.trim()
-        ) {
-          sellerName = p.seller.firstName.trim();
-        }
-
-        if (sellerName) {
-          result[id] = {
-            name: sellerName,
-            profilePic:
-              typeof p.seller.profilePic === "string"
-                ? p.seller.profilePic
-                : undefined,
-          };
-        }
+      const normalized = normalizeProduct(p);
+      if (normalized.seller && normalized.id) {
+        result[normalized.id] = {
+          name: normalized.seller.name || "",
+          profilePic: normalized.seller.profilePic
+        };
       }
     });
 
-    // For products without seller data, fetch from product details endpoint
+    // 2. Fetch missing seller data
     const productsWithoutSeller = list.filter((p) => {
       const id = p?.product_id || p?.id;
       return id && !result[id];
     });
 
-    // Fetch seller data for products that don't have it (limit to avoid too many requests)
     const limitedProducts = productsWithoutSeller.slice(0, 20);
 
     await Promise.all(
@@ -234,33 +200,12 @@ const ProductListingScreen: React.FC = () => {
           const res = await get(`${Api.getProductDetails}?productId=${id}`);
           const productData = res?.data?.data || res?.data;
 
-          if (productData?.seller) {
-            const seller = productData.seller;
-            let sellerName: string | undefined = undefined;
-
-            if (typeof seller.name === "string" && seller.name.trim()) {
-              sellerName = seller.name.trim();
-            } else if (
-              typeof seller.firstName === "string" &&
-              typeof seller.lastName === "string"
-            ) {
-              sellerName = `${seller.firstName.trim()} ${seller.lastName.trim()}`;
-            } else if (
-              typeof seller.firstName === "string" &&
-              seller.firstName.trim()
-            ) {
-              sellerName = seller.firstName.trim();
-            }
-
-            if (sellerName) {
-              result[id] = {
-                name: sellerName,
-                profilePic:
-                  typeof seller.profilePic === "string"
-                    ? seller.profilePic
-                    : undefined,
-              };
-            }
+          const normalized = normalizeProduct(productData || {});
+          if (normalized.seller) {
+            result[id] = {
+              name: normalized.seller.name || "",
+              profilePic: normalized.seller.profilePic
+            };
           }
         } catch (error) {
           console.error(
@@ -274,26 +219,6 @@ const ProductListingScreen: React.FC = () => {
     setSellerData(result);
   };
 
-  const formatPrice = (val: any) => {
-    if (val === null || val === undefined) return "Price on request";
-    if (typeof val === "object") return "Price on request";
-    if (val === 0 || val === "0" || val === "0.00") return "AED 0";
-    const num = parseFloat(String(val));
-    if (isNaN(num)) return "Price on request";
-    return `AED ${num.toFixed(2)}`;
-  };
-
-  const filters = [
-    { label: "All", value: null },
-    ...divisionTypes.map((d) => ({
-      label:
-        typeof d.name === "string"
-          ? d.name
-          : String(d.name || d.label || "Unknown"),
-      value: d,
-    })),
-  ];
-
   const handleRefresh = () => {
     setRefreshing(true);
     fetchFilteredProducts();
@@ -306,195 +231,13 @@ const ProductListingScreen: React.FC = () => {
     })
     : products;
 
-  /** Get first image URL from product (API or embedded). */
-  const getProductImageUrl = (p: any): string | null => {
-    const id = p?.product_id ?? p?.id ?? p?._id;
-    const idStr = id != null ? String(id) : "";
-    const fromSigned = idStr && signedImages[idStr];
-    if (typeof fromSigned === "string" && !fromSigned.includes("undefined"))
-      return fromSigned;
-    if (typeof p?.image === "string" && !p.image.includes("undefined"))
-      return p.image;
-    if (typeof p?.thumbnail === "string" && !p.thumbnail.includes("undefined"))
-      return p.thumbnail;
-    const first = Array.isArray(p?.images) && p.images[0];
-    if (first) {
-      const url = typeof first === "string" ? first : first?.url ?? first?.link ?? first?.src;
-      if (typeof url === "string" && url.trim() && !url.includes("undefined"))
-        return url.trim();
-    }
-    return null;
-  };
-
-  const renderProduct = ({ item: p, index }: { item: any; index: number }) => {
-    const id = p.product_id ?? p.id;
-    const idStr = id != null ? String(id) : "";
-    const noImageUrl =
-      "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg";
-    const img = getProductImageUrl(p) ?? noImageUrl;
-
-    // Ensure all values are primitives, not objects
-    const title =
-      typeof p.title === "string"
-        ? p.title
-        : typeof p.product_name === "string"
-          ? p.product_name
-          : typeof p.title === "object"
-            ? JSON.stringify(p.title)
-            : "Untitled";
-
-    const price = formatPrice(p.price);
-    const originalPrice =
-      typeof p.originalPrice === "number"
-        ? p.originalPrice
-        : typeof p.price === "number"
-          ? p.price
-          : typeof p.price === "string"
-            ? parseFloat(p.price) || 0
-            : 0;
-    const discountedPrice =
-      typeof p.finalPrice === "number"
-        ? p.finalPrice
-        : typeof p.price === "number"
-          ? p.price
-          : typeof p.price === "string"
-            ? parseFloat(p.price) || 0
-            : 0;
-
-    // Extract seller information - first check cached seller data, then product object
-    let sellerName: string | undefined = undefined;
-    let sellerProfilePic: string | undefined = undefined;
-
-    // First, check if we have seller data from the fetched seller data cache
-    if (sellerData[id]) {
-      sellerName = sellerData[id].name;
-      sellerProfilePic = sellerData[id].profilePic;
-    }
-    // Then check various possible seller data structures in the product object
-    else if (p.seller && typeof p.seller === "object") {
-      // Direct seller object
-      if (typeof p.seller.name === "string" && p.seller.name.trim()) {
-        sellerName = p.seller.name.trim();
-      } else if (
-        typeof p.seller.firstName === "string" &&
-        typeof p.seller.lastName === "string"
-      ) {
-        sellerName = `${p.seller.firstName.trim()} ${p.seller.lastName.trim()}`;
-      } else if (
-        typeof p.seller.firstName === "string" &&
-        p.seller.firstName.trim()
-      ) {
-        sellerName = p.seller.firstName.trim();
-      } else if (
-        typeof p.seller.username === "string" &&
-        p.seller.username.trim()
-      ) {
-        sellerName = p.seller.username.trim();
-      }
-
-      if (
-        typeof p.seller.profilePic === "string" &&
-        p.seller.profilePic.trim()
-      ) {
-        sellerProfilePic = p.seller.profilePic.trim();
-      } else if (
-        typeof p.seller.profile_pic === "string" &&
-        p.seller.profile_pic.trim()
-      ) {
-        sellerProfilePic = p.seller.profile_pic.trim();
-      } else if (
-        typeof p.seller.avatar === "string" &&
-        p.seller.avatar.trim()
-      ) {
-        sellerProfilePic = p.seller.avatar.trim();
-      }
-    } else if (p.user && typeof p.user === "object") {
-      // Seller might be under 'user' key
-      if (typeof p.user.name === "string" && p.user.name.trim()) {
-        sellerName = p.user.name.trim();
-      } else if (
-        typeof p.user.firstName === "string" &&
-        typeof p.user.lastName === "string"
-      ) {
-        sellerName = `${p.user.firstName.trim()} ${p.user.lastName.trim()}`;
-      } else if (
-        typeof p.user.firstName === "string" &&
-        p.user.firstName.trim()
-      ) {
-        sellerName = p.user.firstName.trim();
-      }
-
-      if (typeof p.user.profilePic === "string" && p.user.profilePic.trim()) {
-        sellerProfilePic = p.user.profilePic.trim();
-      } else if (
-        typeof p.user.profile_pic === "string" &&
-        p.user.profile_pic.trim()
-      ) {
-        sellerProfilePic = p.user.profile_pic.trim();
-      }
-    } else if (p.createdBy && typeof p.createdBy === "object") {
-      // Seller might be under 'createdBy' key
-      if (typeof p.createdBy.name === "string" && p.createdBy.name.trim()) {
-        sellerName = p.createdBy.name.trim();
-      } else if (
-        typeof p.createdBy.firstName === "string" &&
-        typeof p.createdBy.lastName === "string"
-      ) {
-        sellerName = `${p.createdBy.firstName.trim()} ${p.createdBy.lastName.trim()}`;
-      }
-
-      if (
-        typeof p.createdBy.profilePic === "string" &&
-        p.createdBy.profilePic.trim()
-      ) {
-        sellerProfilePic = p.createdBy.profilePic.trim();
-      }
-    }
-
-    // Extract images array
-    const imagesArray = p.images && Array.isArray(p.images) && p.images.length > 0
-      ? p.images.map((img: any) => {
-          if (typeof img === 'string') return img;
-          if (img && typeof img === 'object') {
-            return img.url || img.image || img.src || null;
-          }
-          return null;
-        }).filter((img: string | null): img is string => img !== null)
-      : (img ? [img] : []);
-
-    // Extract specifications
-    const specs = p.specs || p.specifications || {};
-
-    // Extract features/tags
-    const features = p.features || p.tags || p.verificationBadges || [];
-
-    const seller = sellerName
-      ? {
-        name: sellerName,
-        profilePic: sellerProfilePic,
-        verified: p.seller?.verified || p.seller?.isVerified || false,
-      }
-      : undefined;
-
-    const productItem = {
-      id: String(id),
-      title: String(title),
-      image: String(img),
-      images: imagesArray,
-      price: String(price),
-      status: typeof p.status === "string" ? p.status : "available",
-      originalPrice,
-      discountedPrice,
-      specs,
-      features,
-      seller,
-      location: p.location, // Pass location data
-    };
+  const renderProduct = ({ item }: { item: any }) => {
+    const productItem = normalizeProduct(item, signedImages, sellerData);
 
     return (
       <ProductCard
         item={productItem}
-        onPress={() => router.push(`/product/${id}` as any)}
+        onPress={() => router.push(`/product/${productItem.id}` as any)}
         variant="vertical"
       />
     );
@@ -536,8 +279,6 @@ const ProductListingScreen: React.FC = () => {
             <Ionicons name="options-outline" size={24} color="white" />
           </TouchableOpacity>
         </View>
-
-        {/* Inline filters removed. FilterModal used instead. */}
 
         <FilterModal
           visible={showFilter}

@@ -90,13 +90,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
         if (!priceStr || typeof priceStr !== 'string') {
             return { currency: 'AED', priceValue: priceStr || '0' };
         }
-        
+
         // Check if price already contains currency (e.g., "AED 45000" or "USD 100")
         const currencyMatch = priceStr.match(/^([A-Z]{2,4})\s+(.+)$/);
         if (currencyMatch) {
             return { currency: currencyMatch[1], priceValue: currencyMatch[2] };
         }
-        
+
         // Default to AED if no currency found
         return { currency: 'AED', priceValue: priceStr };
     };
@@ -166,17 +166,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
         return 'information-circle-outline';
     };
 
-    // Get any available specifications (up to 4 for 2x2 grid)
+    // Get any available specifications
     const getAvailableSpecs = (): Array<{ key: string; value: string; icon: string }> => {
+        const limit = variant === 'vertical' ? 3 : 4;
         const specs: Array<{ key: string; value: string; icon: string }> = [];
         if (!item.specs || typeof item.specs !== 'object') return specs;
-        
+
         try {
             for (const [specKey, value] of Object.entries(item.specs)) {
-                if (specs.length >= 4) break; // Limit to 4 specs for 2x2 grid
-                
+                if (specs.length >= limit) break;
+
                 let displayValue: string | null = null;
-                
+
                 // Handle different value types
                 if (value && typeof value === 'object') {
                     if ('value' in value) {
@@ -190,10 +191,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
                 } else if (value !== null && value !== undefined) {
                     displayValue = String(value);
                 }
-                
+
                 // Skip empty values and common fields we don't want to show
-                if (displayValue && displayValue.trim() && 
-                    displayValue.toLowerCase() !== 'null' && 
+                if (displayValue && displayValue.trim() &&
+                    displayValue.toLowerCase() !== 'null' &&
                     displayValue.toLowerCase() !== 'undefined' &&
                     !specKey.toLowerCase().includes('id') &&
                     !specKey.toLowerCase().includes('image') &&
@@ -209,10 +210,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
         } catch (e) {
             console.error('Error extracting specs:', e);
         }
-        
+
         return specs;
     };
-    
+
     const availableSpecs = getAvailableSpecs();
 
     if (variant === 'vertical') {
@@ -264,47 +265,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
                         {item.title || "Untitled Product"}
                     </Text>
 
-                    {/* Product Details - Show 2 details per row */}
+                    {/* Product Details - Show 3 details in single row */}
                     {availableSpecs.length > 0 && (
-                        <View className="mb-1">
-                            {/* First row - 2 details */}
-                            {availableSpecs.length > 0 && (
-                                <View className="flex-row mb-0.5">
-                                    <View className="flex-1 flex-row items-center mr-1">
-                                        <Ionicons name={availableSpecs[0].icon as any} size={11} color={colors.text_tertiary} />
-                                        <Text className="text-[9px] text-text_tertiary ml-1 flex-1" numberOfLines={1}>
-                                            {availableSpecs[0].value}
-                                        </Text>
-                                    </View>
-                                    {availableSpecs.length > 1 && (
-                                        <View className="flex-1 flex-row items-center ml-1">
-                                            <Ionicons name={availableSpecs[1].icon as any} size={11} color={colors.text_tertiary} />
-                                            <Text className="text-[9px] text-text_tertiary ml-1 flex-1" numberOfLines={1}>
-                                                {availableSpecs[1].value}
-                                            </Text>
-                                        </View>
-                                    )}
+                        <View className="flex-row items-center mb-1 gap-1">
+                            {availableSpecs.map((spec, index) => (
+                                <View key={index} className="flex-1 flex-row items-center">
+                                    <Ionicons name={spec.icon as any} size={10} color={colors.text_tertiary} />
+                                    <Text className="text-[9px] text-text_tertiary ml-0.5 flex-1" numberOfLines={1}>
+                                        {spec.value}
+                                    </Text>
                                 </View>
-                            )}
-                            {/* Second row - 2 details */}
-                            {availableSpecs.length > 2 && (
-                                <View className="flex-row">
-                                    <View className="flex-1 flex-row items-center mr-1">
-                                        <Ionicons name={availableSpecs[2].icon as any} size={11} color={colors.text_tertiary} />
-                                        <Text className="text-[9px] text-text_tertiary ml-1 flex-1" numberOfLines={1}>
-                                            {availableSpecs[2].value}
-                                        </Text>
-                                    </View>
-                                    {availableSpecs.length > 3 && (
-                                        <View className="flex-1 flex-row items-center ml-1">
-                                            <Ionicons name={availableSpecs[3].icon as any} size={11} color={colors.text_tertiary} />
-                                            <Text className="text-[9px] text-text_tertiary ml-1 flex-1" numberOfLines={1}>
-                                                {availableSpecs[3].value}
-                                            </Text>
-                                        </View>
-                                    )}
-                                </View>
-                            )}
+                            ))}
                         </View>
                     )}
 
@@ -391,7 +362,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
                             />
                             {/* Image Counter Overlay */}
                             {imageCount > 1 && (
-                                <View 
+                                <View
                                     className="absolute bottom-2 left-2 rounded px-2 py-1 flex-row items-center"
                                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
                                 >
@@ -484,15 +455,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
                         } else if (feature && typeof feature === 'object') {
                             featureText = feature.name || feature.label || feature.value || feature.title || '';
                         }
-                        
+
                         // Skip if no valid text found
                         if (!featureText) return null;
-                        
+
                         return (
                             <View
                                 key={index}
                                 className="px-3 py-1.5 rounded-full flex-row items-center"
-                                style={{ 
+                                style={{
                                     backgroundColor: '#E8F5E9',
                                     borderWidth: 1,
                                     borderColor: '#4CAF50'
