@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 const NoImagePlaceholder = () => (
@@ -109,6 +109,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
 export default function MyAds() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -298,59 +299,30 @@ export default function MyAds() {
   return (
     <ThemedBackground>
       <SafeAreaView className="flex-1" edges={["top"]}>
-        {/* Header */}
-        <View className="px-5 py-4 flex-row items-center border-b border-white/50 bg-white/50 backdrop-blur-md">
+        {/* Header - seamless with page background, centered title (same as Section Listing) */}
+        <View className="px-4 pt-4 pb-3 flex-row items-center">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-10 h-10 items-center justify-center bg-white rounded-full shadow-sm"
+            className="w-10 h-10 items-center justify-center rounded-full bg-white/80"
+            style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2 }}
             activeOpacity={0.7}
           >
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text className="text-xl font-black flex-1 text-center text-gray-900">
-            My Ads
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/postAd" as any)}
-            className="w-10 h-10 rounded-full bg-primary justify-center items-center shadow-sm"
-            activeOpacity={0.7}
+          <View
+            className="items-center justify-center"
+            style={{ position: 'absolute', left: 48, right: 48 }}
+            pointerEvents="none"
           >
-            <Ionicons name="add" size={24} color={colors.text_white} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Filter Buttons */}
-        <View className="flex-row px-4 py-3 gap-2">
-          <TouchableOpacity
-            onPress={() => handleFilterChange("active")}
-            className={`flex-1 py-2.5 px-4 rounded-lg items-center ${activeFilter === "active" ? "bg-primary" : "bg-bg_white"
-              }`}
-            activeOpacity={0.7}
-          >
-            <Text
-              className={`text-sm font-semibold ${activeFilter === "active" ? "text-text_white" : "text-text_primary"
-                }`}
-            >
-              Active
+            <Text className="text-xl font-black text-gray-900" numberOfLines={1}>
+              My Ads
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleFilterChange("draft")}
-            className={`flex-1 py-2.5 px-4 rounded-lg items-center ${activeFilter === "draft" ? "bg-primary" : "bg-bg_white"
-              }`}
-            activeOpacity={0.7}
-          >
-            <Text
-              className={`text-sm font-semibold ${activeFilter === "draft" ? "text-text_white" : "text-text_primary"
-                }`}
-            >
-              Draft
-            </Text>
-          </TouchableOpacity>
+          </View>
+          <View className="w-10" />
         </View>
 
         {products.length === 0 ? (
-          <View className="flex-1 items-center justify-center px-6">
+          <View className="flex-1 items-center justify-center px-6 pb-24">
             <Ionicons
               name="list-outline"
               size={64}
@@ -395,7 +367,7 @@ export default function MyAds() {
                 />
               );
             }}
-            contentContainerStyle={{ paddingVertical: 16 }}
+            contentContainerStyle={{ paddingVertical: 16, paddingBottom: 140 }}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
@@ -406,6 +378,59 @@ export default function MyAds() {
             }
           />
         )}
+
+        {/* Sticky Post Ad button - bottom right, above Active/Draft bar */}
+        <TouchableOpacity
+          onPress={() => router.push("/postAd" as any)}
+          className="absolute right-4 rounded-full bg-primary flex-row items-center pl-4 pr-5 py-3"
+          style={{
+            bottom: 72 + Math.max(insets.bottom, 12),
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 6,
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={22} color={colors.text_white} />
+          <Text className="text-text_white font-semibold text-base ml-2">Post Ad</Text>
+        </TouchableOpacity>
+
+        {/* Filter Buttons - Bottom */}
+        <View
+          className="absolute left-0 right-0 px-4 py-3 bg-bg_primary border-t border-border_primary"
+          style={{ paddingBottom: Math.max(insets.bottom, 12), bottom: 0 }}
+        >
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              onPress={() => handleFilterChange("active")}
+              className={`flex-1 py-2.5 px-4 rounded-lg items-center ${activeFilter === "active" ? "bg-primary" : "bg-bg_white"
+                }`}
+              activeOpacity={0.7}
+            >
+              <Text
+                className={`text-sm font-semibold ${activeFilter === "active" ? "text-text_white" : "text-text_primary"
+                  }`}
+              >
+                Active
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleFilterChange("draft")}
+              className={`flex-1 py-2.5 px-4 rounded-lg items-center ${activeFilter === "draft" ? "bg-primary" : "bg-bg_white"
+                }`}
+              activeOpacity={0.7}
+            >
+              <Text
+                className={`text-sm font-semibold ${activeFilter === "draft" ? "text-text_white" : "text-text_primary"
+                  }`}
+              >
+                Draft
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </SafeAreaView>
     </ThemedBackground>
   );

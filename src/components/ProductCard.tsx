@@ -260,7 +260,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
 
                     <Text
                         className="text-[13px] font-medium text-text_primary leading-4 mb-1"
-                        numberOfLines={2}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
                     >
                         {item.title || "Untitled Product"}
                     </Text>
@@ -393,7 +394,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
                     {/* Product Name */}
                     <Text
                         className="text-lg font-bold text-text_primary mb-3"
-                        numberOfLines={2}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
                     >
                         {item.title || "Untitled Product"}
                     </Text>

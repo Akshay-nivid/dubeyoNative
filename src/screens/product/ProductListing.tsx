@@ -249,16 +249,25 @@ const ProductListingScreen: React.FC = () => {
         className="flex-1"
         edges={["top"]}
       >
-        <View className="px-5 py-4 flex-row items-center border-b border-white/50 bg-white/50 backdrop-blur-md">
+        {/* Header - seamless with page background, centered title (same as Section Listing) */}
+        <View className="px-4 pt-4 pb-3 flex-row items-center">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-10 h-10 items-center justify-center bg-white rounded-full shadow-sm"
+            className="w-10 h-10 items-center justify-center rounded-full bg-white/80"
+            style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2 }}
           >
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text className="text-xl font-black flex-1 text-center text-gray-900 mr-10">
-            {typeof subcategoryName === "string" ? subcategoryName : "Products"}
-          </Text>
+          <View
+            className="items-center justify-center"
+            style={{ position: 'absolute', left: 0, right: 0, paddingHorizontal: 48 }}
+            pointerEvents="none"
+          >
+            <Text className="text-xl font-black text-gray-900" numberOfLines={1}>
+              {typeof subcategoryName === "string" ? subcategoryName : "Products"}
+            </Text>
+          </View>
+          <View className="w-10" />
         </View>
 
         <View className="px-4 py-3 flex-row items-center gap-3">

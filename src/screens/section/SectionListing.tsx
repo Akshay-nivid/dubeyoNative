@@ -11,13 +11,15 @@ import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
+    Platform,
     RefreshControl,
-    SafeAreaView,
+    StatusBar,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Define the section types
 type SectionType = "popular" | "suggested" | "new";
@@ -168,18 +170,31 @@ const SectionListingScreen = () => {
 
     return (
         <ThemedBackground>
-            <SafeAreaView className="flex-1" edges={["top"]}>
-                {/* Header */}
-                <View className="px-4 pt-12 pb-4 flex-row items-center border-b border-white/50 bg-white/50 backdrop-blur-md">
+            <SafeAreaView className="flex-1" edges={["top", "bottom"]} style={{ flex: 1 }}>
+                <StatusBar
+                    barStyle="dark-content"
+                    backgroundColor="transparent"
+                    translucent={Platform.OS === "android"}
+                />
+                {/* Header - seamless with page background, centered title */}
+                <View className="px-4 pt-4 pb-3 flex-row items-center">
                     <TouchableOpacity
                         onPress={() => router.back()}
-                        className="w-10 h-10 items-center justify-center bg-white rounded-full shadow-sm"
+                        className="w-10 h-10 items-center justify-center rounded-full bg-white/80"
+                        style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2 }}
                     >
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-black flex-1 text-center text-gray-900 mr-10">
-                        {screenTitle}
-                    </Text>
+                    <View
+                        className="items-center justify-center"
+                        style={{ position: 'absolute', left: 0, right: 0, paddingHorizontal: 48 }}
+                        pointerEvents="none"
+                    >
+                        <Text className="text-xl font-black text-gray-900" numberOfLines={1}>
+                            {screenTitle}
+                        </Text>
+                    </View>
+                    <View className="w-10" />
                 </View>
 
                 {/* Search & Filter Bar */}
@@ -219,7 +234,7 @@ const SectionListingScreen = () => {
                         contentContainerStyle={{
                             paddingHorizontal: 16,
                             paddingVertical: 16,
-                            paddingBottom: 40 // Extra padding at bottom
+                            paddingBottom: 24
                         }}
                         showsVerticalScrollIndicator={false}
                         refreshControl={

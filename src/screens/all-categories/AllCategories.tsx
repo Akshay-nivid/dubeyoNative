@@ -2,12 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -86,9 +87,14 @@ const AllCategories = () => {
   return (
     <SafeAreaView
       className="flex-1 bg-bg_primary"
-      edges={["top"]}
+      edges={["top", "bottom"]}
+      style={{ flex: 1 }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.bg_primary} />
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={colors.bg_primary}
+        translucent={Platform.OS === "android"}
+      />
 
       {/* Header */}
       <View className="px-4 py-3 flex-row items-center justify-between border-b border-border_primary bg-bg_primary">
