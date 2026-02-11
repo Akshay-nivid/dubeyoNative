@@ -45,6 +45,43 @@ const ProductCard: React.FC<ProductCardProps> = ({
     item.title || item.name || item.product_name || "Untitled";
   const productPrice = item.price || item.product_price || item.finalPrice;
 
+  // Views, calls, posted date (from API or placeholder)
+  const views = item.views ?? item.viewCount ?? 0;
+  const calls = item.calls ?? item.leadCount ?? item.leads ?? 0;
+  const p = item.product ?? item.data;
+  const postedDateRaw =
+    item.createdOn ??
+    item.created_on ??
+    item.createdAt ??
+    item.created_at ??
+    item.activatedAt ??
+    item.postedDate ??
+    item.activated_at ??
+    item.date ??
+    item.listingDate ??
+    item.updatedAt ??
+    item.updated_at ??
+    p?.createdOn ??
+    p?.created_on ??
+    p?.createdAt ??
+    p?.created_at ??
+    p?.activatedAt ??
+    p?.postedDate ??
+    p?.date ??
+    p?.updatedAt ??
+    p?.updated_at;
+  const formatDate = (d: any) => {
+    if (d === null || d === undefined) return "—";
+    let date: Date;
+    if (typeof d === "number") date = new Date(d);
+    else if (typeof d === "string") date = new Date(d);
+    else if (d && typeof d === "object" && d.getTime) date = d;
+    else return "—";
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  };
+  const postedDateFormatted = formatDate(postedDateRaw);
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -70,12 +107,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <View className="flex-1">
           <View className="flex-row justify-between items-start">
             <Text
-              className="text-[15px] font-medium text-text_primary leading-5 mb-2 flex-1 mr-2"
+              className="text-[15px] font-medium text-text_primary leading-5 mb-1 flex-1 mr-2"
               numberOfLines={2}
             >
               {productTitle}
             </Text>
-            {/* Edit Icon - Top Right */}
+            {/* Edit icon - for editing this ad only */}
             {onEdit && (
               <TouchableOpacity
                 onPress={(e) => {
@@ -84,23 +121,44 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 }}
                 className="p-1"
                 activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="create-outline" size={20} color={colors.text_primary} />
+                <Ionicons name="create-outline" size={20} color={colors.primary} />
               </TouchableOpacity>
             )}
           </View>
 
-        </View>
+          <View className="flex-row items-baseline gap-1.5 mb-1.5">
+            <Text className="text-lg font-bold text-primary">
+              {productPrice
+                ? `AED ${Number(productPrice).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`
+                : "Price on request"}
+            </Text>
+          </View>
 
-        <View className="flex-row items-baseline gap-1.5">
-          <Text className="text-lg font-bold text-primary">
-            {productPrice
-              ? `AED ${productPrice.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}`
-              : "Price on request"}
+          {/* Posted date: label above, then the date */}
+             {/* <Text className="text-xs text-text_primary mb-2">
+            {postedDateFormatted}
+          </Text> */}
+          <Text className="text-xs text-text_tertiary mb-0.5">
+            Active from {postedDateFormatted}
           </Text>
+       
+
+          {/* Views, calls - grid row */}
+          <View className="flex-row items-center gap-4">
+            <View className="flex-row items-center">
+              <Ionicons name="eye-outline" size={14} color={colors.text_tertiary} />
+              <Text className="text-xs text-text_tertiary ml-1">{views} views</Text>
+            </View>
+            <View className="flex-row items-center">
+              <Ionicons name="call-outline" size={14} color={colors.text_tertiary} />
+              <Text className="text-xs text-text_tertiary ml-1">{calls} calls</Text>
+            </View>
+          </View>
         </View>
       </View>
     </TouchableOpacity>

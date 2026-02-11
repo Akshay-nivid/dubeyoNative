@@ -3,7 +3,7 @@ import * as FileSystem from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,14 +11,20 @@ import Toast from "react-native-toast-message";
 import GradientText from "../../components/GradientText";
 import { useUserLocation } from "../../hooks/useUserLocation";
 import { fetchProfile } from "../../screens/home/Api"; // Import from Home API
+import { get } from "../../services/api";
 import { getToken } from "../../services/storage/tokenStorage";
+import { Api } from "../../screens/home/Api";
 
 const PostAd = () => {
     const router = useRouter();
+    const params = useLocalSearchParams<{ edit?: string }>();
+    const editProductId = params.edit;
+
     const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
     const [photos, setPhotos] = useState<ImagePicker.ImagePickerAsset[]>([]);
     const [imageError, setImageError] = useState("");
+    const [editLoaded, setEditLoaded] = useState(false);
 
 
     const { place } = useUserLocation();
@@ -51,6 +57,34 @@ const PostAd = () => {
         };
         checkGuest();
     }, [router]);
+
+    // Edit mode: load existing product and pre-fill
+    useEffect(() => {
+        if (!editProductId || editLoaded) return;
+        const loadProductForEdit = async () => {
+            try {
+                const res = await get(`${Api.getProductDetails}?productId=${editProductId}`);
+                const product = res?.data?.data ?? res?.data ?? res;
+                if (product) {
+                    const desc = product.description ?? product.enhancedDescription ?? product.descriptions ?? "";
+                    setDescription(typeof desc === "string" ? desc : "");
+                    const imgs = product.images ?? product.image ?? [];
+                const uris = Array.isArray(imgs)
+                    ? imgs.map((u: any) => (typeof u === "string" ? u : u?.url ?? u?.link ?? "")).filter(Boolean)
+                    : typeof imgs === "string" ? [imgs] : [];
+                    if (uris.length > 0) {
+                        setPhotos(uris.map((uri: string) => ({ uri } as ImagePicker.ImagePickerAsset)));
+                    }
+                }
+            } catch (e) {
+                console.warn("Could not load product for edit", e);
+                Toast.show({ type: "error", text1: "Error", text2: "Could not load ad for editing." });
+            } finally {
+                setEditLoaded(true);
+            }
+        };
+        loadProductForEdit();
+    }, [editProductId, editLoaded]);
 
     const MAX_SIZE = 5 * 1024 * 1024; // Updated to 10MB as per user request
     const [isPickerActive, setIsPickerActive] = useState(false);
@@ -163,12 +197,14 @@ const PostAd = () => {
             // Pass local URIs directly to PostAdDetails
             const imageUris = photos.map((p) => p.uri);
 
+            const nextParams: Record<string, string> = {
+                description,
+                images: JSON.stringify(imageUris),
+            };
+            if (editProductId) nextParams.edit = editProductId;
             router.push({
                 pathname: "/postAdDetails",
-                params: {
-                    description,
-                    images: JSON.stringify(imageUris),
-                },
+                params: nextParams,
             });
         } catch (err) {
             Toast.show({
