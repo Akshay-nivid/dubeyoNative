@@ -1,5 +1,6 @@
+import BottomNavigationBar from "@/src/components/BottomNavigationBar";
 import ThemedBackground from "@/src/components/ThemedBackground";
-import { Stack, useRouter } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import { StatusBar } from "react-native";
 import "react-native-css-interop/jsx-runtime";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -9,20 +10,9 @@ import "../global.css";
 export default function RootLayout() {
   const router = useRouter();
 
-  /* useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = await getToken();
-        if (token) {
-          router.replace("/home");
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-      }
-    };
+  const pathname = usePathname();
 
-    checkAuth();
-  }, []); */
+  const showBottomBar = ['/home', '/chat'].includes(pathname);
 
   return (
     <SafeAreaProvider>
@@ -38,6 +28,20 @@ export default function RootLayout() {
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="home" options={{ headerShown: false }} />
           <Stack.Screen
+            name="login"
+            options={{
+              headerShown: false,
+              animation: 'slide_from_left',
+            }}
+          />
+          <Stack.Screen
+            name="signup"
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
             name="search-drag"
             options={{
               presentation: 'modal',
@@ -45,6 +49,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
+        {showBottomBar && <BottomNavigationBar />}
       </ThemedBackground>
       <Toast
         position="top"

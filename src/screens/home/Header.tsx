@@ -44,7 +44,7 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
           <TouchableOpacity
             onPress={onLocationPress}
             activeOpacity={0.7}
-            className="flex-row items-center mt-1"
+            className="flex-row items-center"
           >
             <Text
               className="text-sm font-medium text-text_primary mr-1"

@@ -24,7 +24,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
   return (
     <View className="mb-6">
       <View className="flex-row justify-between items-center px-4 mb-3">
-        <Text className="text-lg font-bold" style={{ color: colors.text_primary }}>{title}</Text>
+        <Text className="text-lg font-bold" style={{ color: colors.primary }}>{title}</Text>
         <TouchableOpacity onPress={onSeeAll}>
           <Text className="font-medium text-sm flex-row items-center" style={{ color: colors.text_primary }}>
             See all <Ionicons name="arrow-forward" size={14} color={colors.text_secondary} />

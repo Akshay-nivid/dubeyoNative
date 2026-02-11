@@ -1,6 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { cssInterop } from "nativewind";
 import React, { useState } from "react";
 import { TextInput, TouchableOpacity, View } from "react-native";
 import Animated, {
@@ -10,8 +11,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { useRouter } from "expo-router";
-import { cssInterop } from "nativewind";
+import Svg, { Path } from "react-native-svg";
 cssInterop(MaskedView, {
   className: {
     target: "style",
@@ -46,15 +46,15 @@ const SearchBar: React.FC = () => {
       <View
         className="rounded-full bg-white shadow-cyan-400"
         style={{
-          shadowColor: '#22d3ee', // Cyan-400
+          shadowColor: 'transparent',
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.8, // High opacity for glow
-          shadowRadius: 20, // Large radius for spread
-          elevation: 20, // Android elevation
+          shadowOpacity: 0,
+          shadowRadius: 0,
+          elevation: 0,
         }}
       >
         {/* Clipping Container for Border */}
-        <View className="rounded-full overflow-hidden p-[1px]">
+        <View className="rounded-full overflow-hidden p-[2px]">
           {/* Rotating Gradient Background */}
           <Animated.View
             style={[
@@ -66,14 +66,14 @@ const SearchBar: React.FC = () => {
                 height: 700,
                 marginLeft: -350,
                 marginTop: -350,
-                opacity: 0.4,
+                opacity: 1,
                 // zIndex removed to ensure it renders in flow (before TouchableOpacity) but not behind parent background
               },
               animatedStyle,
             ]}
           >
             <LinearGradient
-              colors={['#14B8A6', '#3B82F6', '#8B5CF6', '#14B8A6']} // Teal -> Blue -> Violet -> Teal (Loop)
+              colors={['#59078cff', '#e6e1f6ff', '#59078cff']} // Purple -> White -> Purple (Loop)
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               className="w-[700px] h-[700px]"
@@ -86,8 +86,36 @@ const SearchBar: React.FC = () => {
             className="flex-row items-center bg-white/90 rounded-full px-4 h-[42px]"
           >
             <MaskedView
-              maskElement={<Ionicons name="sparkles" size={18} />}
-              className="w-[18px] h-[18px]"
+              maskElement={
+                <Svg
+                  width="100%"
+                  height="100%"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  {/* Magnifying Glass Ring (Arc) */}
+                  <Path
+                    d="M16.5 16.5 A 8 8 0 1 1 16.5 5.5"
+                    stroke="black"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {/* Handle */}
+                  <Path
+                    d="M17 17 L 21 21"
+                    stroke="black"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <Path
+                    d="M19 6 L 20 9 L 23 10 L 20 11 L 19 14 L 18 11 L 15 10 L 18 9 Z"
+                    fill="black"
+                  />
+                </Svg>
+              }
+              className="w-[22px] h-[22px]"
             >
               <LinearGradient
                 colors={['#14B8A6', '#3B82F6', '#8B5CF6']}

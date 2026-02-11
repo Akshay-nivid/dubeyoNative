@@ -1,17 +1,18 @@
-import LogoWhite from "@/assets/images/logo_white.svg";
+import Logo from "@/assets/images/logo_dark.svg";
 import { getToken } from "@/src/services/storage/tokenStorage";
-import { colors } from "@/theme";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Animated, Dimensions, StatusBar, StyleSheet, View } from "react-native";
+import { Defs, RadialGradient, Rect, Stop, Svg } from "react-native-svg";
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+
 export default function LoaderScreen() {
     const router = useRouter();
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const scaleAnim = useRef(new Animated.Value(0.85)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
-    const glowAnim = useRef(new Animated.Value(0.3)).current;
+
     useEffect(() => {
         // Start fade-in and scale animation
         Animated.parallel([
@@ -26,6 +27,7 @@ export default function LoaderScreen() {
                 useNativeDriver: true,
             }),
         ]).start();
+
         // Continuous pulse animation for AI feel
         const pulseAnimation = Animated.loop(
             Animated.sequence([
@@ -42,22 +44,9 @@ export default function LoaderScreen() {
             ])
         );
         pulseAnimation.start();
-        // Subtle glow animation
-        const glowAnimation = Animated.loop(
-            Animated.sequence([
-                Animated.timing(glowAnim, {
-                    toValue: 0.6,
-                    duration: 2000,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(glowAnim, {
-                    toValue: 0.3,
-                    duration: 2000,
-                    useNativeDriver: true,
-                }),
-            ])
-        );
-        glowAnimation.start();
+
+
+
         // Navigate to login after 3 seconds
         const timer = setTimeout(() => {
             Animated.parallel([
@@ -75,37 +64,65 @@ export default function LoaderScreen() {
                 }
             });
         }, 3000);
+
         return () => {
             clearTimeout(timer);
             pulseAnimation.stop();
-            glowAnimation.stop();
+            pulseAnimation.stop();
         };
     }, []);
+
     const logoSize = Math.min(SCREEN_WIDTH * 0.55, 220);
     const logoHeight = Math.min(SCREEN_HEIGHT * 0.12, 70);
+
     return (
         <View style={styles.container}>
-            <StatusBar backgroundColor={colors.primary} barStyle="light-content" />
+            <StatusBar backgroundColor="transparent" barStyle="dark-content" translucent />
 
-            {/* Gradient Background */}
-            <LinearGradient
-                colors={[colors.primary, "#0a6b7f", colors.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-            />
-            {/* Animated Glow Effect */}
-            <Animated.View
-                style={[
-                    styles.glowContainer,
-                    {
-                        opacity: glowAnim,
-                        transform: [{ scale: pulseAnim }],
-                    },
-                ]}
-            >
-                <View style={styles.glowCircle} />
-            </Animated.View>
+            {/* Radial Gradient Background (Matching Signup Style) */}
+            <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
+                <Defs>
+                    {/* Top-left haze */}
+                    <RadialGradient
+                        id="gradTopLeft"
+                        cx="18%"
+                        cy="8%"
+                        rx="72%"
+                        ry="62%"
+                        fx="18%"
+                        fy="8%"
+                        gradientUnits="userSpaceOnUse"
+                    >
+                        <Stop offset="0%" stopColor="#DDD6FE" stopOpacity="1" />
+                        <Stop offset="55%" stopColor="#EDE9FE" stopOpacity="0.55" />
+                        <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                    </RadialGradient>
+
+                    {/* Bottom-right haze */}
+                    <RadialGradient
+                        id="gradBottomRight"
+                        cx="82%"
+                        cy="92%"
+                        rx="72%"
+                        ry="62%"
+                        fx="82%"
+                        fy="92%"
+                        gradientUnits="userSpaceOnUse"
+                    >
+                        <Stop offset="0%" stopColor="#DDD6FE" stopOpacity="1" />
+                        <Stop offset="55%" stopColor="#EDE9FE" stopOpacity="0.55" />
+                        <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                    </RadialGradient>
+                </Defs>
+
+                {/* Base */}
+                <Rect x="0" y="0" width="100%" height="100%" fill="#FFFFFF" />
+
+                {/* Overlays */}
+                <Rect x="0" y="0" width="100%" height="100%" fill="url(#gradTopLeft)" />
+                <Rect x="0" y="0" width="100%" height="100%" fill="url(#gradBottomRight)" />
+            </Svg>
+
             {/* Logo Container */}
             <Animated.View
                 style={[
@@ -118,28 +135,18 @@ export default function LoaderScreen() {
                     },
                 ]}
             >
-                <LogoWhite width={logoSize} height={logoHeight} />
+                <Logo width={logoSize} height={logoHeight} />
             </Animated.View>
         </View>
     );
 }
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: colors.primary,
-    },
-    glowContainer: {
-        position: "absolute",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    glowCircle: {
-        width: SCREEN_WIDTH * 0.8,
-        height: SCREEN_WIDTH * 0.8,
-        borderRadius: SCREEN_WIDTH * 0.4,
-        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        backgroundColor: "#fff", // Light background base
     },
     logoContainer: {
         alignItems: "center",

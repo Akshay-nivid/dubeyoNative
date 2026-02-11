@@ -1,11 +1,13 @@
 
 import { colors } from "@/theme";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import MaskedView from "@react-native-masked-view/masked-view"; 
+import MaskedView from "@react-native-masked-view/masked-view";
+import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Dimensions, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Image, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, Path, Stop, LinearGradient as SvgLinearGradient } from "react-native-svg";
 
 interface BottomNavigationBarProps {
@@ -14,11 +16,13 @@ interface BottomNavigationBarProps {
 
 const { width } = Dimensions.get("window");
 
-const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
+const BottomNavigationBar = ({
   onAIMascotPress,
-}) => {
+}: BottomNavigationBarProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
+  const iosPadding = Platform.OS === "ios" ? insets.bottom : 0;
 
   const isActive = (route: string) => {
     return pathname === route || pathname?.startsWith(route);
@@ -43,7 +47,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
         <Feather
           name="home"
           size={24}
-          color={active ? "black" : "#4b5563"}
+          color={active ? colors.primary : "#4b5563"}
         />
       ),
     },
@@ -55,7 +59,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
         <Feather
           name="message-circle"
           size={24}
-          color={active ? "black" : "#4b5563"}
+          color={active ? colors.primary : "#4b5563"}
         />
       ),
     },
@@ -72,7 +76,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
         <Feather
           name="user"
           size={24}
-          color={active ? "black" : "#4b5563"}
+          color={active ? colors.primary : "#4b5563"}
         />
       ),
     },
@@ -84,7 +88,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
         <Ionicons
           name="add"
           size={32}
-          color={active ? "black" : "#4b5563"}
+          color={active ? colors.primary : "#4b5563"}
         />
       ),
     },
@@ -92,48 +96,46 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
 
   // Calculate the SVG Path for the floating bar with center cutout
   const curveTabPath = useMemo(() => {
-    const tabHeight = 84;
-    const buttonRadius = 30; // 60px button
-    const gap = 12; // Comfortable gap
-    const holeRadius = buttonRadius + gap; // 42px
-    const holeWidth = holeRadius * 2; // 84px
-    const holeDepth = 40; // Depth of the curve
+    const TAB_HEIGHT = 84;
+    const tabHeight = TAB_HEIGHT + iosPadding;
+    const BUTTON_RADIUS = 30; // 60px button
+    const CURVE_DEPTH = 36; // Depth of the curve (was hardcoded as 36 in path)
+    const CORNER_RADIUS = 18;
+    const CURVE_WIDTH_OFFSET = 54;
+    const CONTROL_POINT_X_OFFSET = 36;
 
     const center = width / 2;
-    const leftHoleStart = center - holeWidth / 2;
-    const rightHoleEnd = center + holeWidth / 2;
 
     return `
-      M 18 0
-      L ${center - 54} 0
+      M ${CORNER_RADIUS} 0
+      L ${center - CURVE_WIDTH_OFFSET} 0
 
-      C ${center - 36} 0, ${center - 30} 36, ${center} 36
-      C ${center + 30} 36, ${center + 36} 0, ${center + 54} 0
+      C ${center - CONTROL_POINT_X_OFFSET} 0, ${center - BUTTON_RADIUS} ${CURVE_DEPTH}, ${center} ${CURVE_DEPTH}
+      C ${center + BUTTON_RADIUS} ${CURVE_DEPTH}, ${center + CONTROL_POINT_X_OFFSET} 0, ${center + CURVE_WIDTH_OFFSET} 0
 
-      L ${width - 18} 0
-      Q ${width} 0, ${width} 18
+      L ${width - CORNER_RADIUS} 0
+      Q ${width} 0, ${width} ${CORNER_RADIUS}
 
-      L ${width} 84
-      L 0 84
+      L ${width} ${tabHeight}
+      L 0 ${tabHeight}
 
-      L 0 18
-      Q 0 0, 18 0
+      L 0 ${CORNER_RADIUS}
+      Q 0 0, ${CORNER_RADIUS} 0
       Z
     `;
-
-  }, []);
+  }, [iosPadding]);
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 h-[70px] justify-end bg-transparent z-50">
+    <View className="absolute bottom-0 left-0 right-0 justify-end bg-transparent z-50" style={{ height: 70 + iosPadding, paddingBottom: iosPadding }}>
       {/* Liquid Glass Background */}
-      <View className="absolute top-0 left-0 right-0 bottom-0 shadow-sm shadow-black/10" style={{ elevation: 8 }}>
+      <View className="absolute top-0 left-0 right-0 bottom-0 shadow-sm shadow-black/10" style={{ elevation: 5 }}>
         <MaskedView
           style={StyleSheet.absoluteFill}
           maskElement={
             <View style={{ flex: 1, backgroundColor: 'transparent' }}>
               <Svg
                 width={width}
-                height={84}
+                height={84 + iosPadding}
                 style={{ position: 'absolute', top: 0, left: 0 }}
               >
                 <Path d={curveTabPath} fill="black" />
@@ -141,13 +143,23 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
             </View>
           }
         >
-          {/* Real Blur Effect */}
-
+          {/* Real Blur Effect - iOS Only */}
+          {Platform.OS === 'ios' && (
+            <BlurView
+              intensity={30}
+              style={StyleSheet.absoluteFill}
+              tint="light"
+            />
+          )}
 
           {/* Frosted / Tint Overlay - Subtle White Gradient */}
           {/* Liquid Glass Gradient - Glossy Reflection */}
           <LinearGradient
-            colors={[
+            colors={Platform.OS === 'ios' ? [
+              'rgba(255, 255, 255, 0.5)', // More transparent for iOS
+              'rgba(255, 255, 255, 0.2)',
+              'rgba(255, 255, 255, 0.5)'
+            ] : [
               'rgba(255, 255, 255, 0.95)', // Almost solid top
               'rgba(255, 255, 255, 0.85)', // Frosted middle
               'rgba(255, 255, 255, 0.95)'  // Solid bottom
@@ -160,8 +172,8 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
         </MaskedView>
 
         {/* Top Highlight Stroke - Light Refraction */}
-        <View className="absolute top-0 left-0 right-0 bottom-0" pointerEvents="none">
-          <Svg width={width} height={84}>
+        <View className="absolute top-0 left-0 right-0 bottom-0" pointerEvents="none" style={{ elevation: 5 }}>
+          <Svg width={width} height={84 + iosPadding}>
             <Defs>
               <SvgLinearGradient id="borderGradient" x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0" stopColor="rgba(255,255,255,0.9)" stopOpacity="1" />
@@ -189,20 +201,22 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
                 style={{
                   width: 60,
                   alignItems: "center",
-                  transform: [{ translateY: -36 }], // ✅ THIS WORKS ON MOBILE
+                  transform: [{ translateY: -36 }],
                   zIndex: 1001,
-                  elevation: 20,
+                  elevation: 10,
                 }}
               >
                 <Pressable
                   onPress={item.onPress}
-                  className="w-[60px] h-[60px] rounded-full bg-white p-[3px] shadow-lg shadow-sky-500/40"
+                  className="w-[60px] h-[60px] rounded-full bg-white p-[3px] shadow-lg shadow-sky-500/25"
                   style={({ pressed }) => ({
-                    transform: [{ scale: pressed ? 0.96 : 1 }],
-                    elevation: 8,
+                    transform: [{ scale: pressed ? 0.98 : 1 }],
+                    elevation: 10,
                     borderRadius: 30,
                     marginTop: -30,
                   })}
+                  accessibilityRole="button"
+                  accessibilityLabel="AI Assistant"
                 >
                   <LinearGradient
                     colors={[colors.palette_dark_blue, colors.primary, '#d8b4fe']}
@@ -231,6 +245,9 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
               onPress={() => item.route && router.push(item.route as any)}
               className={`w-[60px] h-[60px] items-center justify-center ${active ? 'opacity-100' : 'opacity-100'}`}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+              accessibilityRole="button"
+              accessibilityLabel={item.label}
+              accessibilityState={{ selected: active }}
             >
               <View className="items-center justify-center">
                 <View className="h-[26px] justify-center mb-0.5">
@@ -261,10 +278,12 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
         <Pressable
           style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}
           onPress={() => setShowAIModal(false)}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss modal"
         >
           <Pressable
             className="bg-bg_white rounded-t-[32px] px-[30px] pb-10 pt-4 min-h-[320px] shadow-xl shadow-black/10"
-            style={{ elevation: 25 }}
+            style={{ elevation: 15 }}
             onPress={(e) => e.stopPropagation()}
           >
             {/* Grab Handle */}
@@ -277,6 +296,8 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({
               <Pressable
                 onPress={() => setShowAIModal(false)}
                 className="p-1 bg-bg_secondary rounded-full"
+                accessibilityRole="button"
+                accessibilityLabel="Close AI Assistant"
               >
                 <Ionicons name="close" size={20} color={colors.text_secondary} />
               </Pressable>

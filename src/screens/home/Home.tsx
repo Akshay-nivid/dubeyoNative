@@ -1,7 +1,6 @@
-import BottomNavigationBar from "@/src/components/BottomNavigationBar";
 import LocationPicker from "@/src/components/LocationPicker";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Animated, Platform, RefreshControl, StatusBar, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Defs, RadialGradient, Rect, Stop, Svg } from "react-native-svg";
@@ -39,33 +38,33 @@ const HomeScreen = () => {
   return (
     <>
       {/* Full Screen Gradient Background */}
-      <Svg height="30%" width="100%" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+      <Svg height="45%" width="100%" style={{ position: 'absolute', top: 0 }}>
         <Defs>
           <RadialGradient
             id="grad1"
             cx="0%"
-            cy="20%"
-            rx="50%"
+            cy="40%"
+            rx="60%"
             ry="50%"
             fx="0%"
-            fy="20%"
+            fy="40%"
             gradientUnits="userSpaceOnUse"
           >
-            <Stop offset="0%" stopColor="#22d3ee" stopOpacity="0.3" />
-            <Stop offset="100%" stopColor="#fff" stopOpacity="0" />
+            <Stop offset="0%" stopColor="#ddd7f9ff" stopOpacity="1" />
+            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
           </RadialGradient>
           <RadialGradient
             id="grad2"
             cx="100%"
-            cy="20%"
-            rx="50%"
-            ry="50%"
+            cy="50%"
+            rx="70%"
+            ry="60%"
             fx="100%"
-            fy="20%"
+            fy="50%"
             gradientUnits="userSpaceOnUse"
           >
-            <Stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3" />
-            <Stop offset="100%" stopColor="#fff" stopOpacity="0" />
+            <Stop offset="0%" stopColor="#ddd7f9ff" stopOpacity="1" />
+            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
           </RadialGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill="#fff" />
@@ -103,13 +102,13 @@ const HomeScreen = () => {
             <Animated.View
               style={[
                 StyleSheet.absoluteFill,
-                { opacity: headerOpacity, backgroundColor: 'rgba(255,255,255,0.95)' }
+                { opacity: headerOpacity, backgroundColor: 'rgba(255,255,255,0.85)' }
               ]}
             />
             <SearchBar />
           </View>
           {/* Content Sheet - Starts below search, scrolls under */}
-          <View className="flex-1 rounded-t-[20px] overflow-hidden min-h-screen" style={{ backgroundColor: '#FAF1F8' }}>
+          <View className="flex-1 rounded-t-[20px] overflow-hidden min-h-screen" style={{ backgroundColor: '#F7F8FC' }}>
             <View style={{ paddingTop: 20 }}>
               <CategoryList
                 categories={categoriesToRender}
@@ -145,7 +144,6 @@ const HomeScreen = () => {
             </View>
           </View>
         </Animated.ScrollView>
-        <BottomNavigationBar />
         <ClassifiedShowCard
           open={subcategoriesOpen}
           category={category}

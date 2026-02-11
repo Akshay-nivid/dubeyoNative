@@ -170,7 +170,7 @@ const SectionListingScreen = () => {
         <ThemedBackground>
             <SafeAreaView className="flex-1" edges={["top"]}>
                 {/* Header */}
-                <View className="px-4 py-4 flex-row items-center border-b border-white/50 bg-white/50 backdrop-blur-md">
+                <View className="px-4 pt-12 pb-4 flex-row items-center border-b border-white/50 bg-white/50 backdrop-blur-md">
                     <TouchableOpacity
                         onPress={() => router.back()}
                         className="w-10 h-10 items-center justify-center bg-white rounded-full shadow-sm"

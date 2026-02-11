@@ -1,9 +1,7 @@
 import { colors } from "@/theme";
 import { useRouter } from "expo-router";
-import React from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import BottomNavigationBar from "@/src/components/BottomNavigationBar";
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -27,7 +25,6 @@ export default function ChatScreen() {
           </Text>
         </Pressable>
       </View>
-      <BottomNavigationBar />
     </SafeAreaView>
   );
 }

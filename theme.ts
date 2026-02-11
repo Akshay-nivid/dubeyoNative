@@ -10,11 +10,11 @@ export const colors = {
   palette_light_blue_gray: "#f1edea",
   palette_light_cream: "#F7F7FA",
   // Primary Colors
-  primary: "#108EAA", // Dark blue - Main brand color
+  primary: "#6944c7", // Violet - Main brand color
   primary_dark: "#1f2937", // Darker shade for hover states
   primary_light: "#4a5568", // Lighter shade
   // Button Colors
-  primary_btn: "#108EAA", // Dark blue - Primary button
+  primary_btn: "#6944c7", // Violet - Primary button
   success_btn: "#16a34a", // Green-600 - Success button (keeping for functionality)
   danger_btn: "#dc2626", // Red-600 - Danger button
   // Background Colors
@@ -42,10 +42,9 @@ export const colors = {
   error: "#dc2626",
 
   // Post Ad Colors
-  // Post Ad Colors
-  main_bg_gradient_start: '#f7e2fbff',
-  main_bg_gradient_middle: '#d8ecf9ff',
-  main_bg_gradient_end: '#d7d1f3ff',
+  main_bg_gradient_start: '#ddd7f9ff',
+  main_bg_gradient_middle: '#ffffff',
+  main_bg_gradient_end: '#ffffff',
   post_ad_text_gradient_teal: '#14B8A6',
   post_ad_text_gradient_blue: '#3B82F6',
   post_ad_text_gradient_violet: '#8B5CF6',
