@@ -34,10 +34,10 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
           {/* User Name */}
           {userName && (
             <Text
-              className="text-lg font-bold font-sans text-bg_black"
+              className="text-sm font-bold font-sans text-bg_black"
               numberOfLines={1}
             >
-              Hey,{userName ? ` ${userName}` : ""}
+              Hey,{userName ? ` ${userName}` : ""} 👋
             </Text>
           )}
           {/* Location */}
@@ -47,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
             className="flex-row items-center"
           >
             <Text
-              className="text-sm font-medium text-text_primary mr-1"
+              className="text-md font-medium text-text_primary mr-1"
               numberOfLines={1}
             >
               {place && place.trim() ? place : "Your location"}
@@ -63,8 +63,17 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
 
       {/* Notification Bell */}
       <TouchableOpacity
-        className="w-12 h-12 rounded-full items-center justify-center ml-2 bg-white/30 border border-white/50"
-        style={{ elevation: 0 }} // Remove elevation for flat glass look, or keep low
+        className="w-12 h-12 rounded-full items-center justify-center ml-2"
+        style={{
+          backgroundColor: '#f5f6f6ff',
+          borderWidth: 1,
+          borderColor: '#ffffff',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 2,
+          elevation: 2,
+        }}
         activeOpacity={0.7}
       >
         <Ionicons name="notifications-outline" size={26} color={colors.text_primary} />

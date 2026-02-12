@@ -143,42 +143,44 @@ const BottomNavigationBar = ({
             </View>
           }
         >
-          {/* Real Blur Effect - iOS Only */}
-          {Platform.OS === 'ios' && (
-            <BlurView
-              intensity={30}
-              style={StyleSheet.absoluteFill}
-              tint="light"
-            />
-          )}
+          {/* Real Blur Effect - iOS Native Style */}
+          <BlurView
+            intensity={Platform.OS === "ios" ? 60 : 45}
+            tint="light"
+            experimentalBlurMethod="dimezisBlurView" // ⭐ stronger Android blur
+            style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(255,255,255,0.015)" }]}
+          />
 
-          {/* Frosted / Tint Overlay - Subtle White Gradient */}
-          {/* Liquid Glass Gradient - Glossy Reflection */}
+          {/* iOS-Style Glass Highlight - Extremely Subtle Purple Wash */}
           <LinearGradient
-            colors={Platform.OS === 'ios' ? [
-              'rgba(255, 255, 255, 0.5)', // More transparent for iOS
-              'rgba(255, 255, 255, 0.2)',
-              'rgba(255, 255, 255, 0.5)'
-            ] : [
-              'rgba(255, 255, 255, 0.95)', // Almost solid top
-              'rgba(255, 255, 255, 0.85)', // Frosted middle
-              'rgba(255, 255, 255, 0.95)'  // Solid bottom
+            colors={[
+              "rgba(255,255,255,0.08)",   // subtle highlight
+              "rgba(255,255,255,0.02)",   // almost transparent
+              "rgba(255,255,255,0.05)"    // soft frost bottom
             ]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
-            locations={[0, 0.5, 1]}
+            locations={[0, 0.4, 1]}
             style={StyleSheet.absoluteFill}
           />
         </MaskedView>
+
+        <View
+          pointerEvents="none"
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: "rgba(255,255,255,0.008)"
+          }}
+        />
 
         {/* Top Highlight Stroke - Light Refraction */}
         <View className="absolute top-0 left-0 right-0 bottom-0" pointerEvents="none" style={{ elevation: 5 }}>
           <Svg width={width} height={84 + iosPadding}>
             <Defs>
               <SvgLinearGradient id="borderGradient" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="rgba(255,255,255,0.9)" stopOpacity="1" />
-                <Stop offset="0.4" stopColor="rgba(255,255,255,0.2)" stopOpacity="1" />
-                <Stop offset="1" stopColor="rgba(255,255,255,0.6)" stopOpacity="1" />
+                <Stop offset="0" stopColor="rgba(255, 255, 255, 0.8)" stopOpacity="1" />
+                <Stop offset="0.1" stopColor="rgba(255, 255, 255, 0.2)" stopOpacity="1" />
+                <Stop offset="1" stopColor="rgba(255, 255, 255, 0.05)" stopOpacity="1" />
               </SvgLinearGradient>
             </Defs>
             <Path

@@ -46,12 +46,19 @@ const CategoryList: React.FC<CategoryListProps> = ({
               <View
                 className="w-full aspect-square rounded-xl items-center justify-center"
                 style={{
-                  backgroundColor: colors.bg_secondary,
+                  backgroundColor: '#f5f6f6ff',
+                  borderWidth: 1,
+                  borderColor: '#ffffff',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  elevation: 2,
                   paddingTop:
                     c.name === "Property" ||
-                    c.name === "Mobiles Tablets" ||
-                    c.name === "Professional For Hire" ||
-                    c.name === "Professinal For Hire"
+                      c.name === "Mobiles Tablets" ||
+                      c.name === "Professional For Hire" ||
+                      c.name === "Professinal For Hire"
                       ? 6
                       : c.name === "Motors" || c.name === "Job" || c.name === "Classifieds" || c.name === "Furniture Garden"
                         ? 0
@@ -160,8 +167,8 @@ const CategoryList: React.FC<CategoryListProps> = ({
                           ? 2
                           : c.name === "Professional For Hire" ||
                             c.name === "Professinal For Hire"
-                          ? -13
-                          : 6,
+                            ? -13
+                            : 6,
                     }}
                     numberOfLines={2}
                   >

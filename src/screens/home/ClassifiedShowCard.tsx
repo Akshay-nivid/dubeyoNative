@@ -367,12 +367,13 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                         style={{
                           backgroundColor:
                             selectedSubcategory?.id === sub.id
-                              ? colors.bg_black
-                              : 'transparent',
+                              ? 'transparent'
+                              : '#f5f6f6ff',
                           borderColor:
                             selectedSubcategory?.id === sub.id
-                              ? colors.bg_black
-                              : colors.border_primary,
+                              ? colors.primary
+                              : 'transparent',
+                          borderWidth: selectedSubcategory?.id === sub.id ? 1.5 : 1,
                         }}
                       >
                         <Text
@@ -380,7 +381,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                           style={{
                             color:
                               selectedSubcategory?.id === sub.id
-                                ? colors.text_white
+                                ? colors.primary
                                 : colors.text_primary,
                           }}
                         >
@@ -417,12 +418,13 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                           style={{
                             backgroundColor:
                               data.divisionId === d.id
-                                ? colors.bg_black
-                                : 'transparent',
+                                ? 'transparent'
+                                : '#f5f6f6ff',
                             borderColor:
                               data.divisionId === d.id
-                                ? colors.bg_black
-                                : colors.border_primary,
+                                ? colors.primary
+                                : 'transparent',
+                            borderWidth: data.divisionId === d.id ? 1.5 : 1,
                           }}
                         >
                           <Text
@@ -430,7 +432,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                             style={{
                               color:
                                 data.divisionId === d.id
-                                  ? colors.text_white
+                                  ? colors.primary
                                   : colors.text_primary,
                             }}
                           >
@@ -464,8 +466,8 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
             }}
           >
             <TouchableOpacity
-              className="items-center justify-center py-4 rounded-xl shadow-md"
-              style={{ backgroundColor: colors.bg_black }}
+              className="items-center justify-center py-4 rounded-full shadow-md"
+              style={{ backgroundColor: colors.primary }}
               onPress={handleViewItems}
             >
               <Text
