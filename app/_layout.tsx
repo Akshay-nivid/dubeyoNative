@@ -22,7 +22,7 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: 'transparent' },
-            animation: 'slide_from_right',
+            animation: 'none',
           }}
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />

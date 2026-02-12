@@ -1,4 +1,5 @@
 // import { t } from "@/src/localization/i18n";
+import FreeMapView from "@/src/components/FreeMapView";
 import { Api } from "@/src/screens/home/Api";
 import { get } from "@/src/services/api";
 import { getImages } from "@/src/services/imageLink/image";
@@ -14,14 +15,21 @@ import {
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
+
+
   ScrollView,
   Share,
   Text,
   View
 } from "react-native";
+
+
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -196,60 +204,41 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
 
   // Handle scroll to detect active section
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (isScrolling) return; // Don't update tab while programmatically scrolling
+    if (isScrolling) return;
 
-    const scrollYValue = event.nativeEvent.contentOffset.y;
-    const viewportHeight = Dimensions.get('window').height;
-    const headerHeight = SCREEN_WIDTH + 100; // Image carousel + product info
-    const viewportCenter = scrollYValue + viewportHeight / 2;
+    const scrollY = event.nativeEvent.contentOffset.y;
+    // Offset accounts for the image carousel + main info block + sticky tab bar
+    // sectionPositions.location etc. from onLayout are relative to content start
+    const threshold = 100; // Point where tab switches
 
-    // Skip if sections haven't been measured yet
-    if (sectionPositions.description === 0 && sectionPositions.details === 0 && sectionPositions.location === 0) {
-      return;
-    }
-
-    // onLayout gives positions relative to ScrollView content, so add header height
-    const descriptionPos = sectionPositions.description + headerHeight;
-    const detailsPos = sectionPositions.details + headerHeight;
-    const locationPos = sectionPositions.location + headerHeight;
-
-    // Determine active tab based on which section center is closest to viewport center
-    // Use a threshold to avoid rapid switching
-    const threshold = 100;
-
-    if (sectionPositions.location > 0 && viewportCenter >= locationPos - threshold) {
-      setActiveTab('location');
-    } else if (sectionPositions.details > 0 && viewportCenter >= detailsPos - threshold) {
-      setActiveTab('details');
-    } else if (sectionPositions.description > 0 && viewportCenter >= descriptionPos - threshold) {
-      setActiveTab('description');
+    if (sectionPositions.location > 0 && scrollY >= sectionPositions.location - threshold) {
+      if (activeTab !== 'location') setActiveTab('location');
+    } else if (sectionPositions.details > 0 && scrollY >= sectionPositions.details - threshold) {
+      if (activeTab !== 'details') setActiveTab('details');
+    } else if (sectionPositions.description > 0) {
+      if (activeTab !== 'description') setActiveTab('description');
     }
   };
+
 
   // Scroll to section when tab is pressed
   const scrollToSection = (section: 'description' | 'details' | 'location') => {
-    setIsScrolling(true);
-    setActiveTab(section);
+    const position = sectionPositions[section];
+    if (position > 0) {
+      setIsScrolling(true);
+      setActiveTab(section);
 
-    const ref = section === 'description' ? descriptionRef : section === 'details' ? detailsRef : locationRef;
-    const headerHeight = SCREEN_WIDTH + 100;
-    const tabBarHeight = 60; // Approximate tab bar height
+      // Scroll to position minus sticky tab bar offset
+      mainScrollRef.current?.scrollTo({
+        y: position - 75,
+        animated: true,
+      });
 
-    // Use measureInWindow for accurate positioning
-    ref.current?.measureInWindow((x, y) => {
-      if (mainScrollRef.current) {
-        // Calculate scroll position: window Y position minus header height, minus offset for sticky tab bar
-        const scrollY = Math.max(0, y - headerHeight - tabBarHeight - 20);
-        mainScrollRef.current.scrollTo({
-          y: scrollY,
-          animated: true,
-        });
-        setTimeout(() => setIsScrolling(false), 600);
-      } else {
-        setIsScrolling(false);
-      }
-    });
+      // Reset scrolling flag after animation
+      setTimeout(() => setIsScrolling(false), 600);
+    }
   };
+
 
   if (loading) {
     return (
@@ -409,7 +398,8 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
         ref={mainScrollRef}
         className="flex-1"
         showsVerticalScrollIndicator={true}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 85 }}
+
         onScroll={handleScroll}
         scrollEventThrottle={16}
         stickyHeaderIndices={[3]}
@@ -675,120 +665,117 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
           </View>
         </View>
 
-        {/* Combined Description & Details Section */}
-        <View className="bg-bg_white rounded-b-2xl shadow-sm" style={{ elevation: 2 }}>
-
-          {/* Description Section */}
-          <View
-            ref={descriptionRef}
-            onLayout={handleDescriptionLayout}
-            className="px-4 py-4"
-          >
-            {description ? (
-              <>
-                <Text className="text-lg font-bold mb-2 text-text_primary">
-                  Description
-                </Text>
-                <Text className="text-base leading-6 text-text_primary">
-                  {displayDescription}
-                  {hasMoreDescription && (
-                    <Text
-                      onPress={() => setShowFullDescription(!showFullDescription)}
-                      className="font-bold text-bg_black"
-                    >
-                      {showFullDescription ? " Read less" : " Read more"}
-                    </Text>
-                  )}
-                </Text>
-              </>
-            ) : (
-              <View className="py-4">
-                <Text className="text-base text-text_tertiary text-center">
-                  No description
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Details Section */}
-          {specsEntries.length > 0 && (
-            <View
-              ref={detailsRef}
-              onLayout={handleDetailsLayout}
-              className="px-4 py-4"
-            >
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-xl font-bold text-text_primary">
-                  Details
-                </Text>
-                {hasMoreSpecs && (
-                  <Pressable onPress={() => setShowAllDetails(!showAllDetails)}>
-                    <Text className="text-md font-bold text-bg_black">
-                      {showAllDetails ? "Less" : "More"}
-                    </Text>
-                  </Pressable>
+        {/* Description Section */}
+        <View
+          ref={descriptionRef}
+          onLayout={handleDescriptionLayout}
+          className="px-4 py-4 bg-bg_white"
+        >
+          {description ? (
+            <>
+              <Text className="text-lg font-bold mb-2 text-text_primary">
+                Description
+              </Text>
+              <Text className="text-base leading-6 text-text_primary">
+                {displayDescription}
+                {hasMoreDescription && (
+                  <Text
+                    onPress={() => setShowFullDescription(!showFullDescription)}
+                    className="font-bold text-bg_black"
+                  >
+                    {showFullDescription ? " Read less" : " Read more"}
+                  </Text>
                 )}
-              </View>
-              <View className="flex-row flex-wrap" style={{ gap: 12 }}>
-                {displayedSpecs.map(([key, value]) => {
-                  const specValue =
-                    value && typeof value === "object" && "value" in value
-                      ? (value as any).value
-                      : value;
-                  const displayKey =
-                    value && typeof value === "object" && "label" in value
-                      ? (value as any).label
-                      : key;
-                  const displayValue =
-                    specValue !== null && specValue !== undefined
-                      ? String(specValue)
-                      : "";
-
-                  // Get icon for this spec (use both key and displayKey for better matching)
-                  const iconInfo = getSpecIcon(displayKey || key);
-
-                  return (
-                    <View
-                      key={key}
-                      className="bg-bg_white rounded-xl p-3 items-center"
-                      style={{
-                        width: '30%',
-                        minHeight: 100,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 4,
-                        elevation: 3,
-                      }}
-                    >
-                      {/* Icon Circle */}
-                      <View
-                        className="w-8 h-8 rounded-full items-center justify-center mb-2"
-                        style={{ backgroundColor: '#E6F7FA' }}
-                      >
-                        <Ionicons
-                          name={iconInfo.name}
-                          size={ICON.md}
-                          color={colors.text_primary}
-                        />
-                      </View>
-
-                      {/* Spec Content */}
-                      <View className="items-center">
-                        <Text className="text-xs text-bg_black mb-1 text-center" numberOfLines={2} style={{ lineHeight: 14 }}>
-                          {displayKey}
-                        </Text>
-                        <Text className="text-sm font-bold text-bg_black text-center" numberOfLines={2} style={{ lineHeight: 18 }}>
-                          {displayValue}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
+              </Text>
+            </>
+          ) : (
+            <View className="py-4">
+              <Text className="text-base text-text_tertiary text-center">
+                No description
+              </Text>
             </View>
           )}
         </View>
+
+        {/* Details Section */}
+        {specsEntries.length > 0 && (
+          <View
+            ref={detailsRef}
+            onLayout={handleDetailsLayout}
+            className="px-4 py-4 bg-bg_white"
+          >
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-xl font-bold text-text_primary">
+                Details
+              </Text>
+              {hasMoreSpecs && (
+                <Pressable onPress={() => setShowAllDetails(!showAllDetails)}>
+                  <Text className="text-md font-bold text-bg_black">
+                    {showAllDetails ? "Less" : "More"}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+            <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+              {displayedSpecs.map(([key, value]) => {
+                const specValue =
+                  value && typeof value === "object" && "value" in value
+                    ? (value as any).value
+                    : value;
+                const displayKey =
+                  value && typeof value === "object" && "label" in value
+                    ? (value as any).label
+                    : key;
+                const displayValue =
+                  specValue !== null && specValue !== undefined
+                    ? String(specValue)
+                    : "";
+
+                // Get icon for this spec (use both key and displayKey for better matching)
+                const iconInfo = getSpecIcon(displayKey || key);
+
+                return (
+                  <View
+                    key={key}
+                    className="bg-bg_white rounded-xl p-3 items-center"
+                    style={{
+                      width: '30%',
+                      minHeight: 100,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                      elevation: 3,
+                    }}
+                  >
+                    {/* Icon Circle */}
+                    <View
+                      className="w-8 h-8 rounded-full items-center justify-center mb-2"
+                      style={{ backgroundColor: '#E6F7FA' }}
+                    >
+                      <Ionicons
+                        name={iconInfo.name}
+                        size={ICON.md}
+                        color={colors.text_primary}
+                      />
+                    </View>
+
+                    {/* Spec Content */}
+                    <View className="items-center">
+                      <Text className="text-xs text-bg_black mb-1 text-center" numberOfLines={2} style={{ lineHeight: 14 }}>
+                        {displayKey}
+                      </Text>
+                      <Text className="text-sm font-bold text-bg_black text-center" numberOfLines={2} style={{ lineHeight: 18 }}>
+                        {displayValue}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
 
         {/* Posted On Section */}
         {product.createdAt && (
@@ -823,8 +810,22 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
               </Text> */}
             </Pressable>
           </View>
-          {(activeTab === 'location' || isLocationVisible) && (
-            <View className="bg-border_secondary rounded-lg overflow-hidden min-h-[200px]">
+          {(Platform.OS === 'ios' || Platform.OS === 'android') && product?.location?.coordinates && product.location.coordinates.length === 2 && (
+
+
+            <View className="bg-border_secondary rounded-2xl overflow-hidden min-h-[220px] mt-2 border border-border_primary">
+              <FreeMapView
+                latitude={product.location.coordinates[1]}
+                longitude={product.location.coordinates[0]}
+                title={product.title}
+                address={address}
+              />
+            </View>
+
+          )}
+
+          {(!product?.location?.coordinates || product.location.coordinates.length !== 2) && (
+            <View className="bg-border_secondary rounded-lg overflow-hidden min-h-[200px] mt-2">
               <View className="items-center justify-center min-h-[200px]">
                 <Ionicons
                   name="map-outline"
@@ -832,14 +833,16 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                   color={colors.text_tertiary}
                 />
                 <Text className="mt-4 text-base font-semibold text-text_primary">
-                  Map view
+                  Location not available
                 </Text>
               </View>
             </View>
           )}
+
         </View>
 
-        <View className="mx-4 mt-3 mb-6">
+        <View className="mx-4 mt-3 mb-2">
+
           <Pressable className="w-full py-3 rounded-xl items-center bg-bg_black">
             <Text className="text-base font-semibold text-text_white">
               Report ad
@@ -847,7 +850,7 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
           </Pressable>
         </View>
 
-        <View className="h-20" />
+
       </ScrollView>
 
       {product?.seller && (

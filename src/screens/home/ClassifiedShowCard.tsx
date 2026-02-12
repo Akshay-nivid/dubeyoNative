@@ -1,5 +1,6 @@
 import { get, post } from "@/src/services/api";
 import { colors } from "@/theme";
+import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -9,6 +10,7 @@ import {
   Modal,
   PanResponder,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View
@@ -39,6 +41,10 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const panY = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+
 
   const panResponder = useRef(
     PanResponder.create({
@@ -51,15 +57,25 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
           panY.setValue(gestureState.dy);
+          // Gently fade out backdrop as user drags down
+          const newOpacity = Math.max(0, 1 - (gestureState.dy / (Dimensions.get('window').height * 0.5)));
+          fadeAnim.setValue(newOpacity);
         }
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 150 || gestureState.vy > 0.5) {
-          Animated.timing(panY, {
-            toValue: Dimensions.get('window').height,
-            duration: 250,
-            useNativeDriver: true,
-          }).start(onClose);
+          Animated.parallel([
+            Animated.timing(panY, {
+              toValue: Dimensions.get('window').height,
+              duration: 250,
+              useNativeDriver: true,
+            }),
+            Animated.timing(fadeAnim, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            })
+          ]).start(onClose);
         } else {
           Animated.spring(panY, {
             toValue: 0,
@@ -75,14 +91,57 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
     if (open && category) {
       panY.setValue(0);
       fetchSubcategories();
+
+      // Opening Animation - Snappy "Blinking" Pop
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 80,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+      ]).start();
     } else {
-      // Reset state when modal closes
+      // Closing Animation (handled by onClose usually, but reset here for next time)
+      fadeAnim.setValue(0);
+      slideAnim.setValue(Dimensions.get('window').height);
+      scaleAnim.setValue(0.9);
+
       setSubcategories([]);
       setSelectedSubcategory(null);
       setError(null);
       setData({ subcategoryId: "", divisionId: "" });
     }
   }, [category, open]);
+
+  const handleClose = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: Dimensions.get('window').height,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onClose();
+    });
+  };
+
 
   const fetchSubcategories = async () => {
     setLoading(true);
@@ -180,7 +239,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       return;
     }
 
-    onClose();
+    handleClose();
 
     // Navigate to product listing with params
     const divisionTypes = selectedSubcategory?.division_type || [];
@@ -203,19 +262,33 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
     <Modal
       visible={open}
       transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      animationType="none"
+      onRequestClose={handleClose}
       statusBarTranslucent={true}
     >
       <View
         className="flex-1 justify-end"
         style={{ zIndex: 10000 }}
       >
-        <TouchableOpacity
-          className="flex-1"
-          onPress={onClose}
-          activeOpacity={0.7}
-        />
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { opacity: fadeAnim }
+          ]}
+        >
+          <TouchableOpacity
+            className="flex-1"
+            style={{ flex: 1 }}
+            onPress={handleClose}
+            activeOpacity={1}
+          >
+            <BlurView
+              intensity={70}
+              tint="dark"
+              style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)' }]}
+            />
+          </TouchableOpacity>
+        </Animated.View>
         <Animated.View
           className="rounded-t-[25px] w-full overflow-hidden"
           style={{
@@ -224,7 +297,10 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
             marginBottom: 0,
             paddingBottom: 0,
             backgroundColor: 'white',
-            transform: [{ translateY: panY }]
+            transform: [
+              { translateY: Animated.add(slideAnim, panY) },
+              { scale: scaleAnim }
+            ]
           }}
           {...panResponder.panHandlers}
         >

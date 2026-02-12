@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Image,
     ImageBackground,
     RefreshControl,
     ScrollView,
+    StatusBar,
     Text,
     TouchableOpacity,
     View
@@ -103,7 +103,7 @@ export default function ProfileScreen() {
 
     return (
         <View className="flex-1 bg-gray-50">
-            <StatusBar style="dark" />
+            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 refreshControl={
@@ -254,7 +254,7 @@ export default function ProfileScreen() {
                 {/* Logout Button */}
                 <View className="px-4 mt-8 mb-10">
                     <TouchableOpacity
-                        className="w-full bg-blue-900 py-4 rounded-2xl items-center shadow-sm active:bg-blue-900"
+                        className="w-full bg-primary py-4 rounded-2xl items-center shadow-sm active:bg-blue-900"
                         onPress={handleLogout}
                     >
                         <Text className="text-white text-lg font-bold">Log out</Text>

@@ -1,20 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Animated,
+    Dimensions,
     Image,
     Modal,
+    PanResponder,
     Platform,
     Pressable,
     ScrollView,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
+
 import Toast from "react-native-toast-message";
 import { colors } from "../../../theme";
 import DatePicker from "../../components/DatePicker";
@@ -49,6 +55,97 @@ export default function ProfileEditScreen() {
     const [showVerificationModal, setShowVerificationModal] = useState(false);
     const [submittingVerification, setSubmittingVerification] = useState(false);
     const [verificationStatus, setVerificationStatus] = useState<"not_verified" | "pending" | "rejected" | "verified">("not_verified");
+
+    const panY = useRef(new Animated.Value(0)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.9)).current;
+    const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (_, gestureState) => {
+                const isVerticalSwipe = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+                return isVerticalSwipe && Math.abs(gestureState.dy) > 10;
+            },
+            onPanResponderMove: (_, gestureState) => {
+                if (gestureState.dy > 0) {
+                    panY.setValue(gestureState.dy);
+                    const newOpacity = Math.max(0, 1 - (gestureState.dy / (Dimensions.get('window').height * 0.5)));
+                    fadeAnim.setValue(newOpacity);
+                }
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+                    Animated.parallel([
+                        Animated.timing(panY, {
+                            toValue: Dimensions.get('window').height,
+                            duration: 250,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(fadeAnim, {
+                            toValue: 0,
+                            duration: 250,
+                            useNativeDriver: true,
+                        })
+                    ]).start(() => setShowVerificationModal(false));
+                } else {
+                    Animated.spring(panY, {
+                        toValue: 0,
+                        bounciness: 4,
+                        useNativeDriver: true,
+                    }).start();
+                }
+            },
+        })
+    ).current;
+
+    useEffect(() => {
+        if (showVerificationModal) {
+            panY.setValue(0);
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(slideAnim, {
+                    toValue: 0,
+                    tension: 80,
+                    friction: 12,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(scaleAnim, {
+                    toValue: 1,
+                    tension: 80,
+                    friction: 12,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        } else {
+            fadeAnim.setValue(0);
+            slideAnim.setValue(Dimensions.get('window').height);
+            scaleAnim.setValue(0.9);
+        }
+    }, [showVerificationModal]);
+
+    const handleCloseVerification = () => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: Dimensions.get('window').height,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            setShowVerificationModal(false);
+        });
+    };
+
 
     const [formData, setFormData] = useState({
         firstName: "",
@@ -503,7 +600,8 @@ export default function ProfileEditScreen() {
             setSubmittingVerification(true);
             // TODO: Implement API call for verification submission
             setVerificationStatus("pending");
-            setShowVerificationModal(false);
+            handleCloseVerification();
+
             Toast.show({
                 type: "success",
                 text1: "Success",
@@ -786,198 +884,226 @@ export default function ProfileEditScreen() {
             <Modal
                 visible={showVerificationModal}
                 transparent
-                animationType="slide"
-                onRequestClose={() => setShowVerificationModal(false)}
+                animationType="none"
+                statusBarTranslucent={true}
+                onRequestClose={handleCloseVerification}
             >
-                <Pressable
-                    className="flex-1 bg-black/50 justify-end"
-                    onPress={() => setShowVerificationModal(false)}
+                <View
+                    className="flex-1 justify-end"
+                    style={{ zIndex: 10000 }}
                 >
-                    <Pressable
-                        className="bg-white rounded-t-3xl"
-                        onPress={(e) => e.stopPropagation()}
+                    <Animated.View
+                        style={[
+                            StyleSheet.absoluteFill,
+                            { opacity: fadeAnim }
+                        ]}
                     >
-                        <ScrollView
-                            showsVerticalScrollIndicator={false}
-                            className="max-h-[90%]"
-                            contentContainerStyle={{ paddingBottom: 12 }}
+                        <Pressable
+                            className="flex-1"
+                            onPress={handleCloseVerification}
                         >
-                            {/* Modal Header */}
-                            <View className="flex-row items-center justify-between px-5 pt-3 pb-2.5 border-b border-gray-200">
-                                <Text className="text-lg font-bold text-gray-900">
-                                    Identity Verification
-                                </Text>
-                                <TouchableOpacity
-                                    onPress={() => setShowVerificationModal(false)}
-                                    className="p-1.5 -mr-1.5"
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons name="close" size={22} color="#000" />
-                                </TouchableOpacity>
-                            </View>
+                            <BlurView
+                                intensity={70}
+                                tint="dark"
+                                style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)' }]}
+                            />
+                        </Pressable>
+                    </Animated.View>
+                    <Animated.View
+                        className="bg-white rounded-t-3xl max-h-[90%] overflow-hidden"
+                        style={{
+                            transform: [
+                                { translateY: Animated.add(slideAnim, panY) },
+                                { scale: scaleAnim }
+                            ]
+                        }}
+                        {...panResponder.panHandlers}
+                    >
+                        <View className="flex-1">
 
-                            <View className="px-5 pt-3">
-                                {/* Emirates ID Number */}
-                                <View className="mb-2.5">
-                                    <Text className="text-sm font-medium text-gray-700 mb-1">
-                                        Emirates ID Number <Text className="text-red-500">*</Text>
+                            <ScrollView
+                                showsVerticalScrollIndicator={false}
+                                className="max-h-[90%]"
+                                contentContainerStyle={{ paddingBottom: 12 }}
+                            >
+                                {/* Modal Header */}
+                                <View className="flex-row items-center justify-between px-5 pt-3 pb-2.5 border-b border-gray-200">
+                                    <Text className="text-lg font-bold text-gray-900">
+                                        Identity Verification
                                     </Text>
-                                    <TextInput
-                                        placeholder="Enter Emirates ID Number"
-                                        placeholderTextColor={colors.text_secondary}
-                                        value={verificationForm.emiratesId}
-                                        onChangeText={(text) => handleVerificationChange("emiratesId", text)}
-                                        className={`rounded-xl px-4 py-3 text-base bg-bg_white border text-text_primary ${verificationErrors.emiratesId ? "border-error" : "border-border_primary"}`}
-                                    />
-                                    {verificationErrors.emiratesId && (
-                                        <Text className="text-xs text-red-500 mt-0.5">
-                                            {verificationErrors.emiratesId}
-                                        </Text>
-                                    )}
+                                    <TouchableOpacity
+                                        onPress={() => setShowVerificationModal(false)}
+                                        className="p-1.5 -mr-1.5"
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons name="close" size={22} color="#000" />
+                                    </TouchableOpacity>
                                 </View>
 
-                                {/* Full Name */}
-                                <View className="mb-2.5">
-                                    <Text className="text-sm font-medium text-gray-700 mb-1">
-                                        Full Name <Text className="text-red-500">*</Text>
-                                    </Text>
-                                    <TextInput
-                                        placeholder="Enter Full Name"
-                                        placeholderTextColor={colors.text_secondary}
-                                        value={verificationForm.fullName}
-                                        onChangeText={(text) => handleVerificationChange("fullName", text)}
-                                        className={`rounded-xl px-4 py-3 text-base bg-bg_white border text-text_primary ${verificationErrors.fullName ? "border-error" : "border-border_primary"}`}
-                                    />
-                                    {verificationErrors.fullName && (
-                                        <Text className="text-xs text-red-500 mt-0.5">
-                                            {verificationErrors.fullName}
+                                <View className="px-5 pt-3">
+                                    {/* Emirates ID Number */}
+                                    <View className="mb-2.5">
+                                        <Text className="text-sm font-medium text-gray-700 mb-1">
+                                            Emirates ID Number <Text className="text-red-500">*</Text>
                                         </Text>
-                                    )}
-                                </View>
-
-                                {/* Date of Birth */}
-                                <View className="mb-2.5">
-                                    <Text className="text-sm font-medium text-gray-700 mb-1">
-                                        Date of Birth (DOB) <Text className="text-red-500">*</Text>
-                                    </Text>
-                                    <DatePicker
-                                        label="Select date"
-                                        name="dob"
-                                        value={verificationForm.dob}
-                                        onChange={handleVerificationChange}
-                                        placeholder="Select date"
-                                        required={true}
-                                    />
-                                    {verificationErrors.dob && (
-                                        <Text className="text-xs text-red-500 mt-0.5">
-                                            {verificationErrors.dob}
-                                        </Text>
-                                    )}
-                                </View>
-
-                                {/* Expiry Date */}
-                                <View className="mb-2.5">
-                                    <Text className="text-sm font-medium text-gray-700 mb-1">
-                                        Expiry Date <Text className="text-red-500">*</Text>
-                                    </Text>
-                                    <DatePicker
-                                        label="Select date"
-                                        name="expiryDate"
-                                        value={verificationForm.expiryDate}
-                                        onChange={handleVerificationChange}
-                                        placeholder="Select date"
-                                        required={true}
-                                    />
-                                    {verificationErrors.expiryDate && (
-                                        <Text className="text-xs text-red-500 mt-0.5">
-                                            {verificationErrors.expiryDate}
-                                        </Text>
-                                    )}
-                                </View>
-
-                                {/* Image Upload Section */}
-                                <View className="mb-3">
-                                    <View className="flex-row gap-2.5">
-                                        {/* Front Image */}
-                                        <View className="flex-1">
-                                            <Text className="text-sm font-medium text-gray-700 mb-1">
-                                                (Emirates ID - Front image) <Text className="text-red-500">*</Text>
+                                        <TextInput
+                                            placeholder="Enter Emirates ID Number"
+                                            placeholderTextColor={colors.text_secondary}
+                                            value={verificationForm.emiratesId}
+                                            onChangeText={(text) => handleVerificationChange("emiratesId", text)}
+                                            className={`rounded-xl px-4 py-3 text-base bg-bg_white border text-text_primary ${verificationErrors.emiratesId ? "border-error" : "border-border_primary"}`}
+                                        />
+                                        {verificationErrors.emiratesId && (
+                                            <Text className="text-xs text-red-500 mt-0.5">
+                                                {verificationErrors.emiratesId}
                                             </Text>
-                                            <TouchableOpacity
-                                                onPress={() => handleImageUpload("front")}
-                                                className={`border-2 border-dashed rounded-xl p-3 items-center justify-center min-h-[90px] ${verificationForm.frontImage ? "bg-bg_primary" : "bg-bg_secondary"} ${verificationErrors.frontImage ? "border-error" : "border-border_primary"}`}
-                                                activeOpacity={0.7}
-                                            >
-                                                {verificationForm.frontImage ? (
-                                                    <Image
-                                                        source={{ uri: verificationForm.frontImage }}
-                                                        className="w-full h-18 rounded-lg"
-                                                        resizeMode="cover"
-                                                    />
-                                                ) : (
-                                                    <>
-                                                        <Ionicons name="arrow-up-circle-outline" size={24} color={colors.icon_secondary} />
-                                                        <Text className="text-xs text-gray-600 mt-1">Upload</Text>
-                                                    </>
-                                                )}
-                                            </TouchableOpacity>
-                                            {verificationErrors.frontImage && (
-                                                <Text className="text-xs text-red-500 mt-0.5">
-                                                    {verificationErrors.frontImage}
-                                                </Text>
-                                            )}
-                                        </View>
+                                        )}
+                                    </View>
 
-                                        {/* Back Image */}
-                                        <View className="flex-1">
-                                            <Text className="text-sm font-medium text-gray-700 mb-1">
-                                                (Emirates ID - Back image) <Text className="text-red-500">*</Text>
+                                    {/* Full Name */}
+                                    <View className="mb-2.5">
+                                        <Text className="text-sm font-medium text-gray-700 mb-1">
+                                            Full Name <Text className="text-red-500">*</Text>
+                                        </Text>
+                                        <TextInput
+                                            placeholder="Enter Full Name"
+                                            placeholderTextColor={colors.text_secondary}
+                                            value={verificationForm.fullName}
+                                            onChangeText={(text) => handleVerificationChange("fullName", text)}
+                                            className={`rounded-xl px-4 py-3 text-base bg-bg_white border text-text_primary ${verificationErrors.fullName ? "border-error" : "border-border_primary"}`}
+                                        />
+                                        {verificationErrors.fullName && (
+                                            <Text className="text-xs text-red-500 mt-0.5">
+                                                {verificationErrors.fullName}
                                             </Text>
-                                            <TouchableOpacity
-                                                onPress={() => handleImageUpload("back")}
-                                                className={`border-2 border-dashed rounded-xl p-3 items-center justify-center min-h-[90px] ${verificationForm.backImage ? "bg-bg_primary" : "bg-bg_secondary"} ${verificationErrors.backImage ? "border-error" : "border-border_primary"}`}
-                                                activeOpacity={0.7}
-                                            >
-                                                {verificationForm.backImage ? (
-                                                    <Image
-                                                        source={{ uri: verificationForm.backImage }}
-                                                        className="w-full h-18 rounded-lg"
-                                                        resizeMode="cover"
-                                                    />
-                                                ) : (
-                                                    <>
-                                                        <Ionicons name="arrow-up-circle-outline" size={24} color={colors.icon_secondary} />
-                                                        <Text className="text-xs text-gray-600 mt-1">Upload</Text>
-                                                    </>
-                                                )}
-                                            </TouchableOpacity>
-                                            {verificationErrors.backImage && (
-                                                <Text className="text-xs text-red-500 mt-0.5">
-                                                    {verificationErrors.backImage}
+                                        )}
+                                    </View>
+
+                                    {/* Date of Birth */}
+                                    <View className="mb-2.5">
+                                        <Text className="text-sm font-medium text-gray-700 mb-1">
+                                            Date of Birth (DOB) <Text className="text-red-500">*</Text>
+                                        </Text>
+                                        <DatePicker
+                                            label="Select date"
+                                            name="dob"
+                                            value={verificationForm.dob}
+                                            onChange={handleVerificationChange}
+                                            placeholder="Select date"
+                                            required={true}
+                                        />
+                                        {verificationErrors.dob && (
+                                            <Text className="text-xs text-red-500 mt-0.5">
+                                                {verificationErrors.dob}
+                                            </Text>
+                                        )}
+                                    </View>
+
+                                    {/* Expiry Date */}
+                                    <View className="mb-2.5">
+                                        <Text className="text-sm font-medium text-gray-700 mb-1">
+                                            Expiry Date <Text className="text-red-500">*</Text>
+                                        </Text>
+                                        <DatePicker
+                                            label="Select date"
+                                            name="expiryDate"
+                                            value={verificationForm.expiryDate}
+                                            onChange={handleVerificationChange}
+                                            placeholder="Select date"
+                                            required={true}
+                                        />
+                                        {verificationErrors.expiryDate && (
+                                            <Text className="text-xs text-red-500 mt-0.5">
+                                                {verificationErrors.expiryDate}
+                                            </Text>
+                                        )}
+                                    </View>
+
+                                    {/* Image Upload Section */}
+                                    <View className="mb-3">
+                                        <View className="flex-row gap-2.5">
+                                            {/* Front Image */}
+                                            <View className="flex-1">
+                                                <Text className="text-sm font-medium text-gray-700 mb-1">
+                                                    (Emirates ID - Front image) <Text className="text-red-500">*</Text>
                                                 </Text>
-                                            )}
+                                                <TouchableOpacity
+                                                    onPress={() => handleImageUpload("front")}
+                                                    className={`border-2 border-dashed rounded-xl p-3 items-center justify-center min-h-[90px] ${verificationForm.frontImage ? "bg-bg_primary" : "bg-bg_secondary"} ${verificationErrors.frontImage ? "border-error" : "border-border_primary"}`}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    {verificationForm.frontImage ? (
+                                                        <Image
+                                                            source={{ uri: verificationForm.frontImage }}
+                                                            className="w-full h-18 rounded-lg"
+                                                            resizeMode="cover"
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            <Ionicons name="arrow-up-circle-outline" size={24} color={colors.icon_secondary} />
+                                                            <Text className="text-xs text-gray-600 mt-1">Upload</Text>
+                                                        </>
+                                                    )}
+                                                </TouchableOpacity>
+                                                {verificationErrors.frontImage && (
+                                                    <Text className="text-xs text-red-500 mt-0.5">
+                                                        {verificationErrors.frontImage}
+                                                    </Text>
+                                                )}
+                                            </View>
+
+                                            {/* Back Image */}
+                                            <View className="flex-1">
+                                                <Text className="text-sm font-medium text-gray-700 mb-1">
+                                                    (Emirates ID - Back image) <Text className="text-red-500">*</Text>
+                                                </Text>
+                                                <TouchableOpacity
+                                                    onPress={() => handleImageUpload("back")}
+                                                    className={`border-2 border-dashed rounded-xl p-3 items-center justify-center min-h-[90px] ${verificationForm.backImage ? "bg-bg_primary" : "bg-bg_secondary"} ${verificationErrors.backImage ? "border-error" : "border-border_primary"}`}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    {verificationForm.backImage ? (
+                                                        <Image
+                                                            source={{ uri: verificationForm.backImage }}
+                                                            className="w-full h-18 rounded-lg"
+                                                            resizeMode="cover"
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            <Ionicons name="arrow-up-circle-outline" size={24} color={colors.icon_secondary} />
+                                                            <Text className="text-xs text-gray-600 mt-1">Upload</Text>
+                                                        </>
+                                                    )}
+                                                </TouchableOpacity>
+                                                {verificationErrors.backImage && (
+                                                    <Text className="text-xs text-red-500 mt-0.5">
+                                                        {verificationErrors.backImage}
+                                                    </Text>
+                                                )}
+                                            </View>
                                         </View>
                                     </View>
-                                </View>
 
-                                {/* Submit Button */}
-                                <TouchableOpacity
-                                    onPress={handleVerificationSubmit}
-                                    disabled={submittingVerification}
-                                    className={`bg-bg_black py-3 rounded-xl items-center ${submittingVerification ? "opacity-60" : ""}`}
-                                    activeOpacity={0.7}
-                                >
-                                    {submittingVerification ? (
-                                        <ActivityIndicator size="small" color={colors.text_white} />
-                                    ) : (
-                                        <Text className="text-text_white font-bold text-base">Submit</Text>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                        </ScrollView>
-                    </Pressable>
-                </Pressable>
+                                    {/* Submit Button */}
+                                    <TouchableOpacity
+                                        onPress={handleVerificationSubmit}
+                                        disabled={submittingVerification}
+                                        className={`bg-bg_black py-3 rounded-xl items-center ${submittingVerification ? "opacity-60" : ""}`}
+                                        activeOpacity={0.7}
+                                    >
+                                        {submittingVerification ? (
+                                            <ActivityIndicator size="small" color={colors.text_white} />
+                                        ) : (
+                                            <Text className="text-text_white font-bold text-base">Submit</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </ScrollView>
+                        </View>
+                    </Animated.View>
+                </View>
             </Modal>
         </View>
     );
 }
+
