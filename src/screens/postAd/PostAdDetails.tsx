@@ -1,6 +1,7 @@
 import LocationPicker from "@/src/components/LocationPicker";
 import { get, post } from "@/src/services/api";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -8,6 +9,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
+    BackHandler,
+    Modal,
     ScrollView,
     Text,
     TextInput,
@@ -186,6 +189,42 @@ const PostAdDetails = () => {
 
     // Location Picker State
     const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+    const [successModalVisible, setSuccessModalVisible] = useState(false);
+    const [createdProductId, setCreatedProductId] = useState<string | null>(null);
+
+    const navigation = useNavigation();
+
+    // Cross-platform Navigation Guard (iOS swipe-back & Android back button)
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            if (!successModalVisible) {
+                // If modal is not visible, let navigation happen normally
+                return;
+            }
+
+            // Prevent default behavior of leaving the screen
+            e.preventDefault();
+        });
+
+        // Android Hardware Back Button specific listener
+        const backAction = () => {
+            if (successModalVisible) {
+                // If modal is visible, block hardware back but stay on screen
+                return true;
+            }
+            return false;
+        };
+
+        const backHandler = BackHandler.addEventListener(
+            "hardwareBackPress",
+            backAction
+        );
+
+        return () => {
+            unsubscribe();
+            backHandler.remove();
+        };
+    }, [navigation, successModalVisible]);
 
     const normalizeFieldKey = (field: string) =>
         field
@@ -491,7 +530,7 @@ const PostAdDetails = () => {
             const finalPayload = res.data ?? res;
 
             // Extract questions from various possible locations
-           const questionsData = [
+            const questionsData = [
                 ...(finalPayload.questions || []),
                 ...(finalPayload.dynamicQuestions || []),
                 ...(finalPayload.additionalQuestions || [])
@@ -624,8 +663,10 @@ const PostAdDetails = () => {
             const res = await post(PostAdApi.createProduct, payload);
 
             if (res.status === 200 || res.status === 201) {
-                Toast.show({ type: 'success', text1: 'Success', text2: 'Ad posted successfully!' });
-                router.replace("/home");
+                // Determine the product ID if possible for the "View Ad" button
+                const productId = res.data?.data?.id || res.data?.id || res.data?._id;
+                setCreatedProductId(productId);
+                setSuccessModalVisible(true);
             } else {
 
                 let errorMsg = res.message || 'Failed to submit';
@@ -758,9 +799,6 @@ const PostAdDetails = () => {
                             </>
                         )}
                     </View>
-
-                   
-
                     {/* Specs */}
                     {generationStep >= GENERATION_STEPS.BASIC_FORM && (generationStep < GENERATION_STEPS.SPECS_FORM || hasValidSpecs || !data.division || !!data.division) && (
                         <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
@@ -823,7 +861,7 @@ const PostAdDetails = () => {
                     )}
 
                     {/* Questions */}
-                     {(generationStep < GENERATION_STEPS.DONE || questions.length > 0) && generationStep >= GENERATION_STEPS.SPECS_FORM && (
+                    {(generationStep < GENERATION_STEPS.DONE || questions.length > 0) && generationStep >= GENERATION_STEPS.SPECS_FORM && (
                         <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
                             <AISuggestedTag />
                             <Text className="text-xl font-bold text-gray-900 mb-5">Helpful Details</Text>
@@ -912,26 +950,26 @@ const PostAdDetails = () => {
                                     <Text className="text-gray-700 font-bold text-sm">Allow Price Negotiation</Text>
                                 </TouchableOpacity>
                             </View>
-                         {/* Location Section */}
-                    <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
-                        <Text className="text-xl font-bold text-gray-900 mb-5">Location</Text>
+                            {/* Location Section */}
+                            <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
+                                <Text className="text-xl font-bold text-gray-900 mb-5">Location</Text>
 
-                        <View className="mb-4">
-                            <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">Current Location</Text>
-                            <TouchableOpacity
-                                onPress={() => setLocationPickerVisible(true)}
-                                className="bg-white border border-gray-100 rounded-2xl px-4 h-12 flex-row justify-between items-center shadow-sm shadow-gray-100"
-                            >
-                                <View className="flex-row items-center flex-1 mr-2">
-                                    <Ionicons name="location-sharp" size={18} color="#A855F7" />
-                                    <Text numberOfLines={1} className="text-gray-900 text-sm font-medium ml-2 flex-1">
-                                        {place || "Select Location"}
-                                    </Text>
+                                <View className="mb-4">
+                                    <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">Current Location</Text>
+                                    <TouchableOpacity
+                                        onPress={() => setLocationPickerVisible(true)}
+                                        className="bg-white border border-gray-100 rounded-2xl px-4 h-12 flex-row justify-between items-center shadow-sm shadow-gray-100"
+                                    >
+                                        <View className="flex-row items-center flex-1 mr-2">
+                                            <Ionicons name="location-sharp" size={18} color="#A855F7" />
+                                            <Text numberOfLines={1} className="text-gray-900 text-sm font-medium ml-2 flex-1">
+                                                {place || "Select Location"}
+                                            </Text>
+                                        </View>
+                                        <Text className="text-purple-600 text-xs font-bold">Change</Text>
+                                    </TouchableOpacity>
                                 </View>
-                                <Text className="text-purple-600 text-xs font-bold">Change</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                            </View>
                             {/* Description */}
                             <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-10">
                                 <AISuggestedTag />
@@ -988,6 +1026,75 @@ const PostAdDetails = () => {
                 getPlaceName={getPlaceName}
                 getCoordinatesFromName={getCoordinatesFromName}
             />
+
+            {/* Success Modal */}
+            <Modal
+                visible={successModalVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={() => {
+                    // Standard Android back button behavior for the modal
+                    // We don't want to close the modal here, we want the user to use the buttons
+                }}
+            >
+                <View className="flex-1 justify-end bg-black/40">
+                    <View className="bg-white rounded-t-[40px] p-8 items-center pb-12 shadow-2xl">
+                        {/* Top Drag Handle */}
+                        <View className="w-12 h-1.5 bg-gray-100 rounded-full mb-10" />
+
+                        {/* Icon Section - Reference Match */}
+                        <View className="relative">
+                            <View className="w-28 h-28 rounded-full bg-white border border-gray-50 items-center justify-center shadow-xl shadow-black/5 mb-8">
+                                <LinearGradient
+                                    colors={['#1f1f1f', '#000']}
+                                    className="w-22 h-22 rounded-full items-center justify-center"
+                                    style={{ width: 88, height: 88, borderRadius: 44 }}
+                                >
+                                    <Ionicons name="checkmark" size={52} color="white" />
+                                </LinearGradient>
+                            </View>
+                            {/* Decorative Sparkles */}
+                            <Text className="absolute -top-2 -left-2 text-xl opacity-40">✨</Text>
+                            <Text className="absolute top-4 -right-4 text-lg opacity-30">✨</Text>
+                            <Text className="absolute -bottom-2 right-4 text-xs opacity-20">✨</Text>
+                        </View>
+
+                        <Text className="text-2xl font-bold text-gray-900 mb-3 text-center">Ad Posted Successfully!</Text>
+                        <Text className="text-gray-500 text-sm text-center px-8 mb-12">
+                            Your ad is now processing and will be live shortly. Buyers can start messaging you soon!
+                        </Text>
+
+                        <TouchableOpacity
+                            onPress={() => {
+                                setSuccessModalVisible(false);
+                                router.replace("/home");
+                            }}
+                            className="w-full bg-black py-4.5 rounded-2xl items-center mb-4 shadow-lg shadow-black/20"
+                            style={{ paddingVertical: 18 }}
+                        >
+                            <Text className="text-white font-bold text-base">Go Home</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={() => {
+                                setSuccessModalVisible(false);
+                                if (createdProductId) {
+                                    router.push({
+                                        pathname: "/product/[id]",
+                                        params: { id: createdProductId }
+                                    } as any);
+                                } else {
+                                    router.replace("/home");
+                                }
+                            }}
+                            className="w-full bg-gray-50 py-4.5 rounded-2xl items-center border border-gray-100"
+                            style={{ paddingVertical: 18 }}
+                        >
+                            <Text className="text-gray-700 font-bold text-base">View Your Ad</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView >
     );
 };

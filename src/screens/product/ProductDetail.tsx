@@ -751,12 +751,12 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ productId }) => {
                     {/* Icon Circle */}
                     <View
                       className="w-8 h-8 rounded-full items-center justify-center mb-2"
-                      style={{ backgroundColor: '#E6F7FA' }}
+                      style={{ backgroundColor: '#ede6faff' }}
                     >
                       <Ionicons
                         name={iconInfo.name}
                         size={ICON.md}
-                        color={colors.text_primary}
+                        color={colors.primary}
                       />
                     </View>
 

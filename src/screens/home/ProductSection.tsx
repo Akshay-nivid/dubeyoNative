@@ -58,7 +58,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
               style={{
                 width: 180,
                 borderWidth: 1,
-                borderColor: '#ffffff',
+                borderColor: '#e5e7eb',
               }}
               activeOpacity={0.8}
               onPress={() => router.push(`/product/${productId}` as any)}

@@ -22,7 +22,16 @@ const BottomNavigationBar = ({
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const iosPadding = Platform.OS === "ios" ? insets.bottom : 0;
+  const bottomPadding = insets.bottom;
+  const isMobileControlAndroid = Platform.OS === 'android' && bottomPadding > 0;
+
+  // Calculate conditional layout values
+  const containerBottom = isMobileControlAndroid ? bottomPadding : 0;
+  const effectivePadding = isMobileControlAndroid ? 0 : (Platform.OS === 'ios' ? bottomPadding : 0);
+  const containerHeight = 70 + effectivePadding;
+  const svgHeight = 84 + effectivePadding;
+  const contentHeightClass = "h-[60px] pb-2.5";
+  const justifyClass = "justify-end";
 
   const isActive = (route: string) => {
     return pathname === route || pathname?.startsWith(route);
@@ -96,8 +105,7 @@ const BottomNavigationBar = ({
 
   // Calculate the SVG Path for the floating bar with center cutout
   const curveTabPath = useMemo(() => {
-    const TAB_HEIGHT = 84;
-    const tabHeight = TAB_HEIGHT + iosPadding;
+    const tabHeight = isMobileControlAndroid ? 84 : 84 + (Platform.OS === 'ios' ? insets.bottom : 0);
     const BUTTON_RADIUS = 30; // 60px button
     const CURVE_DEPTH = 36; // Depth of the curve (was hardcoded as 36 in path)
     const CORNER_RADIUS = 18;
@@ -123,10 +131,10 @@ const BottomNavigationBar = ({
       Q 0 0, ${CORNER_RADIUS} 0
       Z
     `;
-  }, [iosPadding]);
+  }, [insets.bottom, isMobileControlAndroid]);
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 justify-end bg-transparent z-50" style={{ height: 70 + iosPadding, paddingBottom: iosPadding }}>
+    <View className={`absolute left-0 right-0 bg-transparent z-50 ${justifyClass}`} style={{ bottom: containerBottom, height: containerHeight, paddingBottom: effectivePadding }}>
       {/* Liquid Glass Background */}
       <View className="absolute top-0 left-0 right-0 bottom-0 shadow-sm shadow-black/10" style={{ elevation: 5 }}>
         <MaskedView
@@ -135,7 +143,7 @@ const BottomNavigationBar = ({
             <View style={{ flex: 1, backgroundColor: 'transparent' }}>
               <Svg
                 width={width}
-                height={84 + iosPadding}
+                height={svgHeight}
                 style={{ position: 'absolute', top: 0, left: 0 }}
               >
                 <Path d={curveTabPath} fill="black" />
@@ -175,7 +183,7 @@ const BottomNavigationBar = ({
 
         {/* Top Highlight Stroke - Light Refraction */}
         <View className="absolute top-0 left-0 right-0 bottom-0" pointerEvents="none" style={{ elevation: 5 }}>
-          <Svg width={width} height={84 + iosPadding}>
+          <Svg width={width} height={svgHeight}>
             <Defs>
               <SvgLinearGradient id="borderGradient" x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0" stopColor="rgba(255, 255, 255, 0.8)" stopOpacity="1" />
@@ -193,7 +201,7 @@ const BottomNavigationBar = ({
         </View>
       </View>
 
-      <View className="flex-row items-center justify-between w-full px-5 h-[60px] pb-2.5">
+      <View className={`flex-row items-center justify-between w-full px-5 ${contentHeightClass}`}>
         {navigationItems.map((item, index) => {
           if (item.isCenter) {
             return (
