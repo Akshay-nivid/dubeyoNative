@@ -8,6 +8,6 @@ if (__DEV__) {
 }
 export const googleAndroidClientId = Constants.expoConfig?.extra?.googleAndroidClientId ?? "";
 export const googleIosClientId = Constants.expoConfig?.extra?.googleIosClientId ?? "";
-export const googleWebClientId = Constants.expoConfig?.extra?.googleWebClientId ?? "";
+export const googleWebClientId = Constants.expoConfig?.extra?.googleWebClientId ?? "1032691163168-ksroc7lmpepegin39dv3sa2od5mdrnka.apps.googleusercontent.com";
 
 // console.log("API_BASE_URL:", API_BASE_URL);
