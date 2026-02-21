@@ -16,7 +16,7 @@ interface ProductCardProps {
         originalPrice?: number;
         discountedPrice?: number;
         specs?: Record<string, any>;
-        features?: string[];
+        features?: any[];
         seller?: {
             name?: string;
             profilePic?: string;
@@ -26,6 +26,7 @@ interface ProductCardProps {
             type: string;
             coordinates: number[];
         };
+        locationName?: string;
     };
     onPress: () => void;
     variant?: 'horizontal' | 'vertical';
@@ -45,12 +46,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
     const hasImage = imageUrl && imageUrl !== noImageUrl;
 
     const [imageError, setImageError] = useState(false);
-    const [address, setAddress] = useState<string>("");
+    const [address, setAddress] = useState<string>(item.locationName || "");
 
     useEffect(() => {
         setImageError(false);
     }, [imageUrl]);
-
     useEffect(() => {
         let isMounted = true;
         const fetchAddress = async () => {
@@ -65,14 +65,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
                     if (isMounted) {
                         if (result) {
                             const place = result.city || result.district || result.region || result.subregion || result.name;
-                            setAddress(place || `${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+                            setAddress(place || item.locationName || `${lat.toFixed(2)}, ${lon.toFixed(2)}`);
                         } else {
-                            setAddress(`${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+                            setAddress(item.locationName || `${lat.toFixed(2)}, ${lon.toFixed(2)}`);
                         }
                     }
                 } catch (e) {
                     console.log("Geocoding failed", e);
-                    if (isMounted) setAddress(`${item.location.coordinates[1].toFixed(2)}, ${item.location.coordinates[0].toFixed(2)}`);
+                    if (isMounted) {
+                        setAddress(item.locationName || `${item.location.coordinates[1].toFixed(2)}, ${item.location.coordinates[0].toFixed(2)}`);
+                    }
                 }
             } else {
                 // console.log("No coordinates found for item", item.id);
@@ -165,7 +167,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, variant = 'hor
         // Default icon
         return 'information-circle-outline';
     };
-
+1
     // Get any available specifications
     const getAvailableSpecs = (): Array<{ key: string; value: string; icon: string }> => {
         const limit = variant === 'vertical' ? 3 : 4;

@@ -4,7 +4,7 @@ import { getToken } from "../storage/tokenStorage";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  // timeout: 30000,
 });
 
 api.interceptors.request.use(

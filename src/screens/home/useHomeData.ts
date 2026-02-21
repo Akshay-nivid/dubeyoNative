@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { useUserLocation } from "@/src/hooks/useUserLocation";
 import {
+  categoryIcons,
   fetchCategories,
-  fetchSuggestedProducts,
-  fetchTrendingProducts,
-  fetchNewProducts,
   fetchNearestProducts,
+  fetchNewProducts,
   fetchProductImages,
   fetchProfile,
-  categoryIcons,
+  fetchSuggestedProducts,
+  fetchTrendingProducts,
 } from "@/src/screens/home/Api";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export const useHomeData = () => {
   const {
@@ -40,6 +40,7 @@ export const useHomeData = () => {
 
   /* ================== IMAGE HANDLER ================== */
   const loadImages = async (products: any[], categoryType: 'suggested' | 'trending' | 'newads' | 'nearest') => {
+    if (!Array.isArray(products)) return;
     const result: Record<string | number, string> = {};
 
     await Promise.all(
@@ -47,13 +48,13 @@ export const useHomeData = () => {
         try {
           const id = p.id || p.product_id || p._id;
           if (!id) return;
-          
+
           const res = await fetchProductImages(id);
           const imageUrl = res?.data?.[0] || p.image || (Array.isArray(p.images) && p.images[0]?.url) || (Array.isArray(p.images) && p.images[0]);
           if (imageUrl) {
             result[id] = imageUrl;
           }
-        } catch {}
+        } catch { }
       })
     );
 
@@ -89,11 +90,11 @@ export const useHomeData = () => {
       setTrending(trendingData);
       setNewAds(newAdsData);
       setProfile(profileData?.profilePic || null);
-      
+
       // Extract user name from profile data
       const firstName = profileData?.firstName || profileData?.first_name || "";
       const lastName = profileData?.lastName || profileData?.last_name || "";
-      const fullName = profileData?.name || profileData?.fullName || 
+      const fullName = profileData?.name || profileData?.fullName ||
         (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || null);
       setUserName(fullName);
 
@@ -116,11 +117,11 @@ export const useHomeData = () => {
 
     fetchNearestProducts(coordinates.lat, coordinates.lon)
       .then((res) => {
-        const nearestData = res?.data || [];
+        const nearestData = Array.isArray(res?.data) ? res.data : [];
         setNearest(nearestData);
         loadImages(nearestData, 'nearest');
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [coordinates]);
 
   useEffect(() => {

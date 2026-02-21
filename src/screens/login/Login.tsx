@@ -1,14 +1,16 @@
 import {
-    googleAndroidClientId,
-    googleIosClientId,
     googleWebClientId,
 } from "@/src/constants/env";
 import { post } from "@/src/services/api";
 import { getCredentials, removeCredentials, setCredentials, setToken } from "@/src/services/storage/tokenStorage";
 import { Ionicons } from "@expo/vector-icons";
-import * as Google from "expo-auth-session/providers/google";
+import auth from "@react-native-firebase/auth";
+import {
+    GoogleSignin,
+    isErrorWithCode,
+    statusCodes,
+} from "@react-native-google-signin/google-signin";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -18,13 +20,11 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
 } from "react-native";
 import { Defs, RadialGradient, Rect, Stop, Svg } from "react-native-svg";
 import Toast from "react-native-toast-message";
 import { Api } from "./api";
-
-WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -34,11 +34,6 @@ export default function LoginScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
-    const [googleRequest, , promptGoogleLogin] = Google.useAuthRequest({
-        androidClientId: googleAndroidClientId,
-        iosClientId: googleIosClientId,
-        webClientId: googleWebClientId,
-    });
 
     useEffect(() => {
         const loadCredentials = async () => {
@@ -50,6 +45,13 @@ export default function LoginScreen() {
             }
         };
         loadCredentials();
+
+        // Configure Google Sign-In
+        GoogleSignin.configure({
+            webClientId: googleWebClientId, // From app.json/env
+            offlineAccess: true,
+            // scopes: ['profile', 'email'],
+        });
     }, []);
 
     const handleEmailLogin = async () => {
@@ -98,37 +100,95 @@ export default function LoginScreen() {
     };
 
     const handleGoogleLogin = async () => {
-        if (!googleRequest) {
-            Toast.show({
-                type: "error",
-                text1: "Google Sign-In not ready",
-                text2: "Please try again in a moment",
-            });
-            return;
-        }
-
         try {
             setGoogleLoading(true);
-            const result = await promptGoogleLogin();
+            await GoogleSignin.hasPlayServices();
 
-            if (result?.type === "success") {
-                Toast.show({
-                    type: "success",
-                    text1: "Logged in with Google",
+            // Sign out first so the account picker always appears
+            try { await GoogleSignin.signOut(); } catch { }
+
+            const userInfo = await GoogleSignin.signIn();
+
+            console.log("Google User Info:", userInfo);
+
+            if (userInfo.data?.idToken) {
+                // Send Google ID token to backend for authentication & JWT
+                const res = await post(Api.googleLogin, {
+                    credential: userInfo.data.idToken,
                 });
-                router.replace("/home");
-            } else if (result?.type !== "dismiss") {
+
+                if (res.status === 200 && res.data) {
+                    // Store the backend JWT (not Firebase token)
+                    const jwt = res.data.token || res.token;
+                    if (jwt) await setToken(jwt);
+
+                    // Optionally sign into Firebase for Firebase services
+                    try {
+                        const googleCredential = auth.GoogleAuthProvider.credential(userInfo.data.idToken);
+                        await auth().signInWithCredential(googleCredential);
+                    } catch (fbErr) {
+                        console.warn("Firebase sign-in skipped:", fbErr);
+                    }
+
+                    // Toast.show({
+                    //     type: "success",
+                    //     text1: "Logged in with Google",
+                    // });
+
+                    // New users go to preferences, returning users go to home
+                    const isNewUser = res.data.isNewUser ?? res.data.user?.isNewUser;
+                    if (isNewUser) {
+                        router.replace("/preferences");
+                    } else {
+                        router.replace("/home");
+                    }
+                } else {
+                    Toast.show({
+                        type: "error",
+                        text1: "Google Sign-In failed",
+                        text2: res.data?.message || "Backend authentication failed",
+                    });
+                }
+            } 
+            // else {
+            //     Toast.show({
+            //         type: "error",
+            //         // text1: "Google Sign-In failed",
+            //         // text2: "No ID token received",
+            //     });
+            // }
+
+        } catch (error) {
+            if (isErrorWithCode(error)) {
+                switch (error.code) {
+                    case statusCodes.SIGN_IN_CANCELLED:
+                        // user cancelled the login flow
+                        break;
+                    case statusCodes.IN_PROGRESS:
+                        // operation (e.g. sign in) is in progress already
+                        break;
+                    case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+                        Toast.show({
+                            type: "error",
+                            text1: "Play Services not available",
+                        });
+                        break;
+                    default:
+                        Toast.show({
+                            type: "error",
+                            text1: "Google Sign-In error",
+                            text2: "Something went wrong",
+                        });
+                        console.error(error);
+                }
+            } else {
                 Toast.show({
                     type: "error",
-                    text1: "Google Sign-In cancelled",
+                    text1: "Google Sign-In error",
+                    text2: "An unexpected error occurred",
                 });
+                console.error(error);
             }
-        } catch {
-            Toast.show({
-                type: "error",
-                text1: "Google Sign-In failed",
-                text2: "Please try again",
-            });
         } finally {
             setGoogleLoading(false);
         }
@@ -267,15 +327,17 @@ export default function LoginScreen() {
 
                         {/* Or login with */}
                         <View className="flex-row items-center justify-center mt-5 mb-6">
-                            <View className="h-[1px] bg-gray-200 w-16" />
-                            <Text className="mx-4 text-gray-500">Or login with</Text>
-                            <View className="h-[1px] bg-gray-200 w-16" />
+                            <View className="h-[1px] bg-gray-200 flex-1" />
+                            <Text className="mx-4 text-gray-400 text-sm">Or login with</Text>
+                            <View className="h-[1px] bg-gray-200 flex-1" />
                         </View>
 
-                        {/* Social Buttons */}
-                        <View className="flex-row justify-center gap-6 mb-6">
+                        {/* Social Login Icons Row */}
+                        <View className="flex-row items-center justify-center gap-6 mb-8">
                             {/* Apple */}
-                            <TouchableOpacity className="w-12 h-12 rounded-full border border-gray-100 bg-white items-center justify-center shadow-sm">
+                            <TouchableOpacity
+                                className="w-14 h-14 rounded-full border border-gray-200 bg-white items-center justify-center shadow-sm"
+                            >
                                 <Ionicons name="logo-apple" size={24} color="black" />
                             </TouchableOpacity>
 
@@ -283,14 +345,14 @@ export default function LoginScreen() {
                             <TouchableOpacity
                                 onPress={handleGoogleLogin}
                                 disabled={googleLoading}
-                                className="w-12 h-12 rounded-full border border-gray-100 bg-white items-center justify-center shadow-sm"
+                                className="w-14 h-14 rounded-full border border-gray-200 bg-white items-center justify-center shadow-sm"
                             >
                                 {googleLoading ? (
                                     <ActivityIndicator size="small" color="black" />
                                 ) : (
                                     <Image
                                         source={{ uri: "https://developers.google.com/identity/images/g-logo.png" }}
-                                        style={{ width: 24, height: 24 }}
+                                        style={{ width: 22, height: 22 }}
                                         resizeMode="contain"
                                     />
                                 )}
@@ -299,9 +361,9 @@ export default function LoginScreen() {
                             {/* Guest */}
                             <TouchableOpacity
                                 onPress={() => router.replace("/home")}
-                                className="w-12 h-12 rounded-full border border-gray-100 bg-white items-center justify-center shadow-sm"
+                                className="w-14 h-14 rounded-full border border-gray-200 bg-white items-center justify-center shadow-sm"
                             >
-                                <Ionicons name="person" size={24} color="black" />
+                                <Ionicons name="person" size={22} color="black" />
                             </TouchableOpacity>
                         </View>
                     </View>
