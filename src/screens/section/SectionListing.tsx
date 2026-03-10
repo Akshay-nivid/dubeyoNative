@@ -1,7 +1,7 @@
 import ProductCard from "@/src/components/ProductCard";
 import ThemedBackground from "@/src/components/ThemedBackground";
 import { useUserLocation } from "@/src/hooks/useUserLocation";
-import { Api, fetchNearestProducts, fetchNewProducts, fetchProductImages, fetchSuggestedProducts } from "@/src/screens/home/Api";
+import { Api, fetchAllProducts, fetchNearestProducts, fetchNewProducts, fetchProductImages, fetchSuggestedProducts, fetchTrendingProducts } from "@/src/screens/home/Api";
 import { get } from "@/src/services/api";
 import { normalizeProduct } from "@/src/utils/productMapper";
 import { colors } from "@/theme";
@@ -56,11 +56,32 @@ const SectionListingScreen = () => {
                     const res = await fetchNearestProducts(coordinates.lat, coordinates.lon);
                     data = res?.data || [];
                 }
+                
+                // Fallback for popular: if no coordinates or no data, use all products
+                if (data.length === 0) {
+                    const res = await fetchAllProducts().catch(() => ({ data: [] }));
+                    data = Array.isArray(res?.data) ? res.data : [];
+                }
             } else if (sectionType === "suggested") {
                 const res = await fetchSuggestedProducts();
                 data = res?.data || [];
+
+                // Fallback for suggested: if empty, use all products
+                if (data.length === 0) {
+                    const res = await fetchAllProducts().catch(() => ({ data: [] }));
+                    data = Array.isArray(res?.data) ? res.data : [];
+                }
             } else if (sectionType === "new") {
                 const res = await fetchNewProducts();
+                data = res?.data || [];
+
+                // Fallback for new: if empty, use all products
+                if (data.length === 0) {
+                    const res = await fetchAllProducts().catch(() => ({ data: [] }));
+                    data = Array.isArray(res?.data) ? res.data : [];
+                }
+            } else if (sectionType === "trending") {
+                const res = await fetchTrendingProducts();
                 data = res?.data || [];
             }
 

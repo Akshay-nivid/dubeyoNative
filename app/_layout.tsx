@@ -34,6 +34,21 @@ const toastConfig = {
         </View>
       </View>
     </View>
+  ),
+  success: ({ text1, text2 }: any) => (
+    <View style={[styles.toastContainer, { borderRadius: 20, marginBottom: 10, width: width - 40, alignSelf: 'center' }]}>
+      <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255, 255, 255, 0.8)' }]} />
+      <View className="flex-row items-center px-5 py-4">
+        <View className="w-10 h-10 rounded-full bg-purple-50 items-center justify-center mr-3">
+          <Ionicons name="checkmark-circle" size={28} color={colors.primary} />
+        </View>
+        <View className="flex-1">
+          <Text className="text-gray-900 font-bold text-base">{text1}</Text>
+          {text2 && <Text className="text-gray-500 text-xs mt-0.5">{text2}</Text>}
+        </View>
+      </View>
+    </View>
   )
 };
 

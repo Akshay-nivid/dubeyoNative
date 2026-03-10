@@ -1,19 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
-import * as FileSystem from "expo-file-system";
+import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Animated, Dimensions, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import GradientText from "../../components/GradientText";
 import { useUserLocation } from "../../hooks/useUserLocation";
-import { fetchProfile } from "../../screens/home/Api"; // Import from Home API
+import { Api, fetchProfile } from "../../screens/home/Api";
 import { get } from "../../services/api";
 import { getToken } from "../../services/storage/tokenStorage";
-import { Api } from "../../screens/home/Api";
 
 const PostAd = () => {
     const router = useRouter();
@@ -25,10 +24,40 @@ const PostAd = () => {
     const [photos, setPhotos] = useState<ImagePicker.ImagePickerAsset[]>([]);
     const [imageError, setImageError] = useState("");
     const [editLoaded, setEditLoaded] = useState(false);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
 
 
     const { place } = useUserLocation();
     const [userName, setUserName] = useState("User");
+
+    // Keyboard handling
+    const scrollViewRef = useRef<ScrollView>(null);
+
+    useEffect(() => {
+        const keyboardDidShowListener = Keyboard.addListener(
+            'keyboardDidShow',
+            () => {
+                setKeyboardVisible(true);
+                // Scroll to bottom to ensure description input is visible
+                // The delay ensures the keyboard is fully up and layout is adjusted
+                setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 100);
+            }
+        );
+
+        const keyboardDidHideListener = Keyboard.addListener(
+            'keyboardDidHide',
+            () => {
+                setKeyboardVisible(false);
+            }
+        );
+
+        return () => {
+            keyboardDidShowListener.remove();
+            keyboardDidHideListener.remove();
+        };
+    }, []);
 
     useEffect(() => {
         const checkGuest = async () => {
@@ -69,9 +98,9 @@ const PostAd = () => {
                     const desc = product.description ?? product.enhancedDescription ?? product.descriptions ?? "";
                     setDescription(typeof desc === "string" ? desc : "");
                     const imgs = product.images ?? product.image ?? [];
-                const uris = Array.isArray(imgs)
-                    ? imgs.map((u: any) => (typeof u === "string" ? u : u?.url ?? u?.link ?? "")).filter(Boolean)
-                    : typeof imgs === "string" ? [imgs] : [];
+                    const uris = Array.isArray(imgs)
+                        ? imgs.map((u: any) => (typeof u === "string" ? u : u?.url ?? u?.link ?? "")).filter(Boolean)
+                        : typeof imgs === "string" ? [imgs] : [];
                     if (uris.length > 0) {
                         setPhotos(uris.map((uri: string) => ({ uri } as ImagePicker.ImagePickerAsset)));
                     }
@@ -86,23 +115,148 @@ const PostAd = () => {
         loadProductForEdit();
     }, [editProductId, editLoaded]);
 
-    const MAX_SIZE = 5 * 1024 * 1024; // Updated to 10MB as per user request
     const [isPickerActive, setIsPickerActive] = useState(false);
+    const [showPickerModal, setShowPickerModal] = useState(false);
 
-    const pickImage = async () => {
-        if (isPickerActive) return;
+    // Animations
+    const panY = useRef(new Animated.Value(0)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.9)).current;
+    const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: (evt) => {
+                // Professional Feel: Capture immediately if touching the header/handle area
+                return evt.nativeEvent.locationY < 100;
+            },
+            onMoveShouldSetPanResponder: (_, gestureState) => {
+                // Otherwise, require a small drag threshold to distinguish from clicks
+                const isVerticalSwipe = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+                return isVerticalSwipe && Math.abs(gestureState.dy) > 10;
+            },
+            onPanResponderMove: (_, gestureState) => {
+                if (gestureState.dy > 0) {
+                    panY.setValue(gestureState.dy);
+                    const newOpacity = Math.max(0, 1 - (gestureState.dy / (Dimensions.get('window').height * 0.5)));
+                    fadeAnim.setValue(newOpacity);
+                }
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+                    handleCloseModal();
+                } else {
+                    Animated.spring(panY, {
+                        toValue: 0,
+                        bounciness: 4,
+                        useNativeDriver: true,
+                    }).start();
+                }
+            },
+        })
+    ).current;
+
+    useEffect(() => {
+        if (showPickerModal) {
+            panY.setValue(0);
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(slideAnim, {
+                    toValue: 0,
+                    tension: 80,
+                    friction: 12,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(scaleAnim, {
+                    toValue: 1,
+                    tension: 80,
+                    friction: 12,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        } else {
+            // Reset values for next time (optional but good practice)
+            fadeAnim.setValue(0);
+            slideAnim.setValue(Dimensions.get('window').height);
+            scaleAnim.setValue(0.9);
+        }
+    }, [showPickerModal]);
+
+    const handleCloseModal = () => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: Dimensions.get('window').height,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            setShowPickerModal(false);
+        });
+    };
+
+    const processPickedImages = async (result: ImagePicker.ImagePickerResult) => {
+        if (!result.canceled) {
+            const incoming = result.assets;
+            const validFiles: ImagePicker.ImagePickerAsset[] = [];
+            let rejectedCount = 0;
+
+            const allowedExtensions = ['jpg', 'jpeg', 'png', 'heic', 'heif'];
+
+            for (const file of incoming) {
+                // Check extension
+                const uri = file.uri;
+                const extension = uri.split('.').pop()?.toLowerCase();
+
+                if (!extension || !allowedExtensions.includes(extension)) {
+                    rejectedCount++;
+                    continue;
+                }
+
+                // Backend handles size validation, so we skip it here as requested.
+                validFiles.push(file);
+            }
+
+            if (rejectedCount > 0) {
+                Toast.show({
+                    type: 'error',
+                    text1: 'Invalid Format',
+                    text2: `${rejectedCount} image(s) were skipped (Only JPG, PNG, HEIC allowed)`
+                });
+                setImageError(`${rejectedCount} image(s) skipped due to invalid format.`);
+            } else {
+                setImageError("");
+            }
+
+            if (validFiles.length > 0) {
+                setPhotos((prev) => {
+                    const newPhotos = [...prev, ...validFiles];
+                    if (newPhotos.length > 4) {
+                        Toast.show({
+                            type: 'error',
+                            text1: 'Limit Reached',
+                            text2: 'Only first 4 images were added.'
+                        });
+                        return newPhotos.slice(0, 4);
+                    }
+                    return newPhotos;
+                });
+            }
+        }
+    };
+
+    const pickImageFromLibrary = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
             Alert.alert("Permission", "Permission to access camera roll is required!");
-            return;
-        }
-
-        if (photos.length >= 4) {
-            Toast.show({
-                type: 'error',
-                text1: 'Limit Reached',
-                text2: 'You can upload up to 4 images only'
-            });
             return;
         }
 
@@ -114,72 +268,51 @@ const PostAd = () => {
                 selectionLimit: 4 - photos.length,
                 quality: 1,
             });
-
-            if (!result.canceled) {
-                const incoming = result.assets;
-                const validFiles: ImagePicker.ImagePickerAsset[] = [];
-                let rejectedCount = 0;
-                let rejectionReason = "";
-
-                for (const file of incoming) {
-                    let fileSize = file.fileSize;
-
-                    // Fallback to FileSystem if size is missing
-                    if (!fileSize) {
-                        try {
-                            const info = await FileSystem.getInfoAsync(file.uri);
-                            if (info.exists) {
-                                fileSize = info.size;
-                            }
-                        } catch (e) {
-                            console.warn("Failed to get file info", e);
-                        }
-                    }
-
-                    if (fileSize && fileSize > MAX_SIZE) {
-                        rejectedCount++;
-                        rejectionReason = "Size > 10MB";
-                        continue;
-                    }
-                    validFiles.push(file);
-                }
-
-                if (rejectedCount > 0) {
-                    Toast.show({
-                        type: 'error',
-                        text1: 'Some images skipped',
-                        text2: `${rejectedCount} image(s) exceeded 10MB limit.`
-                    });
-                    setImageError(`${rejectedCount} image(s) were skipped because they exceed 10MB.`);
-                } else {
-                    setImageError("");
-                }
-
-                if (validFiles.length > 0) {
-                    setPhotos((prev) => {
-                        const newPhotos = [...prev, ...validFiles];
-                        if (newPhotos.length > 4) {
-                            Toast.show({
-                                type: 'error',
-                                text1: 'Limit Reached',
-                                text2: 'Only first 4 images were added.'
-                            });
-                            return newPhotos.slice(0, 4);
-                        }
-                        return newPhotos;
-                    });
-                }
-            }
+            await processPickedImages(result);
         } catch (err) {
             console.error("Image picker error", err);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to pick images'
-            });
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to pick images' });
         } finally {
             setIsPickerActive(false);
         }
+    };
+
+    const pickImageFromCamera = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert("Permission", "Permission to access camera is required!");
+            return;
+        }
+
+        try {
+            setIsPickerActive(true);
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false, // Usually camera allows 1 at a time, but we can just add it
+                quality: 1,
+            });
+            await processPickedImages(result);
+        } catch (err) {
+            console.error("Camera error", err);
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to take photo' });
+        } finally {
+            setIsPickerActive(false);
+        }
+    };
+
+    const pickImage = async () => {
+        if (isPickerActive) return;
+
+        if (photos.length >= 4) {
+            Toast.show({
+                type: 'error',
+                text1: 'Limit Reached',
+                text2: 'You can upload up to 4 images only'
+            });
+            return;
+        }
+
+        setShowPickerModal(true);
     };
 
     const removePhoto = (index: number) => {
@@ -305,8 +438,16 @@ const PostAd = () => {
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : "height"}
                     style={{ flex: 1 }}
+                    keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0} // Small offset
                 >
-                    <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
+                    <ScrollView
+                        ref={scrollViewRef}
+                        className="flex-1 px-4 pt-4"
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ paddingBottom: keyboardVisible ? 24 : 0 }} // Only pad when keyboard is open
+                        keyboardShouldPersistTaps="handled" // Allow taps
+                        bounces={false} // Prevent bouncing when content fits
+                    >
                         {/* New Gradient Header Moved Here */}
                         <View className="px-5 mb-2 mt-10">
                             <View className="items-center mb-4">
@@ -374,6 +515,9 @@ const PostAd = () => {
                                             placeholderTextColor="#9CA3AF"
                                             multiline
                                             textAlignVertical="top"
+                                            returnKeyType="done"
+                                            blurOnSubmit={true}
+                                            onSubmitEditing={() => Keyboard.dismiss()}
                                         />
                                     </View>
                                     <View className="flex-row items-center justify-end mt-2 px-1">
@@ -386,7 +530,7 @@ const PostAd = () => {
                                             className={`w-12 h-12 rounded-xl items-center justify-center ${(description.trim() && photos.length === 0) ? 'bg-gray-200' : 'bg-black'}`}
                                         >
                                             {description.trim() ? (
-                                                <Ionicons name="arrow-up" size={24} color={(description.trim() && photos.length === 0) ? "#9CA3AF" : "#FFF"} />
+                                                <Ionicons name="arrow-forward" size={24} color={(description.trim() && photos.length === 0) ? "#9CA3AF" : "#FFF"} />
                                             ) : (
                                                 /* Waveform Animation (Simulated) inside button */
                                                 <View className="flex-row items-center gap-[2px]">
@@ -405,6 +549,85 @@ const PostAd = () => {
                     </ScrollView>
                 </KeyboardAvoidingView>
             </SafeAreaView>
+
+            {/* Custom Image Picker Modal */}
+            <Modal
+                transparent={true}
+                visible={showPickerModal}
+                animationType="none"
+                onRequestClose={handleCloseModal}
+                statusBarTranslucent={true}
+            >
+                <View className="flex-1 justify-end" style={{ zIndex: 10000 }}>
+                    <Animated.View
+                        style={[
+                            StyleSheet.absoluteFill,
+                            { opacity: fadeAnim }
+                        ]}
+                    >
+                        <TouchableOpacity
+                            className="flex-1"
+                            style={{ flex: 1 }}
+                            onPress={handleCloseModal}
+                            activeOpacity={1}
+                        >
+                            <BlurView
+                                intensity={70}
+                                tint="dark"
+                                style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)' }]}
+                            />
+                        </TouchableOpacity>
+                    </Animated.View>
+
+                    <Animated.View
+                        className="rounded-t-[25px] w-full overflow-hidden bg-white pb-10"
+                        style={{
+                            maxHeight: '75%',
+                            zIndex: 10001,
+                            transform: [
+                                { translateY: Animated.add(slideAnim, panY) },
+                                { scale: scaleAnim }
+                            ]
+                        }}
+                        {...panResponder.panHandlers}
+                    >
+                        {/* Drag Handle */}
+                        <View className="pt-3 pb-2 items-center">
+                            <View className="w-10 h-1 bg-gray-300 rounded-full" />
+                        </View>
+
+                        <Text className="text-xl font-bold text-gray-900 text-center mb-8 mt-2">
+                            Upload Photo
+                        </Text>
+
+                        <View className="flex-row justify-around mb-8 px-4">
+                            {/* Camera Option */}
+                            <TouchableOpacity
+                                onPress={() => { handleCloseModal(); setTimeout(pickImageFromCamera, 100); }}
+                                className="items-center"
+                                activeOpacity={0.7}
+                            >
+                                <View className="w-20 h-20 bg-blue-50 rounded-2xl items-center justify-center mb-3 border border-blue-100 shadow-sm">
+                                    <Ionicons name="camera" size={32} color="#3B82F6" />
+                                </View>
+                                <Text className="font-semibold text-gray-700 text-base">Camera</Text>
+                            </TouchableOpacity>
+
+                            {/* Gallery Option */}
+                            <TouchableOpacity
+                                onPress={() => { handleCloseModal(); setTimeout(pickImageFromLibrary, 100); }}
+                                className="items-center"
+                                activeOpacity={0.7}
+                            >
+                                <View className="w-20 h-20 bg-purple-50 rounded-2xl items-center justify-center mb-3 border border-purple-100 shadow-sm">
+                                    <Ionicons name="images" size={32} color="#8B5CF6" />
+                                </View>
+                                <Text className="font-semibold text-gray-700 text-base">Gallery</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Animated.View>
+                </View>
+            </Modal>
         </LinearGradient >
     );
 };

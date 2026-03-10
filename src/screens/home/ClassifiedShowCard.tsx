@@ -15,6 +15,13 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import {
+  FontAwesome5,
+  FontAwesome6,
+  MaterialCommunityIcons,
+  Entypo,
+  Ionicons
+} from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { Api } from "./Api";
 
@@ -23,6 +30,86 @@ interface ClassifiedShowCardProps {
   onClose: () => void;
   category: any;
 }
+
+// need to change on future
+const subCategoryIcons: Record<string, { lib: any, name: string }> = {
+  // Classifieds
+  "Miscellaneous": { lib: FontAwesome5, name: "globe" },
+  "Tools & Hardware": { lib: FontAwesome5, name: "wrench" },
+  "Lost & Found": { lib: FontAwesome5, name: "search" },
+  "Free Items": { lib: FontAwesome5, name: "gift" },
+  "Business for Sale": { lib: FontAwesome5, name: "handshake" },
+  "Antiques": { lib: MaterialCommunityIcons, name: "clock-outline" },
+  "Collectibles": { lib: FontAwesome5, name: "coins" },
+  "Gift Items": { lib: FontAwesome5, name: "ribbon" },
+  "Pet Accessories": { lib: FontAwesome5, name: "bone" },
+  "Pet Supplies": { lib: MaterialCommunityIcons, name: "bowl-mix-outline" },
+  "Kids' Clothes": { lib: FontAwesome5, name: "tshirt" },
+  "Baby Clothes": { lib: MaterialCommunityIcons, name: "baby-face-outline" },
+  "Baby Gear": { lib: FontAwesome5, name: "baby-carriage" },
+  "Toys & Games": { lib: FontAwesome5, name: "robot" },
+  "Hobbies & Crafts": { lib: FontAwesome5, name: "paint-brush" },
+  "Musical Instruments": { lib: FontAwesome5, name: "guitar" },
+  "Outdoor & Camping": { lib: FontAwesome5, name: "campground" },
+  "Fitness & Gym": { lib: FontAwesome5, name: "dumbbell" },
+
+  // Motors
+  "Cars": { lib: FontAwesome5, name: "car" },
+  "Car Parts": { lib: FontAwesome5, name: "cogs" },
+  "Car Accessories": { lib: FontAwesome5, name: "oil-can" },
+  "Bikes": { lib: FontAwesome5, name: "motorcycle" },
+  "Motorbikes": { lib: FontAwesome5, name: "motorcycle" },
+  "Boats": { lib: FontAwesome5, name: "ship" },
+  "Heavy Vehicles": { lib: FontAwesome5, name: "truck-moving" },
+  "Number Plates": { lib: MaterialCommunityIcons, name: "numeric" },
+
+  // Property
+  "Property for Rent": { lib: FontAwesome5, name: "building" },
+  "Property for Sale": { lib: FontAwesome5, name: "home" },
+  "Commercial for Rent": { lib: FontAwesome5, name: "city" },
+  "Commercial for Sale": { lib: FontAwesome5, name: "store" },
+  "Rooms for Rent": { lib: FontAwesome5, name: "bed" },
+  "Short Term Rental": { lib: FontAwesome5, name: "calendar-check" },
+
+  // Electronics & Mobile
+  "Mobile Phones": { lib: FontAwesome5, name: "mobile-alt" },
+  "Mobile Accessories": { lib: FontAwesome5, name: "headphones" },
+  "Laptops & Computers": { lib: FontAwesome5, name: "laptop" },
+  "Home Appliances": { lib: MaterialCommunityIcons, name: "washing-machine" },
+  "Tablets": { lib: FontAwesome5, name: "tablet-alt" },
+  "Audio & Video": { lib: FontAwesome5, name: "volume-up" },
+  "Gadgets": { lib: FontAwesome5, name: "blender" },
+
+  // Jobs
+  "Accounting": { lib: FontAwesome5, name: "calculator" },
+  "Architecture": { lib: FontAwesome5, name: "drafting-table" },
+  "Customer Service": { lib: FontAwesome5, name: "headset" },
+  "Education": { lib: FontAwesome5, name: "graduation-cap" },
+  "Engineering": { lib: FontAwesome5, name: "hard-hat" },
+  "Healthcare": { lib: FontAwesome5, name: "user-md" },
+  "Human Resources": { lib: FontAwesome5, name: "users" },
+  "IT & Software": { lib: FontAwesome5, name: "code" },
+  "Marketing": { lib: FontAwesome5, name: "ad" },
+  "Sales": { lib: FontAwesome5, name: "chart-line" },
+  "Transportation": { lib: FontAwesome5, name: "truck" },
+
+  // Services
+  "Computer Services": { lib: FontAwesome5, name: "desktop" },
+  "Home Services": { lib: FontAwesome5, name: "tools" },
+  "Health Services": { lib: FontAwesome5, name: "heartbeat" },
+  "Legal Services": { lib: FontAwesome5, name: "balance-scale" },
+  "Moving & Storage": { lib: FontAwesome5, name: "box-open" },
+  "Tutorials": { lib: FontAwesome5, name: "chalkboard-teacher" },
+  "Web Services": { lib: FontAwesome5, name: "laptop-code" },
+
+  // Fashion & Beauty
+  "Clothing": { lib: FontAwesome5, name: "tshirt" },
+  "Shoes": { lib: MaterialCommunityIcons, name: "shoe-formal" },
+  "Accessories": { lib: FontAwesome5, name: "gem" },
+  "Jewelry": { lib: FontAwesome5, name: "ring" },
+  "Watches": { lib: MaterialCommunityIcons, name: "watch" },
+  "Cosmetics": { lib: MaterialCommunityIcons, name: "lipstick" },
+};
 
 const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
   open,
@@ -38,7 +125,10 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
     divisionId: "",
   });
   const [loading, setLoading] = useState(false);
+  const [loadingDivisions, setLoadingDivisions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [divisions, setDivisions] = useState<any[]>([]);
+  const [currentStep, setCurrentStep] = useState<'subcategory' | 'division'>('subcategory');
 
   const panY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -122,6 +212,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       setSelectedSubcategory(null);
       setError(null);
       setData({ subcategoryId: "", divisionId: "" });
+      setCurrentStep('subcategory');
     }
   }, [category, open]);
 
@@ -142,6 +233,28 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
     });
   };
 
+  useEffect(() => {
+    const fetchDivisions = async () => {
+      if (!selectedSubcategory) {
+        setDivisions([]);
+        return;
+      }
+      setLoadingDivisions(true);
+      try {
+        const res = await get(`${Api.DivisionBySubcategory}?subCategoryId=${selectedSubcategory.id}`);
+        const divData = res?.data?.data || res?.data || [];
+        setDivisions(Array.isArray(divData) ? divData : []);
+      } catch (err) {
+        console.error("Failed to fetch divisions", err);
+        setDivisions([]);
+      } finally {
+        setLoadingDivisions(false);
+      }
+    };
+    if (currentStep === 'division') {
+      fetchDivisions();
+    }
+  }, [selectedSubcategory, currentStep]);
 
   const fetchSubcategories = async () => {
     setLoading(true);
@@ -179,27 +292,20 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       setCategoryName(name);
 
       // Fetch subcategories
-      const res = await post(Api.SubcategoriesByCategory, { categoryId });
+      const res = await get("/subcategory/all");
       if (res?.status === 200) {
-        const list = res.data?.data || res.data || [];
+        const allList = res.data?.data || res.data || [];
+        const filteredList = allList.filter((sub: any) => sub.categoryId === categoryId);
         setSubcategories(
-          list.map((sub: any) => ({
+          filteredList.map((sub: any) => ({
             id: sub.id,
             name: sub.name,
             division_type: sub.division_type || [],
           }))
         );
 
-        if (list.length > 0) {
-          setSelectedSubcategory({
-            id: list[0].id,
-            name: list[0].name,
-            division_type: list[0].division_type || [],
-          });
-          setData((d) => ({ ...d, subcategoryId: list[0]?.id ?? "" }));
-        } else {
-          setSelectedSubcategory(null);
-        }
+        setSelectedSubcategory(null);
+        setData((d) => ({ ...d, subcategoryId: "" }));
       } else {
         throw new Error("Failed to fetch subcategories");
       }
@@ -214,23 +320,49 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
   };
 
   const handleSelectDivision = (division: any) => {
-    setData((prev) => ({
-      ...prev,
-      divisionId: division.id,
-    }));
+    const newData = {
+      ...data,
+      divisionId: division.value,
+    };
+    setData(newData);
+    // Automatic navigation after selecting division
+    handleViewItems(newData, divisions);
   };
 
-  const handleChangeSubCategory = (sub: any) => {
+  const handleChangeSubCategory = async (sub: any) => {
     setSelectedSubcategory(sub);
     setData((prev) => ({
       ...prev,
       subcategoryId: sub?.id,
       divisionId: "",
     }));
+
+    setLoadingDivisions(true);
+    try {
+      const res = await get(`${Api.DivisionBySubcategory}?subCategoryId=${sub.id}`);
+      const divData = res?.data?.data || res?.data || [];
+      const fetchedDivisions = Array.isArray(divData) ? divData : [];
+      setDivisions(fetchedDivisions);
+
+      if (fetchedDivisions.length > 0) {
+        setCurrentStep('division');
+      } else {
+        // Automatic navigation if no divisions found
+        handleViewItems({ subcategoryId: sub.id, divisionId: "" }, [], sub.name);
+      }
+    } catch (err) {
+      console.error("Failed to fetch divisions", err);
+      handleViewItems({ subcategoryId: sub.id, divisionId: "" }, [], sub.name);
+    } finally {
+      setLoadingDivisions(false);
+    }
   };
 
-  const handleViewItems = () => {
-    if (!data.subcategoryId) {
+  const handleViewItems = (currentData?: any, currentDivisions?: any[], currentSubName?: string) => {
+    const finalData = currentData || data;
+    const finalDivisions = currentDivisions || divisions;
+
+    if (!finalData.subcategoryId) {
       Toast.show({
         type: "error",
         text1: "Error",
@@ -242,17 +374,16 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
     handleClose();
 
     // Navigate to product listing with params
-    const divisionTypes = selectedSubcategory?.division_type || [];
-    const selectedDivision = data.divisionId
-      ? divisionTypes.find((d: any) => d.id === data.divisionId)
+    const selectedDivision = finalData.divisionId
+      ? finalDivisions.find((d: any) => d.value === finalData.divisionId)
       : null;
 
     router.push({
       pathname: "/products" as any,
       params: {
-        subcategoryId: data.subcategoryId,
-        subcategoryName: selectedSubcategory?.name || categoryName,
-        divisionTypes: JSON.stringify(divisionTypes),
+        subcategoryId: finalData.subcategoryId,
+        subcategoryName: currentSubName || selectedSubcategory?.name || categoryName,
+        divisionTypes: JSON.stringify(finalDivisions),
         selectedDivision: selectedDivision ? JSON.stringify(selectedDivision) : "",
       },
     });
@@ -319,17 +450,32 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
 
           {/* Header */}
           <View
-            className="px-6 pb-6 border-b items-center"
+            className="px-6 pb-6 border-b flex-row items-center justify-between"
             style={{
               borderColor: colors.border_primary,
             }}
           >
+            {currentStep === 'division' ? (
+              <TouchableOpacity
+                onPress={() => setCurrentStep('subcategory')}
+                className="p-2 -ml-2"
+              >
+                <Ionicons name="arrow-back" size={24} color={colors.text_primary} />
+              </TouchableOpacity>
+            ) : (
+              <View style={{ width: 40 }} />
+            )}
+
             <Text
-              className="text-xl font-bold"
+              className="text-xl font-bold flex-1 text-center"
               style={{ color: colors.text_primary }}
             >
-              {categoryName || category?.name || "Category"}
+              {currentStep === 'subcategory'
+                ? (categoryName || category?.name || "Category")
+                : (selectedSubcategory?.name || "Select Type")
+              }
             </Text>
+            <View style={{ width: 40 }} />
           </View>
 
           <ScrollView
@@ -341,143 +487,102 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
               <View className="py-12 justify-center items-center">
                 <ActivityIndicator size="large" color={colors.primary} />
                 <Text className="mt-4" style={{ color: colors.text_secondary }}>
-                  Loading subcategories...
+                  Loading...
                 </Text>
               </View>
             ) : error ? (
               <View className="py-12 justify-center items-center px-6">
                 <Text style={{ color: colors.error }}>{error}</Text>
               </View>
-            ) : subcategories.length > 0 ? (
-              <>
-                {/* Subcategories Section - Top */}
-                <View className="p-4 pb-3">
-                  <Text
-                    className="text-base font-bold mb-4"
-                    style={{ color: colors.text_primary }}
-                  >
-                    Sub Category
-                  </Text>
-                  <View className="flex-row flex-wrap gap-3 justify-start">
-                    {subcategories.map((sub) => (
+            ) : currentStep === 'subcategory' ? (
+              <View className="p-4 pb-3">
+                <View className="flex-row flex-wrap gap-3 justify-between px-2">
+                  {subcategories.map((sub) => {
+                    const isSelected = selectedSubcategory?.id === sub.id;
+                    const iconData = subCategoryIcons[sub.name];
+                    const IconLib = iconData?.lib || Ionicons;
+                    const iconName = iconData?.name || "grid-outline";
+
+                    const isSingleGrid = subcategories.length <= 5;
+
+                    return (
                       <TouchableOpacity
                         key={sub.id}
                         onPress={() => handleChangeSubCategory(sub)}
-                        className="px-4 py-2 rounded-full border"
+                        className={`${isSingleGrid ? "w-full px-4 py-4" : "w-[48%] px-3 py-3.5"} rounded-2xl border flex-row items-center mb-1`}
                         style={{
-                          backgroundColor:
-                            selectedSubcategory?.id === sub.id
-                              ? 'transparent'
-                              : '#f5f6f6ff',
-                          borderColor:
-                            selectedSubcategory?.id === sub.id
-                              ? colors.primary
-                              : 'transparent',
-                          borderWidth: selectedSubcategory?.id === sub.id ? 1.5 : 1,
+                          backgroundColor: '#EBF3FF',
+                          borderColor: isSelected ? '#5B4EB3' : 'transparent',
+                          borderWidth: isSelected ? 2 : 1,
                         }}
                       >
+                        <View className="mr-2.5">
+                          {/* need to change on future */}
+                          <IconLib name={iconName} size={20} color="#5B4EB3" />
+                        </View>
                         <Text
-                          className="text-md font-normal"
-                          style={{
-                            color:
-                              selectedSubcategory?.id === sub.id
-                                ? colors.primary
-                                : colors.text_primary,
-                          }}
+                          className="text-xs font-bold flex-1"
+                          style={{ color: '#2D3436' }}
+                          numberOfLines={1}
                         >
                           {sub.name}
                         </Text>
                       </TouchableOpacity>
-                    ))}
-                  </View>
+                    );
+                  })}
                 </View>
-
-                {/* Divider */}
-                <View
-                  className="h-px w-full"
-                  style={{ backgroundColor: colors.border_primary }}
-                />
-
-                {/* Type/Division Section - Bottom */}
-                <View
-                  className="p-4 pt-3"
-                >
-                  <Text
-                    className="text-base font-bold mb-4"
-                    style={{ color: colors.text_primary }}
-                  >
-                    Type
-                  </Text>
-                  <View className="flex-row flex-wrap gap-3 justify-start">
-                    {selectedSubcategory?.division_type?.length > 0 ? (
-                      selectedSubcategory.division_type.map((d: any) => (
+              </View>
+            ) : (
+              <View className="p-4 pt-3">
+                <View className="flex-row flex-wrap gap-3 justify-between px-2">
+                  {loadingDivisions ? (
+                    <View className="flex-1 py-12 items-center">
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    </View>
+                  ) : divisions?.length > 0 ? (
+                    divisions.map((d: any) => {
+                      const isSelected = data.divisionId === d.value;
+                      return (
                         <TouchableOpacity
-                          key={d.id}
+                          key={d.value}
                           onPress={() => handleSelectDivision(d)}
-                          className="px-4 py-2 rounded-full border"
+                          className="w-full px-5 py-4 rounded-2xl border flex-row items-center mb-3 shadow-sm"
                           style={{
-                            backgroundColor:
-                              data.divisionId === d.id
-                                ? 'transparent'
-                                : '#f5f6f6ff',
-                            borderColor:
-                              data.divisionId === d.id
-                                ? colors.primary
-                                : 'transparent',
-                            borderWidth: data.divisionId === d.id ? 1.5 : 1,
+                            backgroundColor: isSelected ? '#F5F3FF' : '#FFFFFF',
+                            borderColor: isSelected ? '#5B4EB3' : '#E5E7EB',
+                            borderWidth: isSelected ? 2 : 1,
                           }}
                         >
                           <Text
-                            className="text-md font-normal"
-                            style={{
-                              color:
-                                data.divisionId === d.id
-                                  ? colors.primary
-                                  : colors.text_primary,
-                            }}
+                            className="text-sm font-bold flex-1"
+                            style={{ color: isSelected ? '#5B4EB3' : '#2D3436' }}
+                            numberOfLines={1}
                           >
-                            {d.name}
+                            {d.label}
                           </Text>
+                          <Ionicons
+                            name="chevron-forward"
+                            size={18}
+                            color={isSelected ? '#5B4EB3' : '#9CA3AF'}
+                            style={{ opacity: 0.8 }}
+                          />
                         </TouchableOpacity>
-                      ))
-                    ) : (
+                      );
+                    })
+                  ) : (
+                    <View className="flex-1 py-12 items-center">
                       <Text
                         className="italic"
                         style={{ color: colors.text_tertiary }}
                       >
                         No types available
                       </Text>
-                    )}
-                  </View>
+                    </View>
+                  )}
                 </View>
-              </>
-            ) : (
-              <View className="py-8 justify-center items-center">
-                <Text style={{ color: colors.text_tertiary }}>No subcategories found</Text>
               </View>
             )}
           </ScrollView>
-
-          <View
-            className="p-4 border-t shadow-lg"
-            style={{
-              borderColor: colors.border_primary,
-              backgroundColor: '#FFFFFF', // Changed to white
-            }}
-          >
-            <TouchableOpacity
-              className="items-center justify-center py-4 rounded-full shadow-md"
-              style={{ backgroundColor: colors.primary }}
-              onPress={handleViewItems}
-            >
-              <Text
-                className="font-bold text-base tracking-wide"
-                style={{ color: colors.text_white }}
-              >
-                VIEW ITEMS
-              </Text>
-            </TouchableOpacity>
-          </View>
         </Animated.View>
       </View>
     </Modal>

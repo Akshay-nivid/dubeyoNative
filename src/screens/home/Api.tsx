@@ -11,7 +11,7 @@ export const Api = {
   NearestProducts: "/product/near?page=1&limit=10",
   NewlyProducts: "/product/getLatestProducts",
   SuggestedProducts: "/product/fetchPersonalizedHomeProducts",
-  TrendingProducts: "/product/trending",
+  TrendingProducts: "/product/all", // Fixed: Backend missing /product/trending, using /product/all as fallback
   SubcategoriesByCategory: "/subcategory/byCategory",
   FilterProducts: "/product/filterProducts",
   profile: "/user/me",
@@ -25,6 +25,7 @@ export const Api = {
   thumbnail: "/product/image/thumbnail",
   getUserDashboardCounts: "/user/getUserDashboardCounts",
   getUserProducts: "/product/getProductsByUserId",
+  DivisionBySubcategory: "/division/view",
 };
 
 // API Functions
@@ -64,6 +65,10 @@ export const fetchProfile = async () => {
 
 export const fetchUserProducts = async () => {
   return get(Api.getUserProducts);
+};
+
+export const fetchAllProducts = async () => {
+  return get(Api.allProducts);
 };
 
 // Map category names to Ionicons names

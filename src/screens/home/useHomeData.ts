@@ -80,10 +80,20 @@ export const useHomeData = () => {
       ]);
 
       const categoriesData = Array.isArray(categoryRes?.data) ? categoryRes.data : [];
-      const suggestedData = Array.isArray(suggestedRes?.data) ? suggestedRes.data : [];
-      const trendingData = Array.isArray(trendingRes?.data) ? trendingRes.data : [];
+      let suggestedData = Array.isArray(suggestedRes?.data) ? suggestedRes.data : [];
+      let trendingData = Array.isArray(trendingRes?.data) ? trendingRes.data : [];
       const newAdsData = Array.isArray(newAdsRes?.data) ? newAdsRes.data : [];
       const profileData = profileRes?.data || {};
+
+      // Fallback: if suggested is empty, show trending (which is mapped to /all)
+      if (suggestedData.length === 0 && trendingData.length > 0) {
+        suggestedData = trendingData;
+      }
+      
+      // Fallback: if suggested is STILL empty, show newAds
+      if (suggestedData.length === 0 && newAdsData.length > 0) {
+        suggestedData = newAdsData;
+      }
 
       setCategories(categoriesData);
       setSuggested(suggestedData);

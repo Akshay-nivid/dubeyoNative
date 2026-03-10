@@ -156,13 +156,13 @@ export default function ForgotPasswordScreen() {
                                         value={email}
                                         onChangeText={setEmail}
                                         editable={!sendingOTP}
-                                        className="w-full rounded-xl px-4 py-3.5 text-base bg-white border border-border_primary text-palette_dark_blue"
+                                        className="w-full rounded-xl px-4 py-3.5 text-base bg-white border border-border_primary text-text_primary"
                                     />
                                 </View>
                                 <Pressable
                                     onPress={handleSendOTP}
                                     disabled={sendingOTP}
-                                    className={`mb-8 w-full rounded-xl py-4 ${sendingOTP ? 'bg-bg_gray_400' : 'bg-palette_dark_blue'}`}
+                                    className={`mb-8 w-full rounded-xl py-4 ${sendingOTP ? 'bg-bg_gray_400' : 'bg-primary'}`}
                                     style={sendingOTP ? {} : {
                                         shadowColor: "#000",
                                         shadowOffset: { width: 0, height: 2 },
@@ -194,7 +194,7 @@ export default function ForgotPasswordScreen() {
                                         onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, "").slice(0, 6))}
                                         maxLength={6}
                                         editable={!loading}
-                                        className="w-full rounded-xl px-4 py-3.5 text-base bg-white border border-border_primary text-palette_dark_blue"
+                                        className="w-full rounded-xl px-4 py-3.5 text-base bg-white border border-border_primary text-text_primary"
                                     />
                                 </View>
                                 <PasswordField
@@ -217,7 +217,7 @@ export default function ForgotPasswordScreen() {
                                     onPress={() => setStep("email")}
                                     className="mb-4 self-end"
                                 >
-                                    <Text className="text-sm font-semibold text-palette_dark_blue">
+                                    <Text className="text-sm font-semibold text-primary">
                                         Change email
                                     </Text>
                                 </Pressable>

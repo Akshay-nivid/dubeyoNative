@@ -55,16 +55,17 @@ const CategoryList: React.FC<CategoryListProps> = ({
                   shadowRadius: 2,
                   elevation: 2,
                   paddingTop:
-                    c.name === "Property" ||
-                      c.name === "Mobiles Tablets" ||
+                    c.name === "Property" || c.name === "Properties" ||
+                      c.name === "Mobiles Tablets" || c.name === "Mobiles & Tablets" ||
                       c.name === "Professional For Hire" ||
-                      c.name === "Professinal For Hire"
+                      c.name === "Professinal For Hire" ||
+                      c.name === "Services"
                       ? 6
-                      : c.name === "Motors" || c.name === "Job" || c.name === "Classifieds" || c.name === "Furniture Garden"
+                      : c.name === "Motors" || c.name === "Job" || c.name === "Jobs" || c.name === "Classifieds" || c.name === "Furniture Garden" || c.name === "Furniture & Garden"
                         ? 0
                         : 12,
                   paddingBottom:
-                    c.name === "Motors" || c.name === "Job" || c.name === "Classifieds" || c.name === "Furniture Garden" ? 6 : 8,
+                    c.name === "Motors" || c.name === "Job" || c.name === "Jobs" || c.name === "Classifieds" || c.name === "Furniture Garden" || c.name === "Furniture & Garden" ? 6 : 8,
                   paddingHorizontal: 8,
                 }}
               >
@@ -74,7 +75,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
                     size={24}
                     color={colors.text_primary}
                   />
-                ) : c.name === "Property" ? (
+                ) : c.name === "Property" || c.name === "Properties" ? (
                   <Image
                     source={propertyIcon}
                     style={{ width: 48, height: 48 }}
@@ -95,7 +96,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
                       {c.name}
                     </Text>
                   </View>
-                ) : c.name === "Job" ? (
+                ) : c.name === "Job" || c.name === "Jobs" ? (
                   <View style={{ marginTop: -17, alignItems: "center" }}>
                     <Image
                       source={jobIcon}
@@ -110,7 +111,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
                       {c.name}
                     </Text>
                   </View>
-                ) : c.name === "Mobiles Tablets" ? (
+                ) : c.name === "Mobiles Tablets" || c.name === "Mobiles & Tablets" ? (
                   <Image
                     source={mobileIcon}
                     style={{ width: 49, height: 49 }}
@@ -131,7 +132,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
                       {c.name}
                     </Text>
                   </View>
-                ) : c.name === "Furniture Garden" ? (
+                ) : c.name === "Furniture Garden" || c.name === "Furniture & Garden" ? (
                   <View style={{ marginTop: -14, alignItems: "center" }}>
                     <Image
                       source={furnitureGardenIcon}
@@ -146,7 +147,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
                       {c.name}
                     </Text>
                   </View>
-                ) : c.name === "Professional For Hire" || c.name === "Professinal For Hire" ? (
+                ) : c.name === "Professional For Hire" || c.name === "Professinal For Hire" || c.name === "Services" ? (
                   <Image
                     source={professionalsIcon}
                     style={{ width: 66, height: 66 }}
@@ -157,16 +158,17 @@ const CategoryList: React.FC<CategoryListProps> = ({
                     <IconComponent size={24} color={colors.text_primary} />
                   )
                 )}
-                {c.name !== "Motors" && c.name !== "Job" && c.name !== "Classifieds" && c.name !== "Furniture Garden" && (
+                {c.name !== "Motors" && c.name !== "Job" && c.name !== "Jobs" && c.name !== "Classifieds" && c.name !== "Furniture Garden" && c.name !== "Furniture & Garden" && (
                   <Text
                     className="text-[10px] text-center font-bold leading-3"
                     style={{
                       color: colors.text_primary,
                       marginTop:
-                        c.name === "Property" || c.name === "Mobiles Tablets"
+                        c.name === "Property" || c.name === "Properties" || c.name === "Mobiles Tablets" || c.name === "Mobiles & Tablets"
                           ? 2
                           : c.name === "Professional For Hire" ||
-                            c.name === "Professinal For Hire"
+                            c.name === "Professinal For Hire" ||
+                            c.name === "Services"
                             ? -13
                             : 6,
                     }}

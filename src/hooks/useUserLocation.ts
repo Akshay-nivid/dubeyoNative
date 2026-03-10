@@ -77,9 +77,24 @@ export const useUserLocation = () => {
     // Get current live location
     const getCurrentLocation = useCallback(async (): Promise<LocationData | null> => {
         try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
+            const servicesEnabled = await Location.hasServicesEnabledAsync();
+            if (!servicesEnabled) {
+                if (__DEV__) {
+                    console.warn('Dev Log: Location services disabled');
+                }
+                return null;
+            }
+
+            let { status } = await Location.getForegroundPermissionsAsync();
             if (status !== 'granted') {
-                console.warn('Location permission denied');
+                const response = await Location.requestForegroundPermissionsAsync();
+                status = response.status;
+            }
+
+            if (status !== 'granted') {
+                if (__DEV__) {
+                    console.warn('Dev Log: Location permission denied');
+                }
                 return null;
             }
 
@@ -96,7 +111,9 @@ export const useUserLocation = () => {
                 place,
             };
         } catch (error) {
-            console.error('Error getting current location:', error);
+            if (__DEV__) {
+                console.warn('Dev Log: Location fetch suppressed');
+            }
             return null;
         }
     }, [getPlaceName]);
