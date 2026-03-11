@@ -19,7 +19,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -86,16 +85,12 @@ const PostAd = () => {
           const res = await fetchProfile();
           const profileData = res?.data || {};
           // Extract user name just like in useHomeData
-          const firstName =
-            profileData?.firstName || profileData?.first_name || "";
-          const lastName =
-            profileData?.lastName || profileData?.last_name || "";
-          const fullName =
-            profileData?.name ||
-            profileData?.fullName ||
-            (firstName && lastName
-              ? `${firstName} ${lastName}`
-              : firstName || lastName || "User");
+          const firstName = profileData?.firstName || profileData?.first_name || "";
+          const lastName = profileData?.lastName || profileData?.last_name || "";
+          
+          const fullName = profileData?.name || profileData?.fullName || 
+                           [firstName, lastName].filter(Boolean).join(" ") || 
+                           "User";
 
           if (fullName) {
             setUserName(fullName.split(" ")[0]); // Use first name

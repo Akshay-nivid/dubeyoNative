@@ -40,10 +40,10 @@ async function request(method: string, url: string, options: any = {}) {
 export const get = (url: string, options?: any) => request("get", url, options);
 
 export const post = (url: string, data?: any, options?: any) =>
-  request("post", url, { ...options, data });
+  request("post", url, { data, ...options });
 
 export const put = (url: string, data?: any, options?: any) =>
-  request("put", url, { ...options, data });
+  request("put", url, { data, ...options });
 
 export const del = (url: string, options?: any) =>
   request("delete", url, options);

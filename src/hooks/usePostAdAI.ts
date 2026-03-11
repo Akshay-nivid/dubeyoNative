@@ -1,7 +1,10 @@
 import { post } from "@/src/services/api";
 import { useState } from "react";
+import { Platform } from "react-native";
 import Toast from "react-native-toast-message";
 import { PostAdApi } from "../screens/postAd/Api";
+import { API_BASE_URL } from "@/src/constants/env";
+import { getToken } from "@/src/services/storage/tokenStorage";
 
 export const GENERATION_STEPS = {
   PREVIEW: 0,
@@ -89,27 +92,83 @@ export const usePostAdAI = () => {
       setIsFormLoading(true);
       setGenerationStep(GENERATION_STEPS.PREVIEW);
 
-      const formData = new FormData();
-      formData.append("level", "basic");
-      formData.append("description", desc);
+      // --- Step 1: Upload Images ---
+      const uploadedImageKeys: string[] = [];
+      const imageUploadPromises = imgs.map(async (uri) => {
+        try {
+          const formData = new FormData();
+          let fileName = uri.split("/").pop() || "image.jpg";
+          let ext = "jpg";
 
-      imgs.forEach((uri) => {
-        const fileName = uri.split("/").pop() || "image.jpg";
-        const ext = fileName.split(".").pop()?.toLowerCase();
-        const safeType =
-          ext === "jpg" || ext === "jpeg" || ext === "png" || ext === "webp"
-            ? ext
-            : "jpeg";
+          if (fileName.includes(".")) {
+            ext = fileName.split(".").pop()?.toLowerCase() || "jpg";
+          } else {
+            fileName = `${fileName}.jpg`;
+          }
 
-        formData.append("image", {
-          uri,
-          name: fileName,
-          type: `image/${safeType === "jpg" ? "jpeg" : safeType}`,
-        } as any);
+          if (!["jpg", "jpeg", "png", "webp"].includes(ext)) {
+            ext = "jpg";
+            fileName = `${fileName.split(".")[0]}.jpg`;
+          }
+
+          const safeType = ext === "jpg" ? "jpeg" : ext;
+              
+          // React Native FormData URI normalization for iOS/Android
+          const normalizedUri = uri;
+
+          formData.append("image", {
+            uri: normalizedUri,
+            name: fileName,
+            type: `image/${safeType}`,
+          } as any);
+
+          const token = await getToken();
+          const targetUrl = `${API_BASE_URL}${PostAdApi.uploadImage}`;
+
+          console.log("Uploading:", {
+            uri: normalizedUri,
+            name: fileName,
+            type: `image/${safeType}`
+          });
+
+          const res = await fetch(targetUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await res.json();
+          if (data?.data) {
+            uploadedImageKeys.push(data.data);
+          } else {
+             console.warn("Upload failed response:", data);
+          }
+        } catch (uploadErr) {
+          console.warn("Failed to upload an image", uploadErr);
+        }
       });
 
-      const res = await post(PostAdApi.previewProduct, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      await Promise.all(imageUploadPromises);
+
+      if (uploadedImageKeys.length === 0 && imgs.length > 0) {
+        Toast.show({
+          type: "error",
+          text1: "Upload failed",
+          text2: "Failed to upload images.",
+        });
+        setIsFormLoading(false);
+        return;
+      }
+      
+      setImageKeys(uploadedImageKeys);
+
+      // --- Step 2: First Preview AI ---
+      const res = await post(PostAdApi.previewProduct, {
+        description: desc,
+        images: uploadedImageKeys.length > 0 ? uploadedImageKeys : imgs,
       });
 
       if (!res?.data) {
@@ -123,13 +182,11 @@ export const usePostAdAI = () => {
       }
 
       const basic = res.data;
-      setImageKeys(basic.images || []);
 
       const uiData = {
         ...basic,
         title: basic.title || "",
-        enhancedDescription:
-          basic.enhanced_description || basic.description || "",
+        enhancedDescription: basic.details || basic.enhanced_description || basic.description || "",
         categoryId:
           basic?.category?.id || basic?.category?._id || basic?.category?.value,
         subcategoryId:
@@ -161,13 +218,10 @@ export const usePostAdAI = () => {
 
   const fetchIntermediate = async (basic: any) => {
     try {
-      const res = await post(PostAdApi.previewProduct, {
-        level: "intermediate",
-        description: basic?.enhanced_description,
-        basicData: {
-          ...basic,
-          images: basic?.images || [],
-        },
+      const res = await post(PostAdApi.intermediatePreview, {
+        subcategoryId: basic?.subcategory?.id || basic?.subcategory?._id,
+        details: basic?.details || basic?.enhanced_description,
+        images: imageKeys.length > 0 ? imageKeys : basic?.images || [],
       });
 
       if (!res?.data) {
@@ -176,13 +230,15 @@ export const usePostAdAI = () => {
 
       const intermediate = res.data || {};
 
-      const questionsData = extractQuestions(intermediate);
-      if (questionsData.length > 0) {
-        setQuestions(questionsData); // Matches old code's replacement behavior
+      // Questions are now moved to final preview, so we don't extract them here
+      
+      let extractedSpecs: Record<string, any> = {};
+      if (intermediate.specs && Array.isArray(intermediate.specs)) {
+        intermediate.specs.forEach((spec: any) => {
+           extractedSpecs[spec.key] = spec;
+        });
       }
 
-      let extractedSpecs: Record<string, any> =
-        intermediate.specs || intermediate.specifications || {};
       Object.entries(intermediate).forEach(([key, value]) => {
         if (
           key === "slug" ||
@@ -244,9 +300,10 @@ export const usePostAdAI = () => {
       setGenerationStep(GENERATION_STEPS.SPECS_FORM);
 
       await fetchFinal({
-        description: basic.enhanced_description,
+        details: basic.details || basic.enhanced_description,
+        subcategoryId: basic?.subcategory?.id || basic?.subcategory?._id,
         intermediate,
-        images: basic.images,
+        images: imageKeys.length > 0 ? imageKeys : basic.images,
       });
     } catch (err) {
       console.error("Intermediate AI failed:", err);
@@ -260,49 +317,32 @@ export const usePostAdAI = () => {
     }
   };
 
-  const fetchFinal = async ({ description, intermediate, images }: any) => {
+  const fetchFinal = async ({ details, intermediate, images, subcategoryId }: any) => {
     try {
-      const res = await post(PostAdApi.previewProduct, {
-        level: "final",
-        description,
-        partialListing: {
-          ...intermediate,
-          images: images || imageKeys,
-        },
+      // Re-map specs to a simple object for the final API
+      const simpleSpecs: Record<string, any> = {};
+      if (intermediate?.specs && Array.isArray(intermediate.specs)) {
+        intermediate.specs.forEach((s: any) => {
+           simpleSpecs[s.key] = s.value;
+        });
+      }
+
+      const res = await post(PostAdApi.finalPreview, {
+        details,
+        specs: simpleSpecs,
+        location: null, // Depending on if location is available at this step
+        subcategoryId,
+        images: images || imageKeys,
       });
 
       const finalPayload = res.data ?? res;
 
       const questionsData = extractQuestions(finalPayload);
       if (questionsData && questionsData.length > 0) {
-        setQuestions(questionsData); // Matches old code's replacement behavior
+        setQuestions(questionsData); 
       }
 
-      let extractedSpecs: Record<string, any> =
-        finalPayload.specs || finalPayload.specifications || {};
-      Object.entries(finalPayload).forEach(([key, value]) => {
-        if (
-          key === "slug" ||
-          key === "images" ||
-          key === "questions" ||
-          key === "specs" ||
-          key === "specifications" ||
-          key === "category" ||
-          key === "subcategory" ||
-          key === "division"
-        )
-          return;
-        if (value && typeof value === "object" && "value" in value) {
-          const specObj = value as any;
-          if (
-            specObj.value !== null &&
-            specObj.value !== undefined &&
-            specObj.value !== ""
-          ) {
-            extractedSpecs[key] = specObj;
-          }
-        }
-      });
+      // No need to extract specs again as they were set in intermediate
 
       setData((prev: any) => {
         const merged = {
@@ -328,11 +368,6 @@ export const usePostAdAI = () => {
             finalPayload?.division?._id ||
             prev.divisionId,
           division: finalPayload.division || prev.division,
-          specs: normalizeSpecs(
-            Object.keys(extractedSpecs).length > 0
-              ? extractedSpecs
-              : prev.specs || {},
-          ),
           price: finalPayload.price || prev.price,
         };
         return merged;

@@ -4,7 +4,6 @@
 import LocationPicker from "@/src/components/LocationPicker";
 import { post } from "@/src/services/api";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -39,7 +38,6 @@ import SuccessModal from "./components/SuccessModal";
 const PostAdDetails = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const navigation = useNavigation();
 
   /* --- INITIAL PARAMS --- */
   const initialDescription = params.description as string;
@@ -84,7 +82,7 @@ const PostAdDetails = () => {
 
   /* --- LOCAL UI STATES --- */
   const [clicked, setClicked] = useState(false);
-  const [negotiation, setNegotiation] = useState({ negotiate: false });
+  const [isNegotiable, setIsNegotiable] = useState(false);
   const [questionAnswers, setQuestionAnswers] = useState<any>({});
 
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
@@ -195,7 +193,7 @@ const PostAdDetails = () => {
         division: undefined,
         price: normalizedPrice,
         specs: formattedSpecs,
-        ...negotiation,
+        negotiate: isNegotiable,
         description: data.enhancedDescription,
         location: {
           type: "Point",
@@ -209,14 +207,6 @@ const PostAdDetails = () => {
       if (res.status === 200 || res.status === 201) {
         const productId = res.data?.data?.id || res.data?.id || res.data?._id;
         setCreatedProductId(productId);
-
-        // Toast.show({
-        //     type: 'success',
-        //     text1: 'Ad Posted Successfully!',
-        //     text2: 'Redirecting to your ad...'
-        // });
-
-        // Show Success Modal instead of Toast and immediate redirect
         setShowSuccessModal(true);
       } else {
         let errorMsg = res.message || "Failed to submit";
@@ -264,7 +254,7 @@ const PostAdDetails = () => {
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <Text className="text-xl font-black text-gray-900 flex-1 text-center mr-10">
-            Sell With Ai
+            Sell with AI
           </Text>
         </View>
 
@@ -371,13 +361,8 @@ const PostAdDetails = () => {
                     {data.specs &&
                       Object.entries(data.specs as Record<string, any>)
                         .filter(([_, val]) => {
-                          if (val === null || val === undefined) return false;
-                          const strVal = String(val).trim().toLowerCase();
-                          return (
-                            strVal !== "" &&
-                            strVal !== "null" &&
-                            strVal !== "undefined"
-                          );
+                          const strVal = String(val ?? "").trim().toLowerCase();
+                          return strVal && strVal !== "null" && strVal !== "undefined";
                         })
                         .map(([key, val]) => (
                           <EditableRow
@@ -510,18 +495,13 @@ const PostAdDetails = () => {
                   />
                 </View>
                 <TouchableOpacity
-                  onPress={() =>
-                    setNegotiation({
-                      ...negotiation,
-                      negotiate: !negotiation.negotiate,
-                    })
-                  }
+                  onPress={() => setIsNegotiable((prev) => !prev)}
                   className="flex-row items-center mt-6 ml-2"
                 >
                   <View
-                    className={`w-6 h-6 rounded-lg border-2 items-center justify-center mr-3 ${negotiation.negotiate ? "bg-green-500 border-green-500" : "border-gray-200"}`}
+                    className={`w-6 h-6 rounded-lg border-2 items-center justify-center mr-3 ${isNegotiable ? "bg-green-500 border-green-500" : "border-gray-200"}`}
                   >
-                    {negotiation.negotiate && (
+                    {isNegotiable && (
                       <Ionicons name="checkmark" size={16} color="white" />
                     )}
                   </View>

@@ -1,5 +1,8 @@
 export const PostAdApi = {
-  previewProduct: "/product/preview",
+  uploadImage: "/product/v1/image/upload",
+  previewProduct: "/product/v1/preview",
+  intermediatePreview: "/product/v1/intermediate/preview",
+  finalPreview: "/product/v1/final/preview",
   profile: "/user/me",
   createProduct: "/product/create",
   Image: "/product/image/url",
