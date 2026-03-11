@@ -1,6 +1,6 @@
-import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import React from "react";
+import { ActivityIndicator, View } from "react-native";
+import { WebView } from "react-native-webview";
 
 interface FreeMapViewProps {
   latitude: number;
@@ -13,8 +13,8 @@ interface FreeMapViewProps {
 const FreeMapView: React.FC<FreeMapViewProps> = ({
   latitude,
   longitude,
-  title = 'Location',
-  address = '',
+  title = "Location",
+  address = "",
   zoom = 13,
 }) => {
   const mapHtml = `
@@ -62,7 +62,7 @@ const FreeMapView: React.FC<FreeMapViewProps> = ({
     <View className="flex-1 overflow-hidden rounded-2xl">
       <View className="flex-1">
         <WebView
-          originWhitelist={['*']}
+          originWhitelist={["*"]}
           source={{ html: mapHtml }}
           style={{ flex: 1 }}
           javaScriptEnabled={true}

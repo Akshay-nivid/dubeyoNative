@@ -14,10 +14,13 @@ export async function getToken() {
 export async function removeToken(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
-  } catch { } // Ignore errors during removal
+  } catch {} // Ignore errors during removal
 }
 
-export async function setCredentials(credentials: { email: string; password?: string }) {
+export async function setCredentials(credentials: {
+  email: string;
+  password?: string;
+}) {
   const jsonValue = JSON.stringify(credentials);
   await SecureStore.setItemAsync(CREDENTIALS_KEY, jsonValue);
 }
@@ -30,5 +33,5 @@ export async function getCredentials() {
 export async function removeCredentials() {
   try {
     await SecureStore.deleteItemAsync(CREDENTIALS_KEY);
-  } catch { } // Ignore errors during removal
+  } catch {} // Ignore errors during removal
 }

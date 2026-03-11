@@ -13,14 +13,14 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import {
   FontAwesome5,
   FontAwesome6,
   MaterialCommunityIcons,
   Entypo,
-  Ionicons
+  Ionicons,
 } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { Api } from "./Api";
@@ -32,15 +32,15 @@ interface ClassifiedShowCardProps {
 }
 
 // need to change on future
-const subCategoryIcons: Record<string, { lib: any, name: string }> = {
+const subCategoryIcons: Record<string, { lib: any; name: string }> = {
   // Classifieds
-  "Miscellaneous": { lib: FontAwesome5, name: "globe" },
+  Miscellaneous: { lib: FontAwesome5, name: "globe" },
   "Tools & Hardware": { lib: FontAwesome5, name: "wrench" },
   "Lost & Found": { lib: FontAwesome5, name: "search" },
   "Free Items": { lib: FontAwesome5, name: "gift" },
   "Business for Sale": { lib: FontAwesome5, name: "handshake" },
-  "Antiques": { lib: MaterialCommunityIcons, name: "clock-outline" },
-  "Collectibles": { lib: FontAwesome5, name: "coins" },
+  Antiques: { lib: MaterialCommunityIcons, name: "clock-outline" },
+  Collectibles: { lib: FontAwesome5, name: "coins" },
   "Gift Items": { lib: FontAwesome5, name: "ribbon" },
   "Pet Accessories": { lib: FontAwesome5, name: "bone" },
   "Pet Supplies": { lib: MaterialCommunityIcons, name: "bowl-mix-outline" },
@@ -54,12 +54,12 @@ const subCategoryIcons: Record<string, { lib: any, name: string }> = {
   "Fitness & Gym": { lib: FontAwesome5, name: "dumbbell" },
 
   // Motors
-  "Cars": { lib: FontAwesome5, name: "car" },
+  Cars: { lib: FontAwesome5, name: "car" },
   "Car Parts": { lib: FontAwesome5, name: "cogs" },
   "Car Accessories": { lib: FontAwesome5, name: "oil-can" },
-  "Bikes": { lib: FontAwesome5, name: "motorcycle" },
-  "Motorbikes": { lib: FontAwesome5, name: "motorcycle" },
-  "Boats": { lib: FontAwesome5, name: "ship" },
+  Bikes: { lib: FontAwesome5, name: "motorcycle" },
+  Motorbikes: { lib: FontAwesome5, name: "motorcycle" },
+  Boats: { lib: FontAwesome5, name: "ship" },
   "Heavy Vehicles": { lib: FontAwesome5, name: "truck-moving" },
   "Number Plates": { lib: MaterialCommunityIcons, name: "numeric" },
 
@@ -76,22 +76,22 @@ const subCategoryIcons: Record<string, { lib: any, name: string }> = {
   "Mobile Accessories": { lib: FontAwesome5, name: "headphones" },
   "Laptops & Computers": { lib: FontAwesome5, name: "laptop" },
   "Home Appliances": { lib: MaterialCommunityIcons, name: "washing-machine" },
-  "Tablets": { lib: FontAwesome5, name: "tablet-alt" },
+  Tablets: { lib: FontAwesome5, name: "tablet-alt" },
   "Audio & Video": { lib: FontAwesome5, name: "volume-up" },
-  "Gadgets": { lib: FontAwesome5, name: "blender" },
+  Gadgets: { lib: FontAwesome5, name: "blender" },
 
   // Jobs
-  "Accounting": { lib: FontAwesome5, name: "calculator" },
-  "Architecture": { lib: FontAwesome5, name: "drafting-table" },
+  Accounting: { lib: FontAwesome5, name: "calculator" },
+  Architecture: { lib: FontAwesome5, name: "drafting-table" },
   "Customer Service": { lib: FontAwesome5, name: "headset" },
-  "Education": { lib: FontAwesome5, name: "graduation-cap" },
-  "Engineering": { lib: FontAwesome5, name: "hard-hat" },
-  "Healthcare": { lib: FontAwesome5, name: "user-md" },
+  Education: { lib: FontAwesome5, name: "graduation-cap" },
+  Engineering: { lib: FontAwesome5, name: "hard-hat" },
+  Healthcare: { lib: FontAwesome5, name: "user-md" },
   "Human Resources": { lib: FontAwesome5, name: "users" },
   "IT & Software": { lib: FontAwesome5, name: "code" },
-  "Marketing": { lib: FontAwesome5, name: "ad" },
-  "Sales": { lib: FontAwesome5, name: "chart-line" },
-  "Transportation": { lib: FontAwesome5, name: "truck" },
+  Marketing: { lib: FontAwesome5, name: "ad" },
+  Sales: { lib: FontAwesome5, name: "chart-line" },
+  Transportation: { lib: FontAwesome5, name: "truck" },
 
   // Services
   "Computer Services": { lib: FontAwesome5, name: "desktop" },
@@ -99,16 +99,16 @@ const subCategoryIcons: Record<string, { lib: any, name: string }> = {
   "Health Services": { lib: FontAwesome5, name: "heartbeat" },
   "Legal Services": { lib: FontAwesome5, name: "balance-scale" },
   "Moving & Storage": { lib: FontAwesome5, name: "box-open" },
-  "Tutorials": { lib: FontAwesome5, name: "chalkboard-teacher" },
+  Tutorials: { lib: FontAwesome5, name: "chalkboard-teacher" },
   "Web Services": { lib: FontAwesome5, name: "laptop-code" },
 
   // Fashion & Beauty
-  "Clothing": { lib: FontAwesome5, name: "tshirt" },
-  "Shoes": { lib: MaterialCommunityIcons, name: "shoe-formal" },
-  "Accessories": { lib: FontAwesome5, name: "gem" },
-  "Jewelry": { lib: FontAwesome5, name: "ring" },
-  "Watches": { lib: MaterialCommunityIcons, name: "watch" },
-  "Cosmetics": { lib: MaterialCommunityIcons, name: "lipstick" },
+  Clothing: { lib: FontAwesome5, name: "tshirt" },
+  Shoes: { lib: MaterialCommunityIcons, name: "shoe-formal" },
+  Accessories: { lib: FontAwesome5, name: "gem" },
+  Jewelry: { lib: FontAwesome5, name: "ring" },
+  Watches: { lib: MaterialCommunityIcons, name: "watch" },
+  Cosmetics: { lib: MaterialCommunityIcons, name: "lipstick" },
 };
 
 const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
@@ -128,27 +128,34 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
   const [loadingDivisions, setLoadingDivisions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [divisions, setDivisions] = useState<any[]>([]);
-  const [currentStep, setCurrentStep] = useState<'subcategory' | 'division'>('subcategory');
+  const [currentStep, setCurrentStep] = useState<"subcategory" | "division">(
+    "subcategory",
+  );
 
   const panY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
-
+  const slideAnim = useRef(
+    new Animated.Value(Dimensions.get("window").height),
+  ).current;
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
         // Capture gesture if it's a vertical swipe
-        const isVerticalSwipe = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+        const isVerticalSwipe =
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
         return isVerticalSwipe && Math.abs(gestureState.dy) > 10;
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
           panY.setValue(gestureState.dy);
           // Gently fade out backdrop as user drags down
-          const newOpacity = Math.max(0, 1 - (gestureState.dy / (Dimensions.get('window').height * 0.5)));
+          const newOpacity = Math.max(
+            0,
+            1 - gestureState.dy / (Dimensions.get("window").height * 0.5),
+          );
           fadeAnim.setValue(newOpacity);
         }
       },
@@ -156,7 +163,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
         if (gestureState.dy > 150 || gestureState.vy > 0.5) {
           Animated.parallel([
             Animated.timing(panY, {
-              toValue: Dimensions.get('window').height,
+              toValue: Dimensions.get("window").height,
               duration: 250,
               useNativeDriver: true,
             }),
@@ -164,7 +171,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
               toValue: 0,
               duration: 250,
               useNativeDriver: true,
-            })
+            }),
           ]).start(onClose);
         } else {
           Animated.spring(panY, {
@@ -174,7 +181,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   useEffect(() => {
@@ -205,14 +212,14 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
     } else {
       // Closing Animation (handled by onClose usually, but reset here for next time)
       fadeAnim.setValue(0);
-      slideAnim.setValue(Dimensions.get('window').height);
+      slideAnim.setValue(Dimensions.get("window").height);
       scaleAnim.setValue(0.9);
 
       setSubcategories([]);
       setSelectedSubcategory(null);
       setError(null);
       setData({ subcategoryId: "", divisionId: "" });
-      setCurrentStep('subcategory');
+      setCurrentStep("subcategory");
     }
   }, [category, open]);
 
@@ -224,7 +231,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
-        toValue: Dimensions.get('window').height,
+        toValue: Dimensions.get("window").height,
         duration: 250,
         useNativeDriver: true,
       }),
@@ -241,7 +248,9 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       }
       setLoadingDivisions(true);
       try {
-        const res = await get(`${Api.DivisionBySubcategory}?subCategoryId=${selectedSubcategory.id}`);
+        const res = await get(
+          `${Api.DivisionBySubcategory}?subCategoryId=${selectedSubcategory.id}`,
+        );
         const divData = res?.data?.data || res?.data || [];
         setDivisions(Array.isArray(divData) ? divData : []);
       } catch (err) {
@@ -251,7 +260,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
         setLoadingDivisions(false);
       }
     };
-    if (currentStep === 'division') {
+    if (currentStep === "division") {
       fetchDivisions();
     }
   }, [selectedSubcategory, currentStep]);
@@ -267,7 +276,8 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       if (!categoryId && name) {
         try {
           const categoriesRes = await get(Api.CategoriesAll);
-          const categories = categoriesRes?.data?.data || categoriesRes?.data || [];
+          const categories =
+            categoriesRes?.data?.data || categoriesRes?.data || [];
           const matchedCategory = categories.find((cat: any) => {
             const catName = (cat.label || cat.name || "").toLowerCase().trim();
             const searchName = name.toLowerCase().trim();
@@ -275,7 +285,11 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
           });
 
           if (matchedCategory) {
-            categoryId = matchedCategory.value || matchedCategory.id || matchedCategory.category_id || matchedCategory.categoryId;
+            categoryId =
+              matchedCategory.value ||
+              matchedCategory.id ||
+              matchedCategory.category_id ||
+              matchedCategory.categoryId;
             name = matchedCategory.label || matchedCategory.name || name;
           }
         } catch (err) {
@@ -284,7 +298,9 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       }
 
       if (!categoryId) {
-        setError("Category not found. Please try selecting a different category.");
+        setError(
+          "Category not found. Please try selecting a different category.",
+        );
         setLoading(false);
         return;
       }
@@ -295,13 +311,15 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       const res = await get("/subcategory/all");
       if (res?.status === 200) {
         const allList = res.data?.data || res.data || [];
-        const filteredList = allList.filter((sub: any) => sub.categoryId === categoryId);
+        const filteredList = allList.filter(
+          (sub: any) => sub.categoryId === categoryId,
+        );
         setSubcategories(
           filteredList.map((sub: any) => ({
             id: sub.id,
             name: sub.name,
             division_type: sub.division_type || [],
-          }))
+          })),
         );
 
         setSelectedSubcategory(null);
@@ -339,16 +357,22 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
 
     setLoadingDivisions(true);
     try {
-      const res = await get(`${Api.DivisionBySubcategory}?subCategoryId=${sub.id}`);
+      const res = await get(
+        `${Api.DivisionBySubcategory}?subCategoryId=${sub.id}`,
+      );
       const divData = res?.data?.data || res?.data || [];
       const fetchedDivisions = Array.isArray(divData) ? divData : [];
       setDivisions(fetchedDivisions);
 
       if (fetchedDivisions.length > 0) {
-        setCurrentStep('division');
+        setCurrentStep("division");
       } else {
         // Automatic navigation if no divisions found
-        handleViewItems({ subcategoryId: sub.id, divisionId: "" }, [], sub.name);
+        handleViewItems(
+          { subcategoryId: sub.id, divisionId: "" },
+          [],
+          sub.name,
+        );
       }
     } catch (err) {
       console.error("Failed to fetch divisions", err);
@@ -358,7 +382,11 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
     }
   };
 
-  const handleViewItems = (currentData?: any, currentDivisions?: any[], currentSubName?: string) => {
+  const handleViewItems = (
+    currentData?: any,
+    currentDivisions?: any[],
+    currentSubName?: string,
+  ) => {
     const finalData = currentData || data;
     const finalDivisions = currentDivisions || divisions;
 
@@ -382,9 +410,12 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       pathname: "/products" as any,
       params: {
         subcategoryId: finalData.subcategoryId,
-        subcategoryName: currentSubName || selectedSubcategory?.name || categoryName,
+        subcategoryName:
+          currentSubName || selectedSubcategory?.name || categoryName,
         divisionTypes: JSON.stringify(finalDivisions),
-        selectedDivision: selectedDivision ? JSON.stringify(selectedDivision) : "",
+        selectedDivision: selectedDivision
+          ? JSON.stringify(selectedDivision)
+          : "",
       },
     });
   };
@@ -397,16 +428,8 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
       onRequestClose={handleClose}
       statusBarTranslucent={true}
     >
-      <View
-        className="flex-1 justify-end"
-        style={{ zIndex: 10000 }}
-      >
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { opacity: fadeAnim }
-          ]}
-        >
+      <View className="flex-1 justify-end" style={{ zIndex: 10000 }}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
           <TouchableOpacity
             className="flex-1"
             style={{ flex: 1 }}
@@ -416,26 +439,28 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
             <BlurView
               intensity={70}
               tint="dark"
-              style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)' }]}
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: "rgba(0,0,0,0.3)" },
+              ]}
             />
           </TouchableOpacity>
         </Animated.View>
         <Animated.View
           className="rounded-t-[25px] w-full overflow-hidden"
           style={{
-            maxHeight: '75%',
+            maxHeight: "75%",
             zIndex: 10001,
             marginBottom: 0,
             paddingBottom: 0,
-            backgroundColor: 'white',
+            backgroundColor: "white",
             transform: [
               { translateY: Animated.add(slideAnim, panY) },
-              { scale: scaleAnim }
-            ]
+              { scale: scaleAnim },
+            ],
           }}
           {...panResponder.panHandlers}
         >
-
           {/* Drag Handle */}
           <View className="pt-3 pb-2 items-center">
             <View
@@ -455,12 +480,16 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
               borderColor: colors.border_primary,
             }}
           >
-            {currentStep === 'division' ? (
+            {currentStep === "division" ? (
               <TouchableOpacity
-                onPress={() => setCurrentStep('subcategory')}
+                onPress={() => setCurrentStep("subcategory")}
                 className="p-2 -ml-2"
               >
-                <Ionicons name="arrow-back" size={24} color={colors.text_primary} />
+                <Ionicons
+                  name="arrow-back"
+                  size={24}
+                  color={colors.text_primary}
+                />
               </TouchableOpacity>
             ) : (
               <View style={{ width: 40 }} />
@@ -470,10 +499,9 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
               className="text-xl font-bold flex-1 text-center"
               style={{ color: colors.text_primary }}
             >
-              {currentStep === 'subcategory'
-                ? (categoryName || category?.name || "Category")
-                : (selectedSubcategory?.name || "Select Type")
-              }
+              {currentStep === "subcategory"
+                ? categoryName || category?.name || "Category"
+                : selectedSubcategory?.name || "Select Type"}
             </Text>
             <View style={{ width: 40 }} />
           </View>
@@ -481,7 +509,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ flexGrow: 1 }}
-            style={{ backgroundColor: '#FFFFFF' }}
+            style={{ backgroundColor: "#FFFFFF" }}
           >
             {loading ? (
               <View className="py-12 justify-center items-center">
@@ -494,7 +522,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
               <View className="py-12 justify-center items-center px-6">
                 <Text style={{ color: colors.error }}>{error}</Text>
               </View>
-            ) : currentStep === 'subcategory' ? (
+            ) : currentStep === "subcategory" ? (
               <View className="p-4 pb-3">
                 <View className="flex-row flex-wrap gap-3 justify-between px-2">
                   {subcategories.map((sub) => {
@@ -511,8 +539,8 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                         onPress={() => handleChangeSubCategory(sub)}
                         className={`${isSingleGrid ? "w-full px-4 py-4" : "w-[48%] px-3 py-3.5"} rounded-2xl border flex-row items-center mb-1`}
                         style={{
-                          backgroundColor: '#EBF3FF',
-                          borderColor: isSelected ? '#5B4EB3' : 'transparent',
+                          backgroundColor: "#EBF3FF",
+                          borderColor: isSelected ? "#5B4EB3" : "transparent",
                           borderWidth: isSelected ? 2 : 1,
                         }}
                       >
@@ -522,7 +550,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                         </View>
                         <Text
                           className="text-xs font-bold flex-1"
-                          style={{ color: '#2D3436' }}
+                          style={{ color: "#2D3436" }}
                           numberOfLines={1}
                         >
                           {sub.name}
@@ -548,14 +576,16 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                           onPress={() => handleSelectDivision(d)}
                           className="w-full px-5 py-4 rounded-2xl border flex-row items-center mb-3 shadow-sm"
                           style={{
-                            backgroundColor: isSelected ? '#F5F3FF' : '#FFFFFF',
-                            borderColor: isSelected ? '#5B4EB3' : '#E5E7EB',
+                            backgroundColor: isSelected ? "#F5F3FF" : "#FFFFFF",
+                            borderColor: isSelected ? "#5B4EB3" : "#E5E7EB",
                             borderWidth: isSelected ? 2 : 1,
                           }}
                         >
                           <Text
                             className="text-sm font-bold flex-1"
-                            style={{ color: isSelected ? '#5B4EB3' : '#2D3436' }}
+                            style={{
+                              color: isSelected ? "#5B4EB3" : "#2D3436",
+                            }}
                             numberOfLines={1}
                           >
                             {d.label}
@@ -563,7 +593,7 @@ const ClassifiedShowCard: React.FC<ClassifiedShowCardProps> = ({
                           <Ionicons
                             name="chevron-forward"
                             size={18}
-                            color={isSelected ? '#5B4EB3' : '#9CA3AF'}
+                            color={isSelected ? "#5B4EB3" : "#9CA3AF"}
                             style={{ opacity: 0.8 }}
                           />
                         </TouchableOpacity>

@@ -16,7 +16,6 @@ import {
   View,
 } from "react-native";
 
-
 interface LocationPickerProps {
   visible: boolean;
   onClose: () => void;
@@ -30,7 +29,9 @@ interface LocationPickerProps {
   }) => void;
   onUseCurrentLocation: () => Promise<void>;
   getPlaceName: (lat: number, lon: number) => Promise<string>;
-  getCoordinatesFromName: (locationName: string) => Promise<{ lat: number; lon: number; place: string } | null>;
+  getCoordinatesFromName: (
+    locationName: string,
+  ) => Promise<{ lat: number; lon: number; place: string } | null>;
 }
 
 export default function LocationPicker({
@@ -50,19 +51,25 @@ export default function LocationPicker({
   const panY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const slideAnim = useRef(
+    new Animated.Value(Dimensions.get("window").height),
+  ).current;
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        const isVerticalSwipe = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+        const isVerticalSwipe =
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
         return isVerticalSwipe && Math.abs(gestureState.dy) > 10;
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
           panY.setValue(gestureState.dy);
-          const newOpacity = Math.max(0, 1 - (gestureState.dy / (Dimensions.get('window').height * 0.5)));
+          const newOpacity = Math.max(
+            0,
+            1 - gestureState.dy / (Dimensions.get("window").height * 0.5),
+          );
           fadeAnim.setValue(newOpacity);
         }
       },
@@ -70,7 +77,7 @@ export default function LocationPicker({
         if (gestureState.dy > 150 || gestureState.vy > 0.5) {
           Animated.parallel([
             Animated.timing(panY, {
-              toValue: Dimensions.get('window').height,
+              toValue: Dimensions.get("window").height,
               duration: 250,
               useNativeDriver: true,
             }),
@@ -78,7 +85,7 @@ export default function LocationPicker({
               toValue: 0,
               duration: 250,
               useNativeDriver: true,
-            })
+            }),
           ]).start(onClose);
         } else {
           Animated.spring(panY, {
@@ -88,7 +95,7 @@ export default function LocationPicker({
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   useEffect(() => {
@@ -116,7 +123,7 @@ export default function LocationPicker({
       ]).start();
     } else {
       fadeAnim.setValue(0);
-      slideAnim.setValue(Dimensions.get('window').height);
+      slideAnim.setValue(Dimensions.get("window").height);
       scaleAnim.setValue(0.9);
     }
   }, [visible]);
@@ -129,7 +136,7 @@ export default function LocationPicker({
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
-        toValue: Dimensions.get('window').height,
+        toValue: Dimensions.get("window").height,
         duration: 250,
         useNativeDriver: true,
       }),
@@ -137,7 +144,6 @@ export default function LocationPicker({
       onClose();
     });
   };
-
 
   const handleUseCurrentLocation = async () => {
     setUsingCurrent(true);
@@ -187,24 +193,16 @@ export default function LocationPicker({
       onRequestClose={handleClose}
       statusBarTranslucent={true}
     >
-      <View
-        className="flex-1 justify-end"
-        style={{ zIndex: 10000 }}
-      >
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { opacity: fadeAnim }
-          ]}
-        >
-          <Pressable
-            className="flex-1"
-            onPress={handleClose}
-          >
+      <View className="flex-1 justify-end" style={{ zIndex: 10000 }}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
+          <Pressable className="flex-1" onPress={handleClose}>
             <BlurView
               intensity={70}
               tint="dark"
-              style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)' }]}
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: "rgba(0,0,0,0.3)" },
+              ]}
             />
           </Pressable>
         </Animated.View>
@@ -213,8 +211,8 @@ export default function LocationPicker({
           style={{
             transform: [
               { translateY: Animated.add(slideAnim, panY) },
-              { scale: scaleAnim }
-            ]
+              { scale: scaleAnim },
+            ],
           }}
           {...panResponder.panHandlers}
         >
@@ -259,7 +257,10 @@ export default function LocationPicker({
                     className={`px-4 py-2 rounded-lg ${usingCurrent ? "bg-bg_gray_400" : "bg-primary"}`}
                   >
                     {usingCurrent ? (
-                      <ActivityIndicator size="small" color={colors.text_white} />
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.text_white}
+                      />
                     ) : (
                       <Text className="text-sm font-medium text-text_white">
                         Use Current
@@ -289,9 +290,7 @@ export default function LocationPicker({
                     autoCorrect={false}
                   />
                   {error && (
-                    <Text className="text-xs mt-1 text-error">
-                      {error}
-                    </Text>
+                    <Text className="text-xs mt-1 text-error">{error}</Text>
                   )}
                   <Text className="text-xs mt-1 text-text_tertiary">
                     Enter city name, city and state, or full address
@@ -301,8 +300,11 @@ export default function LocationPicker({
                 <Pressable
                   onPress={handleManualInput}
                   disabled={loading || !locationName.trim()}
-                  className={`py-3 rounded-lg items-center ${loading || !locationName.trim() ? "bg-bg_gray_400" : "bg-primary"
-                    }`}
+                  className={`py-3 rounded-lg items-center ${
+                    loading || !locationName.trim()
+                      ? "bg-bg_gray_400"
+                      : "bg-primary"
+                  }`}
                 >
                   {loading ? (
                     <ActivityIndicator size="small" color={colors.text_white} />

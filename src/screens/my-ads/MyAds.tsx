@@ -14,7 +14,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 const NoImagePlaceholder = () => (
@@ -78,7 +81,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
     else if (d && typeof d === "object" && d.getTime) date = d;
     else return "—";
     if (isNaN(date.getTime())) return "—";
-    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   };
   const postedDateFormatted = formatDate(postedDateRaw);
 
@@ -123,7 +130,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="create-outline" size={20} color={colors.primary} />
+                <Ionicons
+                  name="create-outline"
+                  size={20}
+                  color={colors.primary}
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -132,31 +143,42 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <Text className="text-lg font-bold text-primary">
               {productPrice
                 ? `AED ${Number(productPrice).toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}`
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`
                 : "Price on request"}
             </Text>
           </View>
 
           {/* Posted date: label above, then the date */}
-             {/* <Text className="text-xs text-text_primary mb-2">
+          {/* <Text className="text-xs text-text_primary mb-2">
             {postedDateFormatted}
           </Text> */}
           <Text className="text-xs text-text_tertiary mb-0.5">
             Active from {postedDateFormatted}
           </Text>
-       
 
           {/* Views, calls - grid row */}
           <View className="flex-row items-center gap-4">
             <View className="flex-row items-center">
-              <Ionicons name="eye-outline" size={14} color={colors.text_tertiary} />
-              <Text className="text-xs text-text_tertiary ml-1">{views} views</Text>
+              <Ionicons
+                name="eye-outline"
+                size={14}
+                color={colors.text_tertiary}
+              />
+              <Text className="text-xs text-text_tertiary ml-1">
+                {views} views
+              </Text>
             </View>
             <View className="flex-row items-center">
-              <Ionicons name="call-outline" size={14} color={colors.text_tertiary} />
-              <Text className="text-xs text-text_tertiary ml-1">{calls} calls</Text>
+              <Ionicons
+                name="call-outline"
+                size={14}
+                color={colors.text_tertiary}
+              />
+              <Text className="text-xs text-text_tertiary ml-1">
+                {calls} calls
+              </Text>
             </View>
           </View>
         </View>
@@ -172,7 +194,9 @@ export default function MyAds() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<"active" | "draft">("active");
+  const [activeFilter, setActiveFilter] = useState<"active" | "draft">(
+    "active",
+  );
   const [signedImages, setSignedImages] = useState<
     Record<string | number, string>
   >({});
@@ -235,8 +259,8 @@ export default function MyAds() {
         error?.response?.status === 404
           ? "API endpoint not found. Please check backend routing."
           : error?.response?.data?.message ||
-          error?.message ||
-          "Failed to load your ads";
+            error?.message ||
+            "Failed to load your ads";
 
       Toast.show({
         type: "error",
@@ -290,17 +314,23 @@ export default function MyAds() {
     setSignedImages(result);
   };
 
-  const filterProductsByStatus = (productsList: any[], filter: "active" | "draft") => {
+  const filterProductsByStatus = (
+    productsList: any[],
+    filter: "active" | "draft",
+  ) => {
     if (filter === "active") {
       // Active products: status === 0 or status === "active" or no draft flag
       const activeProducts = productsList.filter(
-        (p) => p.status === 0 || p.status === "active" || (!p.isDraft && p.status !== 1)
+        (p) =>
+          p.status === 0 ||
+          p.status === "active" ||
+          (!p.isDraft && p.status !== 1),
       );
       setProducts(activeProducts);
     } else {
       // Draft products: status === 1 or isDraft === true or status === "draft"
       const draftProducts = productsList.filter(
-        (p) => p.status === 1 || p.isDraft === true || p.status === "draft"
+        (p) => p.status === 1 || p.isDraft === true || p.status === "draft",
       );
       setProducts(draftProducts);
     }
@@ -362,17 +392,26 @@ export default function MyAds() {
           <TouchableOpacity
             onPress={() => router.back()}
             className="w-10 h-10 items-center justify-center rounded-full bg-white/80"
-            style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2 }}
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 3,
+              elevation: 2,
+            }}
             activeOpacity={0.7}
           >
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <View
             className="items-center justify-center"
-            style={{ position: 'absolute', left: 48, right: 48 }}
+            style={{ position: "absolute", left: 48, right: 48 }}
             pointerEvents="none"
           >
-            <Text className="text-xl font-black text-gray-900" numberOfLines={1}>
+            <Text
+              className="text-xl font-black text-gray-900"
+              numberOfLines={1}
+            >
               My Ads
             </Text>
           </View>
@@ -452,7 +491,9 @@ export default function MyAds() {
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={22} color={colors.text_white} />
-          <Text className="text-text_white font-semibold text-base ml-2">Post Ad</Text>
+          <Text className="text-text_white font-semibold text-base ml-2">
+            Post Ad
+          </Text>
         </TouchableOpacity>
 
         {/* Filter Buttons - Bottom */}
@@ -463,26 +504,34 @@ export default function MyAds() {
           <View className="flex-row gap-2">
             <TouchableOpacity
               onPress={() => handleFilterChange("active")}
-              className={`flex-1 py-2.5 px-4 rounded-lg items-center ${activeFilter === "active" ? "bg-primary" : "bg-bg_white"
-                }`}
+              className={`flex-1 py-2.5 px-4 rounded-lg items-center ${
+                activeFilter === "active" ? "bg-primary" : "bg-bg_white"
+              }`}
               activeOpacity={0.7}
             >
               <Text
-                className={`text-sm font-semibold ${activeFilter === "active" ? "text-text_white" : "text-text_primary"
-                  }`}
+                className={`text-sm font-semibold ${
+                  activeFilter === "active"
+                    ? "text-text_white"
+                    : "text-text_primary"
+                }`}
               >
                 Active
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => handleFilterChange("draft")}
-              className={`flex-1 py-2.5 px-4 rounded-lg items-center ${activeFilter === "draft" ? "bg-primary" : "bg-bg_white"
-                }`}
+              className={`flex-1 py-2.5 px-4 rounded-lg items-center ${
+                activeFilter === "draft" ? "bg-primary" : "bg-bg_white"
+              }`}
               activeOpacity={0.7}
             >
               <Text
-                className={`text-sm font-semibold ${activeFilter === "draft" ? "text-text_white" : "text-text_primary"
-                  }`}
+                className={`text-sm font-semibold ${
+                  activeFilter === "draft"
+                    ? "text-text_white"
+                    : "text-text_primary"
+                }`}
               >
                 Draft
               </Text>

@@ -39,7 +39,10 @@ export const useHomeData = () => {
   });
 
   /* ================== IMAGE HANDLER ================== */
-  const loadImages = async (products: any[], categoryType: 'suggested' | 'trending' | 'newads' | 'nearest') => {
+  const loadImages = async (
+    products: any[],
+    categoryType: "suggested" | "trending" | "newads" | "nearest",
+  ) => {
     if (!Array.isArray(products)) return;
     const result: Record<string | number, string> = {};
 
@@ -50,12 +53,16 @@ export const useHomeData = () => {
           if (!id) return;
 
           const res = await fetchProductImages(id);
-          const imageUrl = res?.data?.[0] || p.image || (Array.isArray(p.images) && p.images[0]?.url) || (Array.isArray(p.images) && p.images[0]);
+          const imageUrl =
+            res?.data?.[0] ||
+            p.image ||
+            (Array.isArray(p.images) && p.images[0]?.url) ||
+            (Array.isArray(p.images) && p.images[0]);
           if (imageUrl) {
             result[id] = imageUrl;
           }
-        } catch { }
-      })
+        } catch {}
+      }),
     );
 
     setSignedImages((prev) => ({ ...prev, [categoryType]: result }));
@@ -65,23 +72,26 @@ export const useHomeData = () => {
   const fetchHome = useCallback(async () => {
     setLoading(true);
     try {
-      const [
-        categoryRes,
-        suggestedRes,
-        trendingRes,
-        newAdsRes,
-        profileRes,
-      ] = await Promise.all([
-        fetchCategories().catch(() => ({ data: [] })),
-        fetchSuggestedProducts().catch(() => ({ data: [] })),
-        fetchTrendingProducts().catch(() => ({ data: [] })),
-        fetchNewProducts().catch(() => ({ data: [] })),
-        fetchProfile().catch(() => ({ data: { firstName: "User", profilePic: null } })),
-      ]);
+      const [categoryRes, suggestedRes, trendingRes, newAdsRes, profileRes] =
+        await Promise.all([
+          fetchCategories().catch(() => ({ data: [] })),
+          fetchSuggestedProducts().catch(() => ({ data: [] })),
+          fetchTrendingProducts().catch(() => ({ data: [] })),
+          fetchNewProducts().catch(() => ({ data: [] })),
+          fetchProfile().catch(() => ({
+            data: { firstName: "User", profilePic: null },
+          })),
+        ]);
 
-      const categoriesData = Array.isArray(categoryRes?.data) ? categoryRes.data : [];
-      let suggestedData = Array.isArray(suggestedRes?.data) ? suggestedRes.data : [];
-      let trendingData = Array.isArray(trendingRes?.data) ? trendingRes.data : [];
+      const categoriesData = Array.isArray(categoryRes?.data)
+        ? categoryRes.data
+        : [];
+      let suggestedData = Array.isArray(suggestedRes?.data)
+        ? suggestedRes.data
+        : [];
+      let trendingData = Array.isArray(trendingRes?.data)
+        ? trendingRes.data
+        : [];
       const newAdsData = Array.isArray(newAdsRes?.data) ? newAdsRes.data : [];
       const profileData = profileRes?.data || {};
 
@@ -89,7 +99,7 @@ export const useHomeData = () => {
       if (suggestedData.length === 0 && trendingData.length > 0) {
         suggestedData = trendingData;
       }
-      
+
       // Fallback: if suggested is STILL empty, show newAds
       if (suggestedData.length === 0 && newAdsData.length > 0) {
         suggestedData = newAdsData;
@@ -104,15 +114,19 @@ export const useHomeData = () => {
       // Extract user name from profile data
       const firstName = profileData?.firstName || profileData?.first_name || "";
       const lastName = profileData?.lastName || profileData?.last_name || "";
-      const fullName = profileData?.name || profileData?.fullName ||
-        (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || null);
+      const fullName =
+        profileData?.name ||
+        profileData?.fullName ||
+        (firstName && lastName
+          ? `${firstName} ${lastName}`
+          : firstName || lastName || null);
       setUserName(fullName);
 
       // Load images in parallel
       await Promise.all([
-        loadImages(suggestedData, 'suggested'),
-        loadImages(trendingData, 'trending'),
-        loadImages(newAdsData, 'newads'),
+        loadImages(suggestedData, "suggested"),
+        loadImages(trendingData, "trending"),
+        loadImages(newAdsData, "newads"),
       ]);
     } catch (error) {
       console.error("Error fetching home data:", error);
@@ -129,9 +143,9 @@ export const useHomeData = () => {
       .then((res) => {
         const nearestData = Array.isArray(res?.data) ? res.data : [];
         setNearest(nearestData);
-        loadImages(nearestData, 'nearest');
+        loadImages(nearestData, "nearest");
       })
-      .catch(() => { });
+      .catch(() => {});
   }, [coordinates]);
 
   useEffect(() => {

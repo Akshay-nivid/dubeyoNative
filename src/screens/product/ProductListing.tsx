@@ -15,7 +15,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -178,7 +178,7 @@ const ProductListingScreen: React.FC = () => {
       if (normalized.seller && normalized.id) {
         result[normalized.id] = {
           name: normalized.seller.name || "",
-          profilePic: normalized.seller.profilePic
+          profilePic: normalized.seller.profilePic,
         };
       }
     });
@@ -204,7 +204,7 @@ const ProductListingScreen: React.FC = () => {
           if (normalized.seller) {
             result[id] = {
               name: normalized.seller.name || "",
-              profilePic: normalized.seller.profilePic
+              profilePic: normalized.seller.profilePic,
             };
           }
         } catch (error) {
@@ -226,9 +226,11 @@ const ProductListingScreen: React.FC = () => {
 
   const filteredProducts = searchQuery.trim()
     ? products.filter((p) => {
-      const title = p.title ?? p.product_name ?? "";
-      return String(title).toLowerCase().includes(searchQuery.trim().toLowerCase());
-    })
+        const title = p.title ?? p.product_name ?? "";
+        return String(title)
+          .toLowerCase()
+          .includes(searchQuery.trim().toLowerCase());
+      })
     : products;
 
   const renderProduct = ({ item }: { item: any }) => {
@@ -245,26 +247,39 @@ const ProductListingScreen: React.FC = () => {
 
   return (
     <ThemedBackground>
-      <SafeAreaView
-        className="flex-1"
-        edges={["top"]}
-      >
+      <SafeAreaView className="flex-1" edges={["top"]}>
         {/* Header - seamless with page background, centered title (same as Section Listing) */}
         <View className="px-4 pt-4 pb-3 flex-row items-center">
           <TouchableOpacity
             onPress={() => router.back()}
             className="w-10 h-10 items-center justify-center rounded-full bg-white/80"
-            style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2 }}
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 3,
+              elevation: 2,
+            }}
           >
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <View
             className="items-center justify-center"
-            style={{ position: 'absolute', left: 0, right: 0, paddingHorizontal: 48 }}
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              paddingHorizontal: 48,
+            }}
             pointerEvents="none"
           >
-            <Text className="text-xl font-black text-gray-900" numberOfLines={1}>
-              {typeof subcategoryName === "string" ? subcategoryName : "Products"}
+            <Text
+              className="text-xl font-black text-gray-900"
+              numberOfLines={1}
+            >
+              {typeof subcategoryName === "string"
+                ? subcategoryName
+                : "Products"}
             </Text>
           </View>
           <View className="w-10" />
@@ -332,7 +347,7 @@ const ProductListingScreen: React.FC = () => {
               String(item.product_id || item.id || Math.random())
             }
             numColumns={2}
-            columnWrapperStyle={{ justifyContent: 'space-between' }}
+            columnWrapperStyle={{ justifyContent: "space-between" }}
             contentContainerStyle={{
               paddingHorizontal: 16,
               paddingVertical: 16,
@@ -349,7 +364,11 @@ const ProductListingScreen: React.FC = () => {
             ListEmptyComponent={
               searchQuery.trim() ? (
                 <View className="py-10 items-center justify-center px-6">
-                  <Ionicons name="search-outline" size={48} color={colors.text_tertiary} />
+                  <Ionicons
+                    name="search-outline"
+                    size={48}
+                    color={colors.text_tertiary}
+                  />
                   <Text className="mt-3 text-base text-center text-text_secondary">
                     No results for "{searchQuery.trim()}"
                   </Text>

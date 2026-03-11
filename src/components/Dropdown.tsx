@@ -11,7 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 
 interface Option {
@@ -43,19 +43,25 @@ export default function Dropdown({
   const panY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const slideAnim = useRef(
+    new Animated.Value(Dimensions.get("window").height),
+  ).current;
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        const isVerticalSwipe = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+        const isVerticalSwipe =
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
         return isVerticalSwipe && Math.abs(gestureState.dy) > 10;
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
           panY.setValue(gestureState.dy);
-          const newOpacity = Math.max(0, 1 - (gestureState.dy / (Dimensions.get('window').height * 0.5)));
+          const newOpacity = Math.max(
+            0,
+            1 - gestureState.dy / (Dimensions.get("window").height * 0.5),
+          );
           fadeAnim.setValue(newOpacity);
         }
       },
@@ -63,7 +69,7 @@ export default function Dropdown({
         if (gestureState.dy > 150 || gestureState.vy > 0.5) {
           Animated.parallel([
             Animated.timing(panY, {
-              toValue: Dimensions.get('window').height,
+              toValue: Dimensions.get("window").height,
               duration: 250,
               useNativeDriver: true,
             }),
@@ -71,7 +77,7 @@ export default function Dropdown({
               toValue: 0,
               duration: 250,
               useNativeDriver: true,
-            })
+            }),
           ]).start(() => setIsOpen(false));
         } else {
           Animated.spring(panY, {
@@ -81,7 +87,7 @@ export default function Dropdown({
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   useEffect(() => {
@@ -108,7 +114,7 @@ export default function Dropdown({
       ]).start();
     } else {
       fadeAnim.setValue(0);
-      slideAnim.setValue(Dimensions.get('window').height);
+      slideAnim.setValue(Dimensions.get("window").height);
       scaleAnim.setValue(0.9);
     }
   }, [isOpen]);
@@ -121,7 +127,7 @@ export default function Dropdown({
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
-        toValue: Dimensions.get('window').height,
+        toValue: Dimensions.get("window").height,
         duration: 250,
         useNativeDriver: true,
       }),
@@ -130,7 +136,9 @@ export default function Dropdown({
     });
   };
 
-  const selectedOption = options.find((opt) => opt.value === value && opt.value !== "");
+  const selectedOption = options.find(
+    (opt) => opt.value === value && opt.value !== "",
+  );
 
   const handleSelect = (optionValue: string) => {
     onChange(name, optionValue);
@@ -138,7 +146,6 @@ export default function Dropdown({
   };
 
   const labelText = typeof label === "string" ? label : "Select";
-
 
   return (
     <View className="mb-5">
@@ -163,24 +170,18 @@ export default function Dropdown({
         onRequestClose={handleClose}
         statusBarTranslucent={true}
       >
-        <View
-          className="flex-1 justify-end"
-          style={{ zIndex: 10000 }}
-        >
+        <View className="flex-1 justify-end" style={{ zIndex: 10000 }}>
           <Animated.View
-            style={[
-              StyleSheet.absoluteFill,
-              { opacity: fadeAnim }
-            ]}
+            style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}
           >
-            <Pressable
-              className="flex-1"
-              onPress={handleClose}
-            >
+            <Pressable className="flex-1" onPress={handleClose}>
               <BlurView
                 intensity={70}
                 tint="dark"
-                style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)' }]}
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: "rgba(0,0,0,0.3)" },
+                ]}
               />
             </Pressable>
           </Animated.View>
@@ -189,13 +190,12 @@ export default function Dropdown({
             style={{
               transform: [
                 { translateY: Animated.add(slideAnim, panY) },
-                { scale: scaleAnim }
-              ]
+                { scale: scaleAnim },
+              ],
             }}
             {...panResponder.panHandlers}
           >
             <Pressable onPress={(e) => e.stopPropagation()}>
-
               <View className="py-4 px-6">
                 <Text className="text-lg font-semibold text-text_primary">
                   {typeof label === "string" ? label : "Select"}

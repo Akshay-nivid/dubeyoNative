@@ -2,12 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import Toast from "react-native-toast-message";
 
@@ -50,7 +50,7 @@ export default function PreferenceScreen() {
 
   useEffect(() => {
     init();
-    
+
     // Cleanup timeout on unmount
     return () => {
       if (submitTimeoutRef.current) {
@@ -62,7 +62,7 @@ export default function PreferenceScreen() {
   const init = async () => {
     try {
       const res = await get(Api.getInitialQuestion);
-      
+
       // Check if request failed
       if (res.status !== 200 || !res.data) {
         const errorMsg = (res as any).message || "No data";
@@ -76,7 +76,7 @@ export default function PreferenceScreen() {
         // Don't redirect immediately, let user see the error
         return;
       }
-      
+
       const q = res.data;
       setConversation([{ question: q, answer: null }]);
       await loadOptions(q.id);
@@ -86,7 +86,8 @@ export default function PreferenceScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: error?.message || "Failed to load preferences. Please try again.",
+        text2:
+          error?.message || "Failed to load preferences. Please try again.",
       });
       setLoading(false);
     }
@@ -120,7 +121,8 @@ export default function PreferenceScreen() {
 
     const payload = {
       questionId: current.id,
-      targetId: current.type === "radio" ? null : (answer as Option)?.id || null,
+      targetId:
+        current.type === "radio" ? null : (answer as Option)?.id || null,
       answerValue:
         current.type === "radio"
           ? (answer as Option[]).map((a) => a.name)
@@ -129,9 +131,10 @@ export default function PreferenceScreen() {
 
     try {
       const res = await post(Api.answerQuestion, payload);
-      
+
       if (res.status !== 200) {
-        const errorMsg = (res as any).message || "Failed to submit answer. Please try again.";
+        const errorMsg =
+          (res as any).message || "Failed to submit answer. Please try again.";
         Toast.show({
           type: "error",
           text1: "Error",
@@ -140,7 +143,7 @@ export default function PreferenceScreen() {
         setSubmitting(false);
         return;
       }
-      
+
       const next = res?.data?.nextQuestion;
 
       setConversation((prev) => {
@@ -172,7 +175,10 @@ export default function PreferenceScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: error?.message || error?.response?.data?.message || "Failed to submit answer",
+        text2:
+          error?.message ||
+          error?.response?.data?.message ||
+          "Failed to submit answer",
       });
       setSubmitting(false);
     }
@@ -221,7 +227,11 @@ export default function PreferenceScreen() {
               <Text className="flex-1 text-base text-text_primary font-medium">
                 {o.name}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.text_tertiary} />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={colors.text_tertiary}
+              />
             </Pressable>
           ))}
         </View>
@@ -244,20 +254,26 @@ export default function PreferenceScreen() {
                 onPress={() => {
                   const newSelection = nextValue;
                   setCurrentAnswer(newSelection);
-                  if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+                  if (submitTimeoutRef.current)
+                    clearTimeout(submitTimeoutRef.current);
                   submitTimeoutRef.current = setTimeout(() => {
-                    if (newSelection.length > 0 && !submitting) submitAnswer(newSelection);
+                    if (newSelection.length > 0 && !submitting)
+                      submitAnswer(newSelection);
                   }, 500);
                 }}
                 disabled={submitting}
                 className={`w-full rounded-xl border px-4 py-4 flex-row items-center ${
-                  active ? "bg-bg_secondary border-primary" : "bg-bg_white border-border_primary"
+                  active
+                    ? "bg-bg_secondary border-primary"
+                    : "bg-bg_white border-border_primary"
                 } shadow-sm`}
                 style={{ elevation: 1 }}
               >
                 <View
                   className={`h-5 w-5 rounded-full border-2 mr-3 items-center justify-center ${
-                    active ? "border-primary bg-primary" : "border-border_secondary"
+                    active
+                      ? "border-primary bg-primary"
+                      : "border-border_secondary"
                   }`}
                 >
                   {active && (
@@ -269,7 +285,11 @@ export default function PreferenceScreen() {
                 >
                   {o.name}
                 </Text>
-                <Ionicons name="chevron-forward" size={20} color={colors.text_tertiary} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.text_tertiary}
+                />
               </Pressable>
             );
           })}
@@ -313,8 +333,12 @@ export default function PreferenceScreen() {
               {value.toLocaleString()}
             </Text>
             <View className="flex-row gap-4">
-              <Text className="text-sm text-text_tertiary">Min: {min.toLocaleString()}</Text>
-              <Text className="text-sm text-text_tertiary">Max: {max.toLocaleString()}</Text>
+              <Text className="text-sm text-text_tertiary">
+                Min: {min.toLocaleString()}
+              </Text>
+              <Text className="text-sm text-text_tertiary">
+                Max: {max.toLocaleString()}
+              </Text>
             </View>
           </View>
 
@@ -395,7 +419,11 @@ export default function PreferenceScreen() {
     return (
       <View className="flex-1 bg-bg_white items-center justify-center px-6">
         <View className="items-center mb-6">
-          <Ionicons name="alert-circle-outline" size={64} color={colors.error} />
+          <Ionicons
+            name="alert-circle-outline"
+            size={64}
+            color={colors.error}
+          />
           <Text className="text-xl font-semibold text-text_primary mt-4 mb-2">
             Unable to Load Preferences
           </Text>

@@ -42,15 +42,15 @@ export const colors = {
   error: "#dc2626",
 
   // Post Ad Colors
-  main_bg_gradient_start: '#ddd7f9ff',
-  main_bg_gradient_middle: '#ffffff',
-  main_bg_gradient_end: '#ffffff',
-  post_ad_text_gradient_teal: '#14B8A6',
-  post_ad_text_gradient_blue: '#3B82F6',
-  post_ad_text_gradient_violet: '#8B5CF6',
-  post_ad_upload_bg: '#F0F4FF',
-  post_ad_upload_border: '#1e3a8a',
-  post_ad_delete_icon: '#EF4444',
+  main_bg_gradient_start: "#ddd7f9ff",
+  main_bg_gradient_middle: "#ffffff",
+  main_bg_gradient_end: "#ffffff",
+  post_ad_text_gradient_teal: "#14B8A6",
+  post_ad_text_gradient_blue: "#3B82F6",
+  post_ad_text_gradient_violet: "#8B5CF6",
+  post_ad_upload_bg: "#F0F4FF",
+  post_ad_upload_border: "#1e3a8a",
+  post_ad_delete_icon: "#EF4444",
 };
 // Export for Tailwind config compatibility
 export default colors;

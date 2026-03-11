@@ -8,7 +8,9 @@ export function normalizeError(error: any) {
   if (error.response) {
     return {
       status: error.response.status,
-      message: error.response.data?.message || `Request failed (${error.response.status})`,
+      message:
+        error.response.data?.message ||
+        `Request failed (${error.response.status})`,
       details: error.response.data,
     };
   }
@@ -16,8 +18,8 @@ export function normalizeError(error: any) {
   if (error.request) {
     return {
       status: null,
-      message: error.message?.includes("Network Error") 
-        ? "Network error. Please check your connection." 
+      message: error.message?.includes("Network Error")
+        ? "Network error. Please check your connection."
         : "No response from server",
     };
   }

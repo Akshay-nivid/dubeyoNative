@@ -12,7 +12,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 
 interface Props {
@@ -33,26 +33,30 @@ export default function DatePicker({
   required = false,
 }: Props) {
   const [showPicker, setShowPicker] = useState(false);
-  const [date, setDate] = useState<Date>(
-    value ? new Date(value) : new Date()
-  );
+  const [date, setDate] = useState<Date>(value ? new Date(value) : new Date());
 
   const panY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const slideAnim = useRef(
+    new Animated.Value(Dimensions.get("window").height),
+  ).current;
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        const isVerticalSwipe = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+        const isVerticalSwipe =
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
         return isVerticalSwipe && Math.abs(gestureState.dy) > 10;
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
           panY.setValue(gestureState.dy);
-          const newOpacity = Math.max(0, 1 - (gestureState.dy / (Dimensions.get('window').height * 0.5)));
+          const newOpacity = Math.max(
+            0,
+            1 - gestureState.dy / (Dimensions.get("window").height * 0.5),
+          );
           fadeAnim.setValue(newOpacity);
         }
       },
@@ -60,7 +64,7 @@ export default function DatePicker({
         if (gestureState.dy > 150 || gestureState.vy > 0.5) {
           Animated.parallel([
             Animated.timing(panY, {
-              toValue: Dimensions.get('window').height,
+              toValue: Dimensions.get("window").height,
               duration: 250,
               useNativeDriver: true,
             }),
@@ -68,7 +72,7 @@ export default function DatePicker({
               toValue: 0,
               duration: 250,
               useNativeDriver: true,
-            })
+            }),
           ]).start(() => setShowPicker(false));
         } else {
           Animated.spring(panY, {
@@ -78,11 +82,11 @@ export default function DatePicker({
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   useEffect(() => {
-    if (showPicker && Platform.OS === 'ios') {
+    if (showPicker && Platform.OS === "ios") {
       panY.setValue(0);
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -105,13 +109,13 @@ export default function DatePicker({
       ]).start();
     } else {
       fadeAnim.setValue(0);
-      slideAnim.setValue(Dimensions.get('window').height);
+      slideAnim.setValue(Dimensions.get("window").height);
       scaleAnim.setValue(0.9);
     }
   }, [showPicker]);
 
   const handleClose = () => {
-    if (Platform.OS === 'ios') {
+    if (Platform.OS === "ios") {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
@@ -119,7 +123,7 @@ export default function DatePicker({
           useNativeDriver: true,
         }),
         Animated.timing(slideAnim, {
-          toValue: Dimensions.get('window').height,
+          toValue: Dimensions.get("window").height,
           duration: 250,
           useNativeDriver: true,
         }),
@@ -130,7 +134,6 @@ export default function DatePicker({
       setShowPicker(false);
     }
   };
-
 
   useEffect(() => {
     if (value) {
@@ -195,7 +198,11 @@ export default function DatePicker({
         >
           {value ? formatDisplayDate(value) : labelText}
         </Text>
-        <Ionicons name="calendar-outline" size={20} color={colors.icon_secondary} />
+        <Ionicons
+          name="calendar-outline"
+          size={20}
+          color={colors.icon_secondary}
+        />
       </Pressable>
 
       {showPicker && Platform.OS === "android" && (
@@ -216,24 +223,18 @@ export default function DatePicker({
           onRequestClose={handleClose}
           statusBarTranslucent={true}
         >
-          <View
-            className="flex-1 justify-end"
-            style={{ zIndex: 10000 }}
-          >
+          <View className="flex-1 justify-end" style={{ zIndex: 10000 }}>
             <Animated.View
-              style={[
-                StyleSheet.absoluteFill,
-                { opacity: fadeAnim }
-              ]}
+              style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}
             >
-              <Pressable
-                className="flex-1"
-                onPress={handleClose}
-              >
+              <Pressable className="flex-1" onPress={handleClose}>
                 <BlurView
                   intensity={70}
                   tint="dark"
-                  style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)' }]}
+                  style={[
+                    StyleSheet.absoluteFill,
+                    { backgroundColor: "rgba(0,0,0,0.3)" },
+                  ]}
                 />
               </Pressable>
             </Animated.View>
@@ -242,8 +243,8 @@ export default function DatePicker({
               style={{
                 transform: [
                   { translateY: Animated.add(slideAnim, panY) },
-                  { scale: scaleAnim }
-                ]
+                  { scale: scaleAnim },
+                ],
               }}
               {...panResponder.panHandlers}
             >

@@ -1,4 +1,3 @@
-
 import { colors } from "@/theme";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import MaskedView from "@react-native-masked-view/masked-view";
@@ -6,9 +5,23 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Dimensions, Image, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Dimensions,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Defs, Path, Stop, LinearGradient as SvgLinearGradient } from "react-native-svg";
+import Svg, {
+  Defs,
+  Path,
+  Stop,
+  LinearGradient as SvgLinearGradient,
+} from "react-native-svg";
 
 interface BottomNavigationBarProps {
   onAIMascotPress?: () => void;
@@ -16,18 +29,20 @@ interface BottomNavigationBarProps {
 
 const { width } = Dimensions.get("window");
 
-const BottomNavigationBar = ({
-  onAIMascotPress,
-}: BottomNavigationBarProps) => {
+const BottomNavigationBar = ({ onAIMascotPress }: BottomNavigationBarProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const bottomPadding = insets.bottom;
-  const isMobileControlAndroid = Platform.OS === 'android' && bottomPadding > 0;
+  const isMobileControlAndroid = Platform.OS === "android" && bottomPadding > 0;
 
   // Calculate conditional layout values
   const containerBottom = isMobileControlAndroid ? bottomPadding : 0;
-  const effectivePadding = isMobileControlAndroid ? 0 : (Platform.OS === 'ios' ? bottomPadding : 0);
+  const effectivePadding = isMobileControlAndroid
+    ? 0
+    : Platform.OS === "ios"
+      ? bottomPadding
+      : 0;
   const containerHeight = 70 + effectivePadding;
   const svgHeight = 84 + effectivePadding;
   const contentHeightClass = "h-[60px] pb-2.5";
@@ -105,7 +120,9 @@ const BottomNavigationBar = ({
 
   // Calculate the SVG Path for the floating bar with center cutout
   const curveTabPath = useMemo(() => {
-    const tabHeight = isMobileControlAndroid ? 84 : 84 + (Platform.OS === 'ios' ? insets.bottom : 0);
+    const tabHeight = isMobileControlAndroid
+      ? 84
+      : 84 + (Platform.OS === "ios" ? insets.bottom : 0);
     const BUTTON_RADIUS = 30; // 60px button
     const CURVE_DEPTH = 36; // Depth of the curve (was hardcoded as 36 in path)
     const CORNER_RADIUS = 18;
@@ -134,17 +151,27 @@ const BottomNavigationBar = ({
   }, [insets.bottom, isMobileControlAndroid]);
 
   return (
-    <View className={`absolute left-0 right-0 bg-transparent z-50 ${justifyClass}`} style={{ bottom: containerBottom, height: containerHeight, paddingBottom: effectivePadding }}>
+    <View
+      className={`absolute left-0 right-0 bg-transparent z-50 ${justifyClass}`}
+      style={{
+        bottom: containerBottom,
+        height: containerHeight,
+        paddingBottom: effectivePadding,
+      }}
+    >
       {/* Liquid Glass Background */}
-      <View className="absolute top-0 left-0 right-0 bottom-0 shadow-sm shadow-black/10" style={{ elevation: 5 }}>
+      <View
+        className="absolute top-0 left-0 right-0 bottom-0 shadow-sm shadow-black/10"
+        style={{ elevation: 5 }}
+      >
         <MaskedView
           style={StyleSheet.absoluteFill}
           maskElement={
-            <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+            <View style={{ flex: 1, backgroundColor: "transparent" }}>
               <Svg
                 width={width}
                 height={svgHeight}
-                style={{ position: 'absolute', top: 0, left: 0 }}
+                style={{ position: "absolute", top: 0, left: 0 }}
               >
                 <Path d={curveTabPath} fill="black" />
               </Svg>
@@ -156,15 +183,18 @@ const BottomNavigationBar = ({
             intensity={Platform.OS === "ios" ? 60 : 45}
             tint="light"
             experimentalBlurMethod="dimezisBlurView" // ⭐ stronger Android blur
-            style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(255,255,255,0.015)" }]}
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: "rgba(255,255,255,0.015)" },
+            ]}
           />
 
           {/* iOS-Style Glass Highlight - Extremely Subtle Purple Wash */}
           <LinearGradient
             colors={[
-              "rgba(255,255,255,0.08)",   // subtle highlight
-              "rgba(255,255,255,0.02)",   // almost transparent
-              "rgba(255,255,255,0.05)"    // soft frost bottom
+              "rgba(255,255,255,0.08)", // subtle highlight
+              "rgba(255,255,255,0.02)", // almost transparent
+              "rgba(255,255,255,0.05)", // soft frost bottom
             ]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
@@ -177,18 +207,40 @@ const BottomNavigationBar = ({
           pointerEvents="none"
           style={{
             ...StyleSheet.absoluteFillObject,
-            backgroundColor: "rgba(255,255,255,0.008)"
+            backgroundColor: "rgba(255,255,255,0.008)",
           }}
         />
 
         {/* Top Highlight Stroke - Light Refraction */}
-        <View className="absolute top-0 left-0 right-0 bottom-0" pointerEvents="none" style={{ elevation: 5 }}>
+        <View
+          className="absolute top-0 left-0 right-0 bottom-0"
+          pointerEvents="none"
+          style={{ elevation: 5 }}
+        >
           <Svg width={width} height={svgHeight}>
             <Defs>
-              <SvgLinearGradient id="borderGradient" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="rgba(255, 255, 255, 0.8)" stopOpacity="1" />
-                <Stop offset="0.1" stopColor="rgba(255, 255, 255, 0.2)" stopOpacity="1" />
-                <Stop offset="1" stopColor="rgba(255, 255, 255, 0.05)" stopOpacity="1" />
+              <SvgLinearGradient
+                id="borderGradient"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <Stop
+                  offset="0"
+                  stopColor="rgba(255, 255, 255, 0.8)"
+                  stopOpacity="1"
+                />
+                <Stop
+                  offset="0.1"
+                  stopColor="rgba(255, 255, 255, 0.2)"
+                  stopOpacity="1"
+                />
+                <Stop
+                  offset="1"
+                  stopColor="rgba(255, 255, 255, 0.05)"
+                  stopOpacity="1"
+                />
               </SvgLinearGradient>
             </Defs>
             <Path
@@ -201,7 +253,9 @@ const BottomNavigationBar = ({
         </View>
       </View>
 
-      <View className={`flex-row items-center justify-between w-full px-5 ${contentHeightClass}`}>
+      <View
+        className={`flex-row items-center justify-between w-full px-5 ${contentHeightClass}`}
+      >
         {navigationItems.map((item, index) => {
           if (item.isCenter) {
             return (
@@ -229,7 +283,11 @@ const BottomNavigationBar = ({
                   accessibilityLabel="AI Assistant"
                 >
                   <LinearGradient
-                    colors={[colors.palette_dark_blue, colors.primary, '#d8b4fe']}
+                    colors={[
+                      colors.palette_dark_blue,
+                      colors.primary,
+                      "#d8b4fe",
+                    ]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     className="w-full h-full rounded-full justify-center items-center p-[3px]"
@@ -253,7 +311,7 @@ const BottomNavigationBar = ({
             <Pressable
               key={item.id}
               onPress={() => item.route && router.push(item.route as any)}
-              className={`w-[60px] h-[60px] items-center justify-center ${active ? 'opacity-100' : 'opacity-100'}`}
+              className={`w-[60px] h-[60px] items-center justify-center ${active ? "opacity-100" : "opacity-100"}`}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
               accessibilityRole="button"
               accessibilityLabel={item.label}
@@ -264,7 +322,7 @@ const BottomNavigationBar = ({
                   {item.icon && item.icon(active)}
                 </View>
                 <Text
-                  className={`text-[10px] mb-0.5 ${active ? 'font-semibold text-text_primary' : 'font-medium text-gray-500'}`}
+                  className={`text-[10px] mb-0.5 ${active ? "font-semibold text-text_primary" : "font-medium text-gray-500"}`}
                 >
                   {item.label}
                 </Text>
@@ -286,7 +344,11 @@ const BottomNavigationBar = ({
         onRequestClose={() => setShowAIModal(false)}
       >
         <Pressable
-          style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(0,0,0,0.3)",
+          }}
           onPress={() => setShowAIModal(false)}
           accessibilityRole="button"
           accessibilityLabel="Dismiss modal"
@@ -309,7 +371,11 @@ const BottomNavigationBar = ({
                 accessibilityRole="button"
                 accessibilityLabel="Close AI Assistant"
               >
-                <Ionicons name="close" size={20} color={colors.text_secondary} />
+                <Ionicons
+                  name="close"
+                  size={20}
+                  color={colors.text_secondary}
+                />
               </Pressable>
             </View>
             <View className="flex-1 justify-center items-center">
@@ -318,7 +384,7 @@ const BottomNavigationBar = ({
                 style={{ elevation: 10, borderRadius: 60 }}
               >
                 <LinearGradient
-                  colors={[colors.palette_dark_blue, colors.primary, '#F472B6']}
+                  colors={[colors.palette_dark_blue, colors.primary, "#F472B6"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   className="w-full h-full justify-center items-center"

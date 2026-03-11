@@ -19,15 +19,26 @@ const ProductSection: React.FC<ProductSectionProps> = ({
 }) => {
   const router = useRouter();
 
-  if (!products || !Array.isArray(products) || products.length === 0) return null;
+  if (!products || !Array.isArray(products) || products.length === 0)
+    return null;
 
   return (
     <View className="mb-6">
       <View className="flex-row justify-between items-center px-4 mb-3">
-        <Text className="text-lg font-bold" style={{ color: colors.primary }}>{title}</Text>
+        <Text className="text-lg font-bold" style={{ color: colors.primary }}>
+          {title}
+        </Text>
         <TouchableOpacity onPress={onSeeAll}>
-          <Text className="font-medium text-sm flex-row items-center" style={{ color: colors.text_primary }}>
-            See all <Ionicons name="arrow-forward" size={14} color={colors.text_primary} />
+          <Text
+            className="font-medium text-sm flex-row items-center"
+            style={{ color: colors.text_primary }}
+          >
+            See all{" "}
+            <Ionicons
+              name="arrow-forward"
+              size={14}
+              color={colors.text_primary}
+            />
           </Text>
         </TouchableOpacity>
       </View>
@@ -48,7 +59,8 @@ const ProductSection: React.FC<ProductSectionProps> = ({
             (Array.isArray(item.images) && item.images[0]) ||
             "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg";
           const productId = item.id || item.product_id || item._id;
-          const productTitle = item.title || item.name || item.product_name || "Untitled";
+          const productTitle =
+            item.title || item.name || item.product_name || "Untitled";
           const productPrice = item.price || item.product_price;
 
           return (
@@ -58,7 +70,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
               style={{
                 width: 180,
                 borderWidth: 1,
-                borderColor: '#e5e7eb',
+                borderColor: "#e5e7eb",
               }}
               activeOpacity={0.8}
               onPress={() => router.push(`/product/${productId}` as any)}
@@ -77,7 +89,9 @@ const ProductSection: React.FC<ProductSectionProps> = ({
                   style={{ color: colors.text_primary }}
                   numberOfLines={1}
                 >
-                  {productPrice ? `AED ${productPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Price on request"}
+                  {productPrice
+                    ? `AED ${productPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : "Price on request"}
                 </Text>
                 <Text
                   className="text-sm font-normal"

@@ -9,7 +9,12 @@ interface HeaderProps {
   userName?: string | null;
   onLocationPress?: () => void;
 }
-const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPress }) => {
+const Header: React.FC<HeaderProps> = ({
+  place,
+  profile,
+  userName,
+  onLocationPress,
+}) => {
   const router = useRouter();
   return (
     <View className="px-4 py-4 flex-row items-center bg-transparent">
@@ -65,10 +70,10 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
       <TouchableOpacity
         className="w-12 h-12 rounded-full items-center justify-center ml-2"
         style={{
-          backgroundColor: '#f5f6f6ff',
+          backgroundColor: "#f5f6f6ff",
           borderWidth: 1,
-          borderColor: '#ffffff',
-          shadowColor: '#000',
+          borderColor: "#ffffff",
+          shadowColor: "#000",
           shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.1,
           shadowRadius: 2,
@@ -76,7 +81,11 @@ const Header: React.FC<HeaderProps> = ({ place, profile, userName, onLocationPre
         }}
         activeOpacity={0.7}
       >
-        <Ionicons name="notifications-outline" size={26} color={colors.text_primary} />
+        <Ionicons
+          name="notifications-outline"
+          size={26}
+          color={colors.text_primary}
+        />
         {/* Red Dot */}
         <View className="absolute top-3 right-3.5 w-2 h-2 rounded-full bg-red-500 border-[1px] border-white" />
       </TouchableOpacity>

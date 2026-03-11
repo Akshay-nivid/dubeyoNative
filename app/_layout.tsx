@@ -11,15 +11,20 @@ import { Stack, usePathname, useRouter } from "expo-router";
 
 import { Dimensions, StatusBar, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import Toast from 'react-native-toast-message';
+import Toast from "react-native-toast-message";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const toastConfig = {
   bottomSheet: ({ text1, text2 }: any) => (
     <View style={styles.toastContainer}>
       <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(105, 68, 199, 0.05)' }]} />
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: "rgba(105, 68, 199, 0.05)" },
+        ]}
+      />
 
       {/* Drag Handle */}
       <View style={styles.dragHandle} />
@@ -29,38 +34,59 @@ const toastConfig = {
           <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
         </View>
         <View className="flex-1">
-          <Text className="text-gray-900 font-bold text-base leading-tight">{text1}</Text>
-          {text2 && <Text className="text-gray-500 text-xs mt-0.5">{text2}</Text>}
+          <Text className="text-gray-900 font-bold text-base leading-tight">
+            {text1}
+          </Text>
+          {text2 && (
+            <Text className="text-gray-500 text-xs mt-0.5">{text2}</Text>
+          )}
         </View>
       </View>
     </View>
   ),
   success: ({ text1, text2 }: any) => (
-    <View style={[styles.toastContainer, { borderRadius: 20, marginBottom: 10, width: width - 40, alignSelf: 'center' }]}>
+    <View
+      style={[
+        styles.toastContainer,
+        {
+          borderRadius: 20,
+          marginBottom: 10,
+          width: width - 40,
+          alignSelf: "center",
+        },
+      ]}
+    >
       <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255, 255, 255, 0.8)' }]} />
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: "rgba(255, 255, 255, 0.8)" },
+        ]}
+      />
       <View className="flex-row items-center px-5 py-4">
         <View className="w-10 h-10 rounded-full bg-purple-50 items-center justify-center mr-3">
           <Ionicons name="checkmark-circle" size={28} color={colors.primary} />
         </View>
         <View className="flex-1">
           <Text className="text-gray-900 font-bold text-base">{text1}</Text>
-          {text2 && <Text className="text-gray-500 text-xs mt-0.5">{text2}</Text>}
+          {text2 && (
+            <Text className="text-gray-500 text-xs mt-0.5">{text2}</Text>
+          )}
         </View>
       </View>
     </View>
-  )
+  ),
 };
 
 const styles = StyleSheet.create({
   toastContainer: {
     width: width - 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
     borderRadius: 32,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    overflow: 'hidden',
-    shadowColor: '#000',
+    borderColor: "rgba(255, 255, 255, 0.5)",
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
@@ -70,11 +96,11 @@ const styles = StyleSheet.create({
   dragHandle: {
     width: 40,
     height: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
     borderRadius: 2,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginTop: 10,
-  }
+  },
 });
 
 export default function RootLayout() {
@@ -82,17 +108,21 @@ export default function RootLayout() {
 
   const pathname = usePathname();
 
-  const showBottomBar = ['/home', '/chat'].includes(pathname);
+  const showBottomBar = ["/home", "/chat"].includes(pathname);
 
   return (
     <SafeAreaProvider>
-      <StatusBar backgroundColor="transparent" barStyle="dark-content" translucent />
+      <StatusBar
+        backgroundColor="transparent"
+        barStyle="dark-content"
+        translucent
+      />
       <ThemedBackground style={{ flex: 1 }}>
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: 'transparent' },
-            animation: 'none',
+            contentStyle: { backgroundColor: "transparent" },
+            animation: "none",
           }}
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -101,21 +131,21 @@ export default function RootLayout() {
             name="login"
             options={{
               headerShown: false,
-              animation: 'slide_from_left',
+              animation: "slide_from_left",
             }}
           />
           <Stack.Screen
             name="signup"
             options={{
               headerShown: false,
-              animation: 'slide_from_right',
+              animation: "slide_from_right",
             }}
           />
           <Stack.Screen
             name="search-drag"
             options={{
-              presentation: 'modal',
-              animation: 'slide_from_bottom',
+              presentation: "modal",
+              animation: "slide_from_bottom",
             }}
           />
         </Stack>

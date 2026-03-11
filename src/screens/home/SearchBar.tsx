@@ -32,7 +32,7 @@ const SearchBar: React.FC = () => {
         duration: 3000,
         easing: Easing.linear,
       }),
-      -1 // Infinite repeat
+      -1, // Infinite repeat
     );
   }, []);
   const animatedStyle = useAnimatedStyle(() => {
@@ -46,7 +46,7 @@ const SearchBar: React.FC = () => {
       <View
         className="rounded-full bg-white shadow-cyan-400"
         style={{
-          shadowColor: 'transparent',
+          shadowColor: "transparent",
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0,
           shadowRadius: 0,
@@ -59,9 +59,9 @@ const SearchBar: React.FC = () => {
           <Animated.View
             style={[
               {
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
+                position: "absolute",
+                top: "50%",
+                left: "50%",
                 width: 700,
                 height: 700,
                 marginLeft: -350,
@@ -73,7 +73,7 @@ const SearchBar: React.FC = () => {
             ]}
           >
             <LinearGradient
-              colors={['#59078cff', '#e6e1f6ff', '#59078cff']} // Purple -> White -> Purple (Loop)
+              colors={["#59078cff", "#e6e1f6ff", "#59078cff"]} // Purple -> White -> Purple (Loop)
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               className="w-[700px] h-[700px]"
@@ -82,17 +82,12 @@ const SearchBar: React.FC = () => {
           {/* Inner Content - White Background */}
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={() => router.push('/search-drag' as any)}
+            onPress={() => router.push("/search-drag" as any)}
             className="flex-row items-center bg-white/90 rounded-full px-4 h-[42px]"
           >
             <MaskedView
               maskElement={
-                <Svg
-                  width="100%"
-                  height="100%"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
+                <Svg width="100%" height="100%" viewBox="0 0 24 24" fill="none">
                   {/* Magnifying Glass Ring (Arc) */}
                   <Path
                     d="M16.5 16.5 A 8 8 0 1 1 16.5 5.5"
@@ -118,7 +113,7 @@ const SearchBar: React.FC = () => {
               className="w-[22px] h-[22px]"
             >
               <LinearGradient
-                colors={['#14B8A6', '#3B82F6', '#8B5CF6']}
+                colors={["#14B8A6", "#3B82F6", "#8B5CF6"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 className="flex-1"
@@ -131,7 +126,7 @@ const SearchBar: React.FC = () => {
               value={searchQuery}
               onChangeText={setSearchQuery}
               editable={false} // Disable direct editing here, redirect to search screen
-              onPressIn={() => router.push('/search-drag' as any)} // Catch press for Android compatibility
+              onPressIn={() => router.push("/search-drag" as any)} // Catch press for Android compatibility
               pointerEvents="none" // Ensure the parent TouchableOpacity handles the press
             />
           </TouchableOpacity>

@@ -21,7 +21,6 @@ import { post } from "@/src/services/api";
 import { setToken } from "@/src/services/storage/tokenStorage";
 import { Api } from "./api";
 
-
 export default function SignupScreen() {
   const router = useRouter();
 
@@ -304,11 +303,24 @@ export default function SignupScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="transparent"
+        translucent
+      />
 
       {/* 1. Background Gradient (Fixed) */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
-        <Svg height="50%" width="100%" style={{ position: 'absolute', top: 0 }}>
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0,
+        }}
+      >
+        <Svg height="50%" width="100%" style={{ position: "absolute", top: 0 }}>
           <Defs>
             <RadialGradient
               id="grad1"
@@ -367,7 +379,10 @@ export default function SignupScreen() {
           <View style={{ height: 180 }} />
 
           {/* White Card Container (Modal) */}
-          <View className="flex-1 bg-white rounded-t-[32px] overflow-hidden pt-8 px-6 pb-12 shadow-sm" style={{ minHeight: 600 }}>
+          <View
+            className="flex-1 bg-white rounded-t-[32px] overflow-hidden pt-8 px-6 pb-12 shadow-sm"
+            style={{ minHeight: 600 }}
+          >
             {/* Tabs */}
             <View className="flex-row bg-gray-100 p-1 rounded-xl mb-6">
               <TouchableOpacity
@@ -388,7 +403,9 @@ export default function SignupScreen() {
               {/* First Name & Last Name */}
               <View className="flex-row gap-3 mb-5">
                 <View className="flex-1">
-                  <Text className="text-gray-600 font-medium mb-2 ml-1">First Name</Text>
+                  <Text className="text-gray-600 font-medium mb-2 ml-1">
+                    First Name
+                  </Text>
                   <TextInput
                     placeholder="First Name"
                     placeholderTextColor="#9CA3AF"
@@ -400,7 +417,9 @@ export default function SignupScreen() {
                   />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-gray-600 font-medium mb-2 ml-1">Last Name</Text>
+                  <Text className="text-gray-600 font-medium mb-2 ml-1">
+                    Last Name
+                  </Text>
                   <TextInput
                     placeholder="Last Name"
                     placeholderTextColor="#9CA3AF"
@@ -415,7 +434,9 @@ export default function SignupScreen() {
 
               {/* Email with OTP */}
               <View className="mb-5">
-                <Text className="text-gray-600 font-medium mb-2 ml-1">Email</Text>
+                <Text className="text-gray-600 font-medium mb-2 ml-1">
+                  Email
+                </Text>
                 <View className="flex-row items-center w-full bg-gray-50 border border-gray-100 rounded-2xl pr-2">
                   <TextInput
                     placeholder="your@gmail.com"
@@ -439,7 +460,9 @@ export default function SignupScreen() {
                       {sendingOTP ? (
                         <ActivityIndicator color="white" size="small" />
                       ) : (
-                        <Text className="text-white text-xs font-semibold">Send OTP</Text>
+                        <Text className="text-white text-xs font-semibold">
+                          Send OTP
+                        </Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -449,7 +472,9 @@ export default function SignupScreen() {
               {/* OTP Verification */}
               {otpSent && !otpVerified && (
                 <View className="mb-5">
-                  <Text className="text-gray-600 font-medium mb-2 ml-1">Enter OTP</Text>
+                  <Text className="text-gray-600 font-medium mb-2 ml-1">
+                    Enter OTP
+                  </Text>
                   <View className="flex-row items-center w-full bg-gray-50 border border-gray-100 rounded-2xl pr-2">
                     <TextInput
                       placeholder="123456"
@@ -472,7 +497,9 @@ export default function SignupScreen() {
                       {verifyingOTP ? (
                         <ActivityIndicator color="white" size="small" />
                       ) : (
-                        <Text className="text-white text-xs font-semibold">Verify</Text>
+                        <Text className="text-white text-xs font-semibold">
+                          Verify
+                        </Text>
                       )}
                     </TouchableOpacity>
                   </View>
@@ -481,7 +508,9 @@ export default function SignupScreen() {
 
               {/* Password */}
               <View className="mb-5">
-                <Text className="text-gray-600 font-medium mb-2 ml-1">Password</Text>
+                <Text className="text-gray-600 font-medium mb-2 ml-1">
+                  Password
+                </Text>
                 <View className="flex-row items-center w-full bg-gray-50 border border-gray-100 rounded-2xl px-5">
                   <TextInput
                     placeholder="Password"
@@ -498,16 +527,24 @@ export default function SignupScreen() {
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
                     accessibilityRole="button"
-                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                    accessibilityLabel={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
-                    <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#6B7280" />
+                    <Ionicons
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={20}
+                      color="#6B7280"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* Phone */}
               <View className="mb-5">
-                <Text className="text-gray-600 font-medium mb-2 ml-1">Phone</Text>
+                <Text className="text-gray-600 font-medium mb-2 ml-1">
+                  Phone
+                </Text>
                 <TextInput
                   placeholder="Phone Number"
                   placeholderTextColor="#9CA3AF"
@@ -522,7 +559,9 @@ export default function SignupScreen() {
 
               {/* Gender */}
               <View className="mb-1">
-                <Text className="text-gray-600 font-medium mb-2 ml-1">Gender</Text>
+                <Text className="text-gray-600 font-medium mb-2 ml-1">
+                  Gender
+                </Text>
                 <Dropdown
                   label=""
                   name="gender"
@@ -541,7 +580,9 @@ export default function SignupScreen() {
 
               {/* Date of Birth */}
               <View className="mb-1">
-                <Text className="text-gray-600 font-medium mb-2 ml-1">Date of Birth</Text>
+                <Text className="text-gray-600 font-medium mb-2 ml-1">
+                  Date of Birth
+                </Text>
                 <DatePicker
                   label=""
                   name="dob"
@@ -553,7 +594,9 @@ export default function SignupScreen() {
 
               {/* Address */}
               <View className="mb-5 mt-4">
-                <Text className="text-gray-600 font-medium mb-2 ml-1">Address</Text>
+                <Text className="text-gray-600 font-medium mb-2 ml-1">
+                  Address
+                </Text>
                 <TextInput
                   placeholder="Full Address"
                   placeholderTextColor="#9CA3AF"
@@ -570,7 +613,9 @@ export default function SignupScreen() {
 
               {/* Country */}
               <View className="mb-5">
-                <Text className="text-gray-600 font-medium mb-2 ml-1">Country</Text>
+                <Text className="text-gray-600 font-medium mb-2 ml-1">
+                  Country
+                </Text>
                 <Dropdown
                   label=""
                   name="country"
@@ -600,8 +645,11 @@ export default function SignupScreen() {
                   accessibilityState={{ checked: acceptedTerms }}
                 >
                   <View
-                    className={`h-5 w-5 rounded border items-center justify-center ${acceptedTerms ? "bg-[#6944c7] border-[#6944c7]" : "bg-white border-gray-300"
-                      }`}
+                    className={`h-5 w-5 rounded border items-center justify-center ${
+                      acceptedTerms
+                        ? "bg-[#6944c7] border-[#6944c7]"
+                        : "bg-white border-gray-300"
+                    }`}
                   >
                     {acceptedTerms && (
                       <Ionicons name="checkmark" size={14} color="white" />
@@ -614,9 +662,13 @@ export default function SignupScreen() {
                 >
                   <Text className="text-xs leading-5 text-gray-500">
                     By signing up, you agree to Dubeyo's{" "}
-                    <Text className="underline text-[#6944c7]">Terms of Service</Text>{" "}
+                    <Text className="underline text-[#6944c7]">
+                      Terms of Service
+                    </Text>{" "}
                     and{" "}
-                    <Text className="underline text-[#6944c7]">Privacy Policy</Text>
+                    <Text className="underline text-[#6944c7]">
+                      Privacy Policy
+                    </Text>
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -635,7 +687,8 @@ export default function SignupScreen() {
                   !data.address ||
                   !data.country
                 }
-                className={`w-full rounded-2xl py-4 items-center shadow-sm shadow-purple-200 mb-8 ${(loading ||
+                className={`w-full rounded-2xl py-4 items-center shadow-sm shadow-purple-200 mb-8 ${
+                  loading ||
                   !acceptedTerms ||
                   !data.firstName ||
                   !data.email ||
@@ -643,8 +696,10 @@ export default function SignupScreen() {
                   !data.password ||
                   !data.phone ||
                   !data.address ||
-                  !data.country) ? "bg-purple-300" : "bg-[#6944c7]"
-                  }`}
+                  !data.country
+                    ? "bg-purple-300"
+                    : "bg-[#6944c7]"
+                }`}
                 accessibilityRole="button"
                 accessibilityLabel="Register Account"
                 accessibilityState={{ disabled: loading }}
@@ -652,7 +707,9 @@ export default function SignupScreen() {
                 {loading ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white text-lg font-semibold">Register</Text>
+                  <Text className="text-white text-lg font-semibold">
+                    Register
+                  </Text>
                 )}
               </TouchableOpacity>
 
@@ -670,7 +727,6 @@ export default function SignupScreen() {
                   </Text>
                 </Text>
               </View>
-
             </View>
           </View>
         </ScrollView>
