@@ -1,10 +1,9 @@
+import { API_BASE_URL } from "@/src/constants/env";
 import { post } from "@/src/services/api";
+import { getToken } from "@/src/services/storage/tokenStorage";
 import { useState } from "react";
-import { Platform } from "react-native";
 import Toast from "react-native-toast-message";
 import { PostAdApi } from "../screens/postAd/Api";
-import { API_BASE_URL } from "@/src/constants/env";
-import { getToken } from "@/src/services/storage/tokenStorage";
 
 export const GENERATION_STEPS = {
   PREVIEW: 0,
@@ -112,7 +111,7 @@ export const usePostAdAI = () => {
           }
 
           const safeType = ext === "jpg" ? "jpeg" : ext;
-              
+
           // React Native FormData URI normalization for iOS/Android
           const normalizedUri = uri;
 
@@ -128,11 +127,11 @@ export const usePostAdAI = () => {
           console.log("Uploading:", {
             uri: normalizedUri,
             name: fileName,
-            type: `image/${safeType}`
+            type: `image/${safeType}`,
           });
 
           const res = await fetch(targetUrl, {
-            method: 'POST',
+            method: "POST",
             body: formData,
             headers: {
               Accept: "application/json",
@@ -144,7 +143,7 @@ export const usePostAdAI = () => {
           if (data?.data) {
             uploadedImageKeys.push(data.data);
           } else {
-             console.warn("Upload failed response:", data);
+            console.warn("Upload failed response:", data);
           }
         } catch (uploadErr) {
           console.warn("Failed to upload an image", uploadErr);
@@ -162,7 +161,7 @@ export const usePostAdAI = () => {
         setIsFormLoading(false);
         return;
       }
-      
+
       setImageKeys(uploadedImageKeys);
 
       // --- Step 2: First Preview AI ---
@@ -186,7 +185,11 @@ export const usePostAdAI = () => {
       const uiData = {
         ...basic,
         title: basic.title || "",
-        enhancedDescription: basic.details || basic.enhanced_description || basic.description || "",
+        enhancedDescription:
+          basic.details ||
+          basic.enhanced_description ||
+          basic.description ||
+          "",
         categoryId:
           basic?.category?.id || basic?.category?._id || basic?.category?.value,
         subcategoryId:
@@ -203,7 +206,7 @@ export const usePostAdAI = () => {
 
       await fetchIntermediate({
         ...basic,
-        images: basic.images || [],
+        images: uploadedImageKeys.length > 0 ? uploadedImageKeys : imgs,
       });
     } catch (err) {
       console.error("Preview failed:", err);
@@ -221,7 +224,7 @@ export const usePostAdAI = () => {
       const res = await post(PostAdApi.intermediatePreview, {
         subcategoryId: basic?.subcategory?.id || basic?.subcategory?._id,
         details: basic?.details || basic?.enhanced_description,
-        images: imageKeys.length > 0 ? imageKeys : basic?.images || [],
+        images: basic.images || [],
       });
 
       if (!res?.data) {
@@ -231,11 +234,11 @@ export const usePostAdAI = () => {
       const intermediate = res.data || {};
 
       // Questions are now moved to final preview, so we don't extract them here
-      
+
       let extractedSpecs: Record<string, any> = {};
       if (intermediate.specs && Array.isArray(intermediate.specs)) {
         intermediate.specs.forEach((spec: any) => {
-           extractedSpecs[spec.key] = spec;
+          extractedSpecs[spec.key] = spec;
         });
       }
 
@@ -303,7 +306,7 @@ export const usePostAdAI = () => {
         details: basic.details || basic.enhanced_description,
         subcategoryId: basic?.subcategory?.id || basic?.subcategory?._id,
         intermediate,
-        images: imageKeys.length > 0 ? imageKeys : basic.images,
+        images: basic.images || [],
       });
     } catch (err) {
       console.error("Intermediate AI failed:", err);
@@ -317,13 +320,18 @@ export const usePostAdAI = () => {
     }
   };
 
-  const fetchFinal = async ({ details, intermediate, images, subcategoryId }: any) => {
+  const fetchFinal = async ({
+    details,
+    intermediate,
+    images,
+    subcategoryId,
+  }: any) => {
     try {
       // Re-map specs to a simple object for the final API
       const simpleSpecs: Record<string, any> = {};
       if (intermediate?.specs && Array.isArray(intermediate.specs)) {
         intermediate.specs.forEach((s: any) => {
-           simpleSpecs[s.key] = s.value;
+          simpleSpecs[s.key] = s.value;
         });
       }
 
@@ -332,14 +340,14 @@ export const usePostAdAI = () => {
         specs: simpleSpecs,
         location: null, // Depending on if location is available at this step
         subcategoryId,
-        images: images || imageKeys,
+        images: images,
       });
 
       const finalPayload = res.data ?? res;
 
       const questionsData = extractQuestions(finalPayload);
       if (questionsData && questionsData.length > 0) {
-        setQuestions(questionsData); 
+        setQuestions(questionsData);
       }
 
       // No need to extract specs again as they were set in intermediate
