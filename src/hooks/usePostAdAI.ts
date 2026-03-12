@@ -19,6 +19,7 @@ export const usePostAdAI = () => {
   const [isFormLoading, setIsFormLoading] = useState(true);
   const [data, setData] = useState<any>({});
   const [questions, setQuestions] = useState<any[]>([]);
+  const [specMetadata, setSpecMetadata] = useState<Record<string, any>>({});
   const [imageKeys, setImageKeys] = useState<string[]>([]);
 
   const normalizeFieldKey = (field: string) =>
@@ -36,14 +37,29 @@ export const usePostAdAI = () => {
       ...(payload.additionalQuestions || []),
     ];
 
-    // Deduplicate by question text
+    // Deduplicate and filter redundant questions
     const seen = new Set();
-    return questionsList.filter((q) => {
-      const text = q.question || q.label || q.field;
-      if (!text || seen.has(text)) return false;
-      seen.add(text);
-      return true;
-    });
+    const REDUNDANT_KEYS = ["location", "price", "coordinates", "address", "gps"];
+
+    return questionsList
+      .filter((q) => {
+        const text = (q.question || q.label || q.field || "").toLowerCase();
+        const key = (q.key || q.slug || q.field || "").toLowerCase();
+
+        if (!text || seen.has(text)) return false;
+
+        // Skip if it asks about location or price which are separate UI sections
+        const isRedundant =
+          REDUNDANT_KEYS.some((rk) => key.includes(rk) || text.includes(rk));
+        if (isRedundant) return false;
+
+        seen.add(text);
+        return true;
+      })
+      .map((q) => ({
+        ...q,
+        options: (q.options || []).filter((o: any) => o !== null && o !== undefined),
+      }));
   };
 
   const normalizeSpecs = (specs: Record<string, any> | any[] = {}) => {
@@ -233,7 +249,14 @@ export const usePostAdAI = () => {
 
       const intermediate = res.data || {};
 
-      // Questions are now moved to final preview, so we don't extract them here
+      // Store full specs metadata for question rendering
+      if (intermediate.specs && Array.isArray(intermediate.specs)) {
+        const metadata: Record<string, any> = {};
+        intermediate.specs.forEach((spec: any) => {
+          metadata[spec.key] = spec;
+        });
+        setSpecMetadata(metadata);
+      }
 
       let extractedSpecs: Record<string, any> = {};
       if (intermediate.specs && Array.isArray(intermediate.specs)) {
@@ -302,11 +325,17 @@ export const usePostAdAI = () => {
 
       setGenerationStep(GENERATION_STEPS.SPECS_FORM);
 
+      // Extract labels directly from response to avoid stale state in fetchFinal
+      const catLabel = intermediate.category?.name || intermediate.category?.label || basic.category?.name || basic.category?.label || "";
+      const subCatLabel = intermediate.subcategory?.name || intermediate.subcategory?.label || basic.subcategory?.name || basic.subcategory?.label || "";
+
       await fetchFinal({
         details: basic.details || basic.enhanced_description,
-        subcategoryId: basic?.subcategory?.id || basic?.subcategory?._id,
+        subcategoryId: intermediate.subcategoryId || basic.subcategoryId || intermediate?.subcategory?.id || basic?.subcategory?._id,
         intermediate,
         images: basic.images || [],
+        categoryLabel: catLabel,
+        subcategoryLabel: subCatLabel,
       });
     } catch (err) {
       console.error("Intermediate AI failed:", err);
@@ -325,27 +354,34 @@ export const usePostAdAI = () => {
     intermediate,
     images,
     subcategoryId,
+    categoryLabel,
+    subcategoryLabel,
   }: any) => {
     try {
-      // Re-map specs to a simple object for the final API
-      const simpleSpecs: Record<string, any> = {};
-      if (intermediate?.specs && Array.isArray(intermediate.specs)) {
-        intermediate.specs.forEach((s: any) => {
-          simpleSpecs[s.key] = s.value;
-        });
-      }
+      // Use passed labels instead of stale state
+      const contextPrefix = `ITEM: ${categoryLabel}${subcategoryLabel ? ` > ${subcategoryLabel}` : ""}\n\n`;
+      const contextualDetails = contextPrefix + details;
+
+      // Filter for missing specs and provide context (key, name, dataType, options) for the AI
+      const missingSpecs = (intermediate?.specs || [])
+        .filter((s: any) => {
+          if (s.value === null || s.value === undefined) return true;
+          if (typeof s.value === "string" && s.value.toLowerCase() === "null") return true;
+          return false;
+        })
+        .map((s: any) => s.key);
 
       const res = await post(PostAdApi.finalPreview, {
-        details,
-        specs: simpleSpecs,
-        location: null, // Depending on if location is available at this step
+        details: contextualDetails,
+        specs: missingSpecs,
+        location: null,
         subcategoryId,
-        images: images,
+        images,
       });
 
       const finalPayload = res.data ?? res;
 
-      const questionsData = extractQuestions(finalPayload);
+      const questionsData = extractQuestions(finalPayload).filter((q:any) => missingSpecs.includes(q.key));
       if (questionsData && questionsData.length > 0) {
         setQuestions(questionsData);
       }
@@ -395,6 +431,7 @@ export const usePostAdAI = () => {
     data,
     setData,
     questions,
+    specMetadata,
     imageKeys,
     fetchPreview,
     normalizeFieldKey,

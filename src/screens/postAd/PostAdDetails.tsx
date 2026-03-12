@@ -68,6 +68,7 @@ const PostAdDetails = () => {
     data,
     setData,
     questions,
+    specMetadata,
     fetchPreview,
     normalizeFieldKey,
   } = usePostAdAI();
@@ -169,6 +170,7 @@ const PostAdDetails = () => {
       }
 
       Object.entries(questionAnswers).forEach(([k, v]) => {
+        const meta = specMetadata[k];
         const q = questions.find((q) => {
           const qKey =
             q.key ||
@@ -178,7 +180,7 @@ const PostAdDetails = () => {
         });
         formattedSpecs[k] = {
           value: v,
-          label: q?.label || q?.field || k,
+          label: meta?.name || q?.label || q?.field || k,
         };
       });
 
@@ -350,9 +352,11 @@ const PostAdDetails = () => {
                         </Text>
                         <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5">
                           <Text className="text-gray-900 text-sm font-medium">
-                            {data.division.name ||
-                              data.division.label ||
-                              "Selected"}
+                            {typeof data.division === "string"
+                              ? data.division
+                              : data.division.name ||
+                                data.division.label ||
+                                "Selected"}
                           </Text>
                         </View>
                       </View>
@@ -417,59 +421,108 @@ const PostAdDetails = () => {
                       q.key ||
                       q.slug ||
                       normalizeFieldKey(q.field || q.label || "question");
-                    const isSelected = (opt: string) =>
-                      questionAnswers[fieldKey] === opt;
+
+                    const meta = specMetadata[fieldKey];
+                    const dataType = meta?.dataType;
+
+                    // Support Boolean by providing Yes/No options
+                    let options: string[] = [];
+                    if (dataType === "boolean") {
+                      options = ["Yes", "No"];
+                    } else {
+                      const rawOptions = q.options || meta?.options || [];
+                      options = rawOptions
+                        .map((opt: any) =>
+                          typeof opt === "string" ? opt : opt.name || opt.label,
+                        )
+                        .filter((o: any) => !!o && String(o).trim().length > 0);
+                    }
+
+                    const isSelected = (opt: string) => {
+                      const current = questionAnswers[fieldKey];
+                      return (
+                        current === opt ||
+                        meta?.options?.find((o: any) => (o.id || o._id) === current)
+                          ?.name === opt
+                      );
+                    };
+
+                    const handleSelect = (opt: string) => {
+                      setQuestionAnswers((prev: any) => {
+                        const newState = { ...prev };
+                        if (isSelected(opt)) {
+                          delete newState[fieldKey];
+                        } else {
+                          // Try to find the original ID if it's a select spec
+                          const originalOpt = meta?.options?.find(
+                            (o: any) => o.name === opt || o.label === opt,
+                          );
+                          newState[fieldKey] = originalOpt
+                            ? originalOpt.id || originalOpt._id
+                            : opt;
+                        }
+                        return newState;
+                      });
+                    };
 
                     return (
                       <View key={idx} className="mb-6">
-                        <Text className="text-gray-800 text-sm font-bold mb-3 ml-1">
-                          {q.question || q.label || q.field}
+                        <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
+                          {q.question ||
+                            q.label ||
+                            q.field ||
+                            `About the ${meta?.name || fieldKey}`}
                         </Text>
-                        <View className="flex-row flex-wrap gap-2">
-                          {(q.options || []).map((opt: string) => (
-                            <TouchableOpacity
-                              key={opt}
-                              onPress={() => {
-                                setQuestionAnswers((prev: any) => {
-                                  const newState = { ...prev };
-                                  if (isSelected(opt)) {
-                                    delete newState[fieldKey];
-                                  } else {
-                                    newState[fieldKey] = opt;
-                                  }
-                                  return newState;
-                                });
-                              }}
-                              style={{
-                                paddingHorizontal: 16,
-                                paddingVertical: 10,
-                                borderRadius: 16,
-                                borderWidth: 1,
-                                borderColor: isSelected(opt)
-                                  ? "#000"
-                                  : "#f3f4f6",
-                                backgroundColor: isSelected(opt)
-                                  ? "#000"
-                                  : "#fff",
-                                shadowColor: "#000",
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowOpacity: isSelected(opt) ? 0.2 : 0,
-                                shadowRadius: 4,
-                                elevation: isSelected(opt) ? 4 : 0,
-                              }}
-                            >
-                              <Text
+
+                        {options.length > 0 ? (
+                          <View className="flex-row flex-wrap gap-2">
+                            {options.map((opt: string) => (
+                              <TouchableOpacity
+                                key={opt}
+                                onPress={() => handleSelect(opt)}
                                 style={{
-                                  fontSize: 12,
-                                  fontWeight: isSelected(opt) ? "700" : "400",
-                                  color: isSelected(opt) ? "#fff" : "#4b5563",
+                                  paddingHorizontal: 16,
+                                  paddingVertical: 10,
+                                  borderRadius: 16,
+                                  borderWidth: 1.5,
+                                  borderColor: isSelected(opt) ? "#000" : "#E5E7EB",
+                                  backgroundColor: isSelected(opt) ? "#000" : "#fff",
                                 }}
                               >
-                                {opt}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
+                                <Text
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: isSelected(opt) ? "700" : "500",
+                                    color: isSelected(opt) ? "#fff" : "#4B5563",
+                                  }}
+                                >
+                                  {opt}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        ) : (
+                          <View className="bg-gray-50 border border-gray-200 rounded-2xl px-4 h-14 justify-center shadow-inner shadow-gray-100/50">
+                            <TextInput
+                              value={questionAnswers[fieldKey] || ""}
+                              onChangeText={(text) =>
+                                setQuestionAnswers((prev: any) => ({
+                                  ...prev,
+                                  [fieldKey]: text,
+                                }))
+                              }
+                              placeholder="Type your answer..."
+                              placeholderTextColor="#9CA3AF"
+                              keyboardType={
+                                meta?.dataType === "number" ||
+                                q.dataType === "number"
+                                  ? "numeric"
+                                  : "default"
+                              }
+                              className="text-gray-900 text-sm font-medium w-full h-full"
+                            />
+                          </View>
+                        )}
                       </View>
                     );
                   })
