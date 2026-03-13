@@ -1,6 +1,3 @@
-/* -------------------------------------------------------------------------- */
-/*                            IMPORTS & DEPENDENCIES                           */
-/* -------------------------------------------------------------------------- */
 import LocationPicker from "@/src/components/LocationPicker";
 import { post } from "@/src/services/api";
 import { Ionicons } from "@expo/vector-icons";
@@ -131,13 +128,40 @@ const PostAdDetails = () => {
       (v) => v !== null && v !== "" && v !== undefined,
     );
   }, [data.specs]);
+  // Auto-map string division to ID if possible
+  useEffect(() => {
+    if (
+      divisions.length > 0 &&
+      data.division &&
+      typeof data.division === "string" &&
+      !data.divisionId
+    ) {
+      const match = divisions.find(
+        (d) =>
+          d.name?.toLowerCase() === (data.division as string).toLowerCase() ||
+          d.label?.toLowerCase() === (data.division as string).toLowerCase(),
+      );
+      if (match) {
+        setData((prev: any) => ({
+          ...prev,
+          division: match,
+          divisionId: match.id || match._id || match.value,
+        }));
+      }
+    }
+  }, [divisions, data.division, data.divisionId]);
 
   /* --- SUBMISSION LOGIC --- */
   const handleSubmit = async () => {
     if (clicked) return;
     setClicked(true);
 
-    if (!coordinates || typeof coordinates.lat !== 'number' || typeof coordinates.lon !== 'number' || coordinates.lat === 0) {
+    if (
+      !coordinates ||
+      typeof coordinates.lat !== "number" ||
+      typeof coordinates.lon !== "number" ||
+      coordinates.lat === 0
+    ) {
       Toast.show({
         type: "info",
         text1: "Location Required",
@@ -244,7 +268,10 @@ const PostAdDetails = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1" edges={["top"]}>
+    <SafeAreaView
+      className="flex-1"
+      edges={["top"]}
+    >
       <LinearGradient
         colors={["#f7e2fbff", "#d8ecf9ff", "#d7d1f3ff"]}
         start={{ x: 0, y: 0 }}
@@ -257,7 +284,11 @@ const PostAdDetails = () => {
             onPress={() => router.back()}
             className="w-10 h-10 items-center justify-center bg-white rounded-full shadow-sm"
           >
-            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color="#000"
+            />
           </TouchableOpacity>
           <Text className="text-xl font-black text-gray-900 flex-1 text-center mr-10">
             Sell with AI
@@ -295,7 +326,9 @@ const PostAdDetails = () => {
                 <EditableRow
                   label="Title"
                   value={data.title}
-                  onChange={(val: string) => setData((prev) => ({ ...prev, title: val }))}
+                  onChange={(val: string) =>
+                    setData((prev) => ({ ...prev, title: val }))
+                  }
                 />
                 <SelectRow
                   label="Category"
@@ -369,18 +402,37 @@ const PostAdDetails = () => {
                     {data.specs &&
                       Object.entries(data.specs as Record<string, any>)
                         .filter(([_, val]) => {
-                          const strVal = String(val ?? "").trim().toLowerCase();
-                          return strVal && strVal !== "null" && strVal !== "undefined";
+                          const strVal = String(val ?? "")
+                            .trim()
+                            .toLowerCase();
+                          return (
+                            strVal &&
+                            strVal !== "null" &&
+                            strVal !== "undefined"
+                          );
                         })
                         .map(([key, val]) => {
                           const meta = specMetadata[key];
-                          const label = meta?.name || meta?.label || key.replace(/_/g, " ");
+                          const label =
+                            meta?.name || meta?.label || key.replace(/_/g, " ");
                           const dataType = meta?.dataType;
 
-                          let options = (meta?.options || []).map((opt: any) => ({
-                            label: typeof opt === "string" ? opt : opt.name || opt.label,
-                            value: typeof opt === "string" ? opt : opt.id || opt._id || opt.value || opt.name || opt.label,
-                          }));
+                          let options = (meta?.options || []).map(
+                            (opt: any) => ({
+                              label:
+                                typeof opt === "string"
+                                  ? opt
+                                  : opt.name || opt.label,
+                              value:
+                                typeof opt === "string"
+                                  ? opt
+                                  : opt.id ||
+                                    opt._id ||
+                                    opt.value ||
+                                    opt.name ||
+                                    opt.label,
+                            }),
+                          );
 
                           // Fallback for boolean if no options provided
                           if (dataType === "boolean" && options.length === 0) {
@@ -396,7 +448,7 @@ const PostAdDetails = () => {
                               options.some((o: any) =>
                                 ["yes", "no", "true", "false"].includes(
                                   String(o.label || o.value).toLowerCase(),
-                                )
+                                ),
                               ));
 
                           if (isBinary) {
@@ -405,17 +457,21 @@ const PostAdDetails = () => {
                               const targetVal = String(optValue).toLowerCase();
                               return (
                                 currentVal === targetVal ||
-                                (currentVal === "true" && targetVal === "yes") ||
+                                (currentVal === "true" &&
+                                  targetVal === "yes") ||
                                 (currentVal === "false" && targetVal === "no")
                               );
                             };
 
                             return (
-                              <View key={key} className="mb-6">
+                              <View
+                                key={key}
+                                className="mb-6"
+                              >
                                 <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
                                   {label}
                                 </Text>
-                                <View 
+                                <View
                                   className="flex-row items-center flex-wrap"
                                   style={{ gap: 24 }}
                                 >
@@ -439,7 +495,9 @@ const PostAdDetails = () => {
                                           height: 20,
                                           borderRadius: 10,
                                           borderWidth: 2,
-                                          borderColor: isSelected(opt.value) ? "#000" : "#D1D5DB",
+                                          borderColor: isSelected(opt.value)
+                                            ? "#000"
+                                            : "#D1D5DB",
                                           justifyContent: "center",
                                           alignItems: "center",
                                           marginRight: 8,
@@ -458,7 +516,9 @@ const PostAdDetails = () => {
                                       </View>
                                       <Text
                                         className={`text-sm ${
-                                          isSelected(opt.value) ? "text-black font-bold" : "text-gray-600 font-medium"
+                                          isSelected(opt.value)
+                                            ? "text-black font-bold"
+                                            : "text-gray-600 font-medium"
                                         }`}
                                       >
                                         {opt.label}
@@ -476,7 +536,8 @@ const PostAdDetails = () => {
                                 key={key}
                                 label={label}
                                 value={
-                                  options.find((o: any) => o.value === val)?.label || val
+                                  options.find((o: any) => o.value === val)
+                                    ?.label || val
                                 }
                                 options={options}
                                 onSelect={(opt: any) => {
@@ -484,7 +545,8 @@ const PostAdDetails = () => {
                                     ...prev,
                                     specs: {
                                       ...prev.specs,
-                                      [key]: opt.id || opt._id || opt.value || opt,
+                                      [key]:
+                                        opt.id || opt._id || opt.value || opt,
                                     },
                                   }));
                                 }}
@@ -509,8 +571,8 @@ const PostAdDetails = () => {
 
                     {(!data.division || divisions.length > 0) && (
                       <SelectRow
-                        label="Division"
-                        value={data.division?.name || data.division?.label || "Select Division"}
+                        label="Division / Type"
+                        value={data.division?.name || data.division?.label}
                         options={divisions}
                         isLoading={isLoadingDivisions}
                         onSelect={(opt: any) => {
@@ -550,136 +612,112 @@ const PostAdDetails = () => {
                     const meta = specMetadata[fieldKey];
                     const dataType = meta?.dataType;
 
-                    const rawOptions = q.options || meta?.options || [];
+                    // Support Boolean by providing Yes/No options
+                    let options: string[] = [];
+                    if (dataType === "boolean") {
+                      options = ["Yes", "No"];
+                    } else {
+                      const rawOptions = q.options || meta?.options || [];
+                      options = rawOptions
+                        .map((opt: any) =>
+                          typeof opt === "string" ? opt : opt.name || opt.label,
+                        )
+                        .filter((o: any) => !!o && String(o).trim().length > 0);
+                    }
 
-                    const isBinary =
-                      dataType === "boolean" ||
-                      (rawOptions.length === 2 &&
-                        rawOptions.some((o: any) =>
-                          ["yes", "no", "true", "false"].includes(
-                            String(o.label || o.value || o).toLowerCase(),
-                          )
-                        ));
-
-                    const options = rawOptions
-                      .map((opt: any) => ({
-                        label: typeof opt === "string" ? opt : opt.name || opt.label,
-                        value: typeof opt === "string" ? opt : opt.id || opt._id || opt.value || opt.name || opt.label,
-                      }))
-                      .filter((o: any) => !!o.label && String(o.label).trim().length > 0);
-
-                    const isSelected = (optValue: string) => {
+                    const isSelected = (opt: string) => {
                       const current = questionAnswers[fieldKey];
                       return (
-                        current === optValue ||
-                        (String(current).toLowerCase() === "true" && optValue.toLowerCase() === "yes") ||
-                        (String(current).toLowerCase() === "false" && optValue.toLowerCase() === "no")
+                        current === opt ||
+                        meta?.options?.find(
+                          (o: any) => (o.id || o._id) === current,
+                        )?.name === opt
                       );
                     };
 
-                    const handleSelect = (optValue: string) => {
-                      setQuestionAnswers((prev: any) => ({
-                        ...prev,
-                        [fieldKey]: optValue,
-                      }));
+                    const handleSelect = (opt: string) => {
+                      setQuestionAnswers((prev: any) => {
+                        const newState = { ...prev };
+                        if (isSelected(opt)) {
+                          delete newState[fieldKey];
+                        } else {
+                          // Try to find the original ID if it's a select spec
+                          const originalOpt = meta?.options?.find(
+                            (o: any) => o.name === opt || o.label === opt,
+                          );
+                          newState[fieldKey] = originalOpt
+                            ? originalOpt.id || originalOpt._id
+                            : opt;
+                        }
+                        return newState;
+                      });
                     };
 
-                    const questionLabel = q.question || q.label || q.field || `About the ${meta?.name || fieldKey}`;
+                    return (
+                      <View
+                        key={idx}
+                        className="mb-6"
+                      >
+                        <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
+                          {q.question ||
+                            q.label ||
+                            q.field ||
+                            `About the ${meta?.name || fieldKey}`}
+                        </Text>
 
-                    if (isBinary) {
-                      const binaryOpts = options.length > 0 ? options : [
-                        { label: "Yes", value: "Yes" },
-                        { label: "No", value: "No" }
-                      ];
-
-                      return (
-                        <View key={fieldKey} className="mb-6">
-                          <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
-                            {questionLabel}
-                          </Text>
-                          <View 
-                            className="flex-row items-center flex-wrap"
-                            style={{ gap: 24 }}
-                          >
-                            {binaryOpts.map((opt: { label: string; value: string }) => (
+                        {options.length > 0 ? (
+                          <View className="flex-row flex-wrap gap-2">
+                            {options.map((opt: string) => (
                               <TouchableOpacity
-                                key={opt.value}
-                                onPress={() => handleSelect(opt.value)}
-                                className="flex-row items-center py-1 pr-4"
+                                key={opt}
+                                onPress={() => handleSelect(opt)}
+                                style={{
+                                  paddingHorizontal: 16,
+                                  paddingVertical: 10,
+                                  borderRadius: 16,
+                                  borderWidth: 1.5,
+                                  borderColor: isSelected(opt)
+                                    ? "#000"
+                                    : "#E5E7EB",
+                                  backgroundColor: isSelected(opt)
+                                    ? "#000"
+                                    : "#fff",
+                                }}
                               >
-                                <View
+                                <Text
                                   style={{
-                                    width: 20,
-                                    height: 20,
-                                    borderRadius: 10,
-                                    borderWidth: 2,
-                                    borderColor: isSelected(opt.value) ? "#000" : "#D1D5DB",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    marginRight: 8,
+                                    fontSize: 12,
+                                    fontWeight: isSelected(opt) ? "700" : "500",
+                                    color: isSelected(opt) ? "#fff" : "#4B5563",
                                   }}
                                 >
-                                  {isSelected(opt.value) && (
-                                    <View
-                                      style={{
-                                        width: 10,
-                                        height: 10,
-                                        borderRadius: 5,
-                                        backgroundColor: "#000",
-                                      }}
-                                    />
-                                  )}
-                                </View>
-                                <Text
-                                  className={`text-sm ${
-                                    isSelected(opt.value) ? "text-black font-bold" : "text-gray-600 font-medium"
-                                  }`}
-                                >
-                                  {opt.label}
+                                  {opt}
                                 </Text>
                               </TouchableOpacity>
                             ))}
                           </View>
-                        </View>
-                      );
-                    }
-
-                    if (options.length > 0) {
-                      return (
-                        <SelectRow
-                          key={idx}
-                          label={questionLabel}
-                          value={
-                            options.find((o: any) => o.value === questionAnswers[fieldKey])?.label || 
-                            questionAnswers[fieldKey] || 
-                            "Select Option"
-                          }
-                          options={options}
-                          onSelect={(opt: any) => handleSelect(opt.id || opt._id || opt.value || opt)}
-                        />
-                      );
-                    }
-
-                    return (
-                      <View key={idx} className="mb-6">
-                        <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
-                          {questionLabel}
-                        </Text>
-                        <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 h-12 flex-row items-center shadow-sm shadow-gray-100">
-                          <TextInput
-                            value={questionAnswers[fieldKey] || ""}
-                            onChangeText={(v) => handleSelect(v)}
-                            placeholder="Type your answer..."
-                            placeholderTextColor="#9CA3AF"
-                            keyboardType={
-                              meta?.dataType === "number" ||
-                              q.dataType === "number"
-                                ? "numeric"
-                                : "default"
-                            }
-                            className="text-gray-900 text-sm font-medium w-full h-full"
-                          />
-                        </View>
+                        ) : (
+                          <View className="bg-gray-50 border border-gray-200 rounded-2xl px-4 h-14 justify-center shadow-inner shadow-gray-100/50">
+                            <TextInput
+                              value={questionAnswers[fieldKey] || ""}
+                              onChangeText={(text) =>
+                                setQuestionAnswers((prev: any) => ({
+                                  ...prev,
+                                  [fieldKey]: text,
+                                }))
+                              }
+                              placeholder="Type your answer..."
+                              placeholderTextColor="#9CA3AF"
+                              keyboardType={
+                                meta?.dataType === "number" ||
+                                q.dataType === "number"
+                                  ? "numeric"
+                                  : "default"
+                              }
+                              className="text-gray-900 text-sm font-medium w-full h-full"
+                            />
+                          </View>
+                        )}
                       </View>
                     );
                   })
@@ -700,7 +738,9 @@ const PostAdDetails = () => {
                     placeholder="0"
                     keyboardType="numeric"
                     value={data.price?.toString()}
-                    onChangeText={(v) => setData((prev) => ({ ...prev, price: v }))}
+                    onChangeText={(v) =>
+                      setData((prev) => ({ ...prev, price: v }))
+                    }
                     className="flex-1 text-2xl font-black text-gray-900"
                   />
                 </View>
@@ -712,7 +752,11 @@ const PostAdDetails = () => {
                     className={`w-6 h-6 rounded-lg border-2 items-center justify-center mr-3 ${isNegotiable ? "bg-green-500 border-green-500" : "border-gray-200"}`}
                   >
                     {isNegotiable && (
-                      <Ionicons name="checkmark" size={16} color="white" />
+                      <Ionicons
+                        name="checkmark"
+                        size={16}
+                        color="white"
+                      />
                     )}
                   </View>
                   <Text className="text-gray-700 font-bold text-sm">

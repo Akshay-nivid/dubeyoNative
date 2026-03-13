@@ -85,12 +85,16 @@ const PostAd = () => {
           const res = await fetchProfile();
           const profileData = res?.data || {};
           // Extract user name just like in useHomeData
-          const firstName = profileData?.firstName || profileData?.first_name || "";
-          const lastName = profileData?.lastName || profileData?.last_name || "";
-          
-          const fullName = profileData?.name || profileData?.fullName || 
-                           [firstName, lastName].filter(Boolean).join(" ") || 
-                           "User";
+          const firstName =
+            profileData?.firstName || profileData?.first_name || "";
+          const lastName =
+            profileData?.lastName || profileData?.last_name || "";
+
+          const fullName =
+            profileData?.name ||
+            profileData?.fullName ||
+            [firstName, lastName].filter(Boolean).join(" ") ||
+            "User";
 
           if (fullName) {
             setUserName(fullName.split(" ")[0]); // Use first name
@@ -413,7 +417,11 @@ const PostAd = () => {
             activeOpacity={0.7}
             className="bg-[#F0F4FF] border-2 border-dashed border-[#1e3a8a] rounded-2xl h-52 items-center justify-center"
           >
-            <Ionicons name="add-circle-outline" size={32} color="#1e3a8a" />
+            <Ionicons
+              name="add-circle-outline"
+              size={32}
+              color="#1e3a8a"
+            />
             <Text className="text-[#1e3a8a] font-semibold text-lg mt-2">
               Upload Image
             </Text>
@@ -439,7 +447,11 @@ const PostAd = () => {
                     onPress={() => removePhoto(index)}
                     className="absolute top-1 right-1 bg-red-100 rounded-md p-1 z-10 shadow-sm"
                   >
-                    <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                    <Ionicons
+                      name="trash-outline"
+                      size={14}
+                      color="#EF4444"
+                    />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -450,7 +462,11 @@ const PostAd = () => {
                   onPress={pickImage}
                   className="w-[22%] aspect-square rounded-xl border-2 border-dashed border-[#1e3a8a] items-center justify-center bg-white/50"
                 >
-                  <Ionicons name="add" size={24} color="#1e3a8a" />
+                  <Ionicons
+                    name="add"
+                    size={24}
+                    color="#1e3a8a"
+                  />
                 </TouchableOpacity>
               )}
             </View>
@@ -474,14 +490,21 @@ const PostAd = () => {
       end={{ x: 1, y: 1 }}
       style={{ flex: 1 }}
     >
-      <SafeAreaView className="flex-1 bg-transparent" edges={["top"]}>
+      <SafeAreaView
+        className="flex-1 bg-transparent"
+        edges={["top"]}
+      >
         {/* Header */}
         <View className="px-4 py-2 flex-row items-center">
           <TouchableOpacity
             onPress={() => router.back()}
             className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100"
           >
-            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color="#000"
+            />
           </TouchableOpacity>
 
           <View className="ml-4">
@@ -568,7 +591,11 @@ const PostAd = () => {
                   <View className="flex-row">
                     {!description && (
                       <View className="mr-2 mt-1 z-10">
-                        <Ionicons name="sparkles" size={18} color="#9CA3AF" />
+                        <Ionicons
+                          name="sparkles"
+                          size={18}
+                          color="#9CA3AF"
+                        />
                       </View>
                     )}
                     <TextInput
@@ -629,7 +656,10 @@ const PostAd = () => {
         onRequestClose={handleCloseModal}
         statusBarTranslucent={true}
       >
-        <View className="flex-1 justify-end" style={{ zIndex: 10000 }}>
+        <View
+          className="flex-1 justify-end"
+          style={{ zIndex: 10000 }}
+        >
           <Animated.View
             style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}
           >
@@ -682,7 +712,11 @@ const PostAd = () => {
                 activeOpacity={0.7}
               >
                 <View className="w-20 h-20 bg-blue-50 rounded-2xl items-center justify-center mb-3 border border-blue-100 shadow-sm">
-                  <Ionicons name="camera" size={32} color="#3B82F6" />
+                  <Ionicons
+                    name="camera"
+                    size={32}
+                    color="#3B82F6"
+                  />
                 </View>
                 <Text className="font-semibold text-gray-700 text-base">
                   Camera
@@ -699,7 +733,11 @@ const PostAd = () => {
                 activeOpacity={0.7}
               >
                 <View className="w-20 h-20 bg-purple-50 rounded-2xl items-center justify-center mb-3 border border-purple-100 shadow-sm">
-                  <Ionicons name="images" size={32} color="#8B5CF6" />
+                  <Ionicons
+                    name="images"
+                    size={32}
+                    color="#8B5CF6"
+                  />
                 </View>
                 <Text className="font-semibold text-gray-700 text-base">
                   Gallery
