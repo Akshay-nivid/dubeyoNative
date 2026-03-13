@@ -137,7 +137,7 @@ const PostAdDetails = () => {
     if (clicked) return;
     setClicked(true);
 
-    if (!coordinates || !coordinates.lat || coordinates.lat === 0) {
+    if (!coordinates || typeof coordinates.lat !== 'number' || typeof coordinates.lon !== 'number' || coordinates.lat === 0) {
       Toast.show({
         type: "info",
         text1: "Location Required",
@@ -165,23 +165,27 @@ const PostAdDetails = () => {
 
       if (data.specs) {
         Object.entries(data.specs).forEach(([k, v]) => {
-          formattedSpecs[k] = { value: v, label: k };
+          if (v !== undefined && v !== null && v !== "") {
+            formattedSpecs[k] = { value: v, label: specMetadata[k]?.name || k };
+          }
         });
       }
 
       Object.entries(questionAnswers).forEach(([k, v]) => {
-        const meta = specMetadata[k];
-        const q = questions.find((q) => {
-          const qKey =
-            q.key ||
-            q.slug ||
-            normalizeFieldKey(q.field || q.label || "question");
-          return qKey === k;
-        });
-        formattedSpecs[k] = {
-          value: v,
-          label: meta?.name || q?.label || q?.field || k,
-        };
+        if (v !== undefined && v !== null && v !== "") {
+          const meta = specMetadata[k];
+          const q = questions.find((q) => {
+            const qKey =
+              q.key ||
+              q.slug ||
+              normalizeFieldKey(q.field || q.label || "question");
+            return qKey === k;
+          });
+          formattedSpecs[k] = {
+            value: v,
+            label: meta?.name || q?.label || q?.field || k,
+          };
+        }
       });
 
       const payload = {
@@ -201,7 +205,7 @@ const PostAdDetails = () => {
           type: "Point",
           coordinates: [coordinates.lon, coordinates.lat],
         },
-        images: data.images || initialImages || [],
+        images: (data.images?.length ?? 0) > 0 ? data.images : initialImages,
       };
 
       const res = await post(PostAdApi.createProduct, payload);
@@ -291,7 +295,7 @@ const PostAdDetails = () => {
                 <EditableRow
                   label="Title"
                   value={data.title}
-                  onChange={(val: string) => setData({ ...data, title: val })}
+                  onChange={(val: string) => setData((prev) => ({ ...prev, title: val }))}
                 />
                 <SelectRow
                   label="Category"
@@ -299,13 +303,13 @@ const PostAdDetails = () => {
                   options={categories}
                   onSelect={(opt: any) => {
                     const catId = opt.id || opt._id || opt.value;
-                    setData({
-                      ...data,
+                    setData((prev) => ({
+                      ...prev,
                       categoryId: catId,
                       category: opt,
-                      subcategoryId: null,
-                      subcategory: null,
-                    });
+                      subcategoryId: undefined,
+                      subcategory: undefined,
+                    }));
                   }}
                 />
                 <SelectRow
@@ -314,13 +318,13 @@ const PostAdDetails = () => {
                   options={subcategories}
                   isLoading={isLoadingSubcategories}
                   onSelect={(opt: any) => {
-                    setData({
-                      ...data,
+                    setData((prev) => ({
+                      ...prev,
                       subcategoryId: opt.id || opt._id,
                       subcategory: opt,
-                      divisionId: null,
-                      division: null,
-                    });
+                      divisionId: undefined,
+                      division: undefined,
+                    }));
                   }}
                 />
               </>
@@ -368,32 +372,153 @@ const PostAdDetails = () => {
                           const strVal = String(val ?? "").trim().toLowerCase();
                           return strVal && strVal !== "null" && strVal !== "undefined";
                         })
-                        .map(([key, val]) => (
-                          <EditableRow
-                            key={key}
-                            label={key.replace(/_/g, " ")}
-                            value={val}
-                            onChange={(text: string) =>
-                              setData((prev: any) => ({
-                                ...prev,
-                                specs: { ...prev.specs, [key]: text },
-                              }))
-                            }
-                          />
-                        ))}
+                        .map(([key, val]) => {
+                          const meta = specMetadata[key];
+                          const label = meta?.name || meta?.label || key.replace(/_/g, " ");
+                          const dataType = meta?.dataType;
+
+                          let options = (meta?.options || []).map((opt: any) => ({
+                            label: typeof opt === "string" ? opt : opt.name || opt.label,
+                            value: typeof opt === "string" ? opt : opt.id || opt._id || opt.value || opt.name || opt.label,
+                          }));
+
+                          // Fallback for boolean if no options provided
+                          if (dataType === "boolean" && options.length === 0) {
+                            options = [
+                              { label: "Yes", value: "Yes" },
+                              { label: "No", value: "No" },
+                            ];
+                          }
+
+                          const isBinary =
+                            dataType === "boolean" ||
+                            (options.length === 2 &&
+                              options.some((o: any) =>
+                                ["yes", "no", "true", "false"].includes(
+                                  String(o.label || o.value).toLowerCase(),
+                                )
+                              ));
+
+                          if (isBinary) {
+                            const isSelected = (optValue: string) => {
+                              const currentVal = String(val).toLowerCase();
+                              const targetVal = String(optValue).toLowerCase();
+                              return (
+                                currentVal === targetVal ||
+                                (currentVal === "true" && targetVal === "yes") ||
+                                (currentVal === "false" && targetVal === "no")
+                              );
+                            };
+
+                            return (
+                              <View key={key} className="mb-6">
+                                <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
+                                  {label}
+                                </Text>
+                                <View 
+                                  className="flex-row items-center flex-wrap"
+                                  style={{ gap: 24 }}
+                                >
+                                  {options.map((opt: any) => (
+                                    <TouchableOpacity
+                                      key={opt.value}
+                                      onPress={() => {
+                                        setData((prev) => ({
+                                          ...prev,
+                                          specs: {
+                                            ...prev.specs,
+                                            [key]: opt.value,
+                                          },
+                                        }));
+                                      }}
+                                      className="flex-row items-center py-1 pr-4"
+                                    >
+                                      <View
+                                        style={{
+                                          width: 20,
+                                          height: 20,
+                                          borderRadius: 10,
+                                          borderWidth: 2,
+                                          borderColor: isSelected(opt.value) ? "#000" : "#D1D5DB",
+                                          justifyContent: "center",
+                                          alignItems: "center",
+                                          marginRight: 8,
+                                        }}
+                                      >
+                                        {isSelected(opt.value) && (
+                                          <View
+                                            style={{
+                                              width: 10,
+                                              height: 10,
+                                              borderRadius: 5,
+                                              backgroundColor: "#000",
+                                            }}
+                                          />
+                                        )}
+                                      </View>
+                                      <Text
+                                        className={`text-sm ${
+                                          isSelected(opt.value) ? "text-black font-bold" : "text-gray-600 font-medium"
+                                        }`}
+                                      >
+                                        {opt.label}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  ))}
+                                </View>
+                              </View>
+                            );
+                          }
+
+                          if (dataType === "select") {
+                            return (
+                              <SelectRow
+                                key={key}
+                                label={label}
+                                value={
+                                  options.find((o: any) => o.value === val)?.label || val
+                                }
+                                options={options}
+                                onSelect={(opt: any) => {
+                                  setData((prev) => ({
+                                    ...prev,
+                                    specs: {
+                                      ...prev.specs,
+                                      [key]: opt.id || opt._id || opt.value || opt,
+                                    },
+                                  }));
+                                }}
+                              />
+                            );
+                          }
+
+                          return (
+                            <EditableRow
+                              key={key}
+                              label={label}
+                              value={val}
+                              onChange={(text: string) =>
+                                setData((prev) => ({
+                                  ...prev,
+                                  specs: { ...prev.specs, [key]: text },
+                                }))
+                              }
+                            />
+                          );
+                        })}
 
                     {(!data.division || divisions.length > 0) && (
                       <SelectRow
-                        label="Division / Type"
-                        value={data.division?.name || data.division?.label}
+                        label="Division"
+                        value={data.division?.name || data.division?.label || "Select Division"}
                         options={divisions}
                         isLoading={isLoadingDivisions}
                         onSelect={(opt: any) => {
-                          setData({
-                            ...data,
+                          setData((prev) => ({
+                            ...prev,
+                            divisionId: opt.id || opt._id || opt.value,
                             division: opt,
-                            divisionId: opt.id || opt._id,
-                          });
+                          }));
                         }}
                       />
                     )}
@@ -425,104 +550,136 @@ const PostAdDetails = () => {
                     const meta = specMetadata[fieldKey];
                     const dataType = meta?.dataType;
 
-                    // Support Boolean by providing Yes/No options
-                    let options: string[] = [];
-                    if (dataType === "boolean") {
-                      options = ["Yes", "No"];
-                    } else {
-                      const rawOptions = q.options || meta?.options || [];
-                      options = rawOptions
-                        .map((opt: any) =>
-                          typeof opt === "string" ? opt : opt.name || opt.label,
-                        )
-                        .filter((o: any) => !!o && String(o).trim().length > 0);
-                    }
+                    const rawOptions = q.options || meta?.options || [];
 
-                    const isSelected = (opt: string) => {
+                    const isBinary =
+                      dataType === "boolean" ||
+                      (rawOptions.length === 2 &&
+                        rawOptions.some((o: any) =>
+                          ["yes", "no", "true", "false"].includes(
+                            String(o.label || o.value || o).toLowerCase(),
+                          )
+                        ));
+
+                    const options = rawOptions
+                      .map((opt: any) => ({
+                        label: typeof opt === "string" ? opt : opt.name || opt.label,
+                        value: typeof opt === "string" ? opt : opt.id || opt._id || opt.value || opt.name || opt.label,
+                      }))
+                      .filter((o: any) => !!o.label && String(o.label).trim().length > 0);
+
+                    const isSelected = (optValue: string) => {
                       const current = questionAnswers[fieldKey];
                       return (
-                        current === opt ||
-                        meta?.options?.find((o: any) => (o.id || o._id) === current)
-                          ?.name === opt
+                        current === optValue ||
+                        (String(current).toLowerCase() === "true" && optValue.toLowerCase() === "yes") ||
+                        (String(current).toLowerCase() === "false" && optValue.toLowerCase() === "no")
                       );
                     };
 
-                    const handleSelect = (opt: string) => {
-                      setQuestionAnswers((prev: any) => {
-                        const newState = { ...prev };
-                        if (isSelected(opt)) {
-                          delete newState[fieldKey];
-                        } else {
-                          // Try to find the original ID if it's a select spec
-                          const originalOpt = meta?.options?.find(
-                            (o: any) => o.name === opt || o.label === opt,
-                          );
-                          newState[fieldKey] = originalOpt
-                            ? originalOpt.id || originalOpt._id
-                            : opt;
-                        }
-                        return newState;
-                      });
+                    const handleSelect = (optValue: string) => {
+                      setQuestionAnswers((prev: any) => ({
+                        ...prev,
+                        [fieldKey]: optValue,
+                      }));
                     };
 
-                    return (
-                      <View key={idx} className="mb-6">
-                        <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
-                          {q.question ||
-                            q.label ||
-                            q.field ||
-                            `About the ${meta?.name || fieldKey}`}
-                        </Text>
+                    const questionLabel = q.question || q.label || q.field || `About the ${meta?.name || fieldKey}`;
 
-                        {options.length > 0 ? (
-                          <View className="flex-row flex-wrap gap-2">
-                            {options.map((opt: string) => (
+                    if (isBinary) {
+                      const binaryOpts = options.length > 0 ? options : [
+                        { label: "Yes", value: "Yes" },
+                        { label: "No", value: "No" }
+                      ];
+
+                      return (
+                        <View key={fieldKey} className="mb-6">
+                          <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
+                            {questionLabel}
+                          </Text>
+                          <View 
+                            className="flex-row items-center flex-wrap"
+                            style={{ gap: 24 }}
+                          >
+                            {binaryOpts.map((opt: { label: string; value: string }) => (
                               <TouchableOpacity
-                                key={opt}
-                                onPress={() => handleSelect(opt)}
-                                style={{
-                                  paddingHorizontal: 16,
-                                  paddingVertical: 10,
-                                  borderRadius: 16,
-                                  borderWidth: 1.5,
-                                  borderColor: isSelected(opt) ? "#000" : "#E5E7EB",
-                                  backgroundColor: isSelected(opt) ? "#000" : "#fff",
-                                }}
+                                key={opt.value}
+                                onPress={() => handleSelect(opt.value)}
+                                className="flex-row items-center py-1 pr-4"
                               >
-                                <Text
+                                <View
                                   style={{
-                                    fontSize: 12,
-                                    fontWeight: isSelected(opt) ? "700" : "500",
-                                    color: isSelected(opt) ? "#fff" : "#4B5563",
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: 10,
+                                    borderWidth: 2,
+                                    borderColor: isSelected(opt.value) ? "#000" : "#D1D5DB",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    marginRight: 8,
                                   }}
                                 >
-                                  {opt}
+                                  {isSelected(opt.value) && (
+                                    <View
+                                      style={{
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: 5,
+                                        backgroundColor: "#000",
+                                      }}
+                                    />
+                                  )}
+                                </View>
+                                <Text
+                                  className={`text-sm ${
+                                    isSelected(opt.value) ? "text-black font-bold" : "text-gray-600 font-medium"
+                                  }`}
+                                >
+                                  {opt.label}
                                 </Text>
                               </TouchableOpacity>
                             ))}
                           </View>
-                        ) : (
-                          <View className="bg-gray-50 border border-gray-200 rounded-2xl px-4 h-14 justify-center shadow-inner shadow-gray-100/50">
-                            <TextInput
-                              value={questionAnswers[fieldKey] || ""}
-                              onChangeText={(text) =>
-                                setQuestionAnswers((prev: any) => ({
-                                  ...prev,
-                                  [fieldKey]: text,
-                                }))
-                              }
-                              placeholder="Type your answer..."
-                              placeholderTextColor="#9CA3AF"
-                              keyboardType={
-                                meta?.dataType === "number" ||
-                                q.dataType === "number"
-                                  ? "numeric"
-                                  : "default"
-                              }
-                              className="text-gray-900 text-sm font-medium w-full h-full"
-                            />
-                          </View>
-                        )}
+                        </View>
+                      );
+                    }
+
+                    if (options.length > 0) {
+                      return (
+                        <SelectRow
+                          key={idx}
+                          label={questionLabel}
+                          value={
+                            options.find((o: any) => o.value === questionAnswers[fieldKey])?.label || 
+                            questionAnswers[fieldKey] || 
+                            "Select Option"
+                          }
+                          options={options}
+                          onSelect={(opt: any) => handleSelect(opt.id || opt._id || opt.value || opt)}
+                        />
+                      );
+                    }
+
+                    return (
+                      <View key={idx} className="mb-6">
+                        <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
+                          {questionLabel}
+                        </Text>
+                        <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 h-12 flex-row items-center shadow-sm shadow-gray-100">
+                          <TextInput
+                            value={questionAnswers[fieldKey] || ""}
+                            onChangeText={(v) => handleSelect(v)}
+                            placeholder="Type your answer..."
+                            placeholderTextColor="#9CA3AF"
+                            keyboardType={
+                              meta?.dataType === "number" ||
+                              q.dataType === "number"
+                                ? "numeric"
+                                : "default"
+                            }
+                            className="text-gray-900 text-sm font-medium w-full h-full"
+                          />
+                        </View>
                       </View>
                     );
                   })
@@ -543,7 +700,7 @@ const PostAdDetails = () => {
                     placeholder="0"
                     keyboardType="numeric"
                     value={data.price?.toString()}
-                    onChangeText={(v) => setData({ ...data, price: v })}
+                    onChangeText={(v) => setData((prev) => ({ ...prev, price: v }))}
                     className="flex-1 text-2xl font-black text-gray-900"
                   />
                 </View>
@@ -601,12 +758,12 @@ const PostAdDetails = () => {
                 <Text className="text-xl font-bold text-gray-900 mb-5">
                   Final Description
                 </Text>
-                <View className="bg-gray-50 border border-gray-100 rounded-3xl p-5 min-h-[160px]">
+                <View className="bg-gray-50 border border-gray-100 rounded-3xl p-5">
                   <TextInput
                     multiline
                     value={data.enhancedDescription}
                     onChangeText={(v) =>
-                      setData({ ...data, enhancedDescription: v })
+                      setData((prev) => ({ ...prev, enhancedDescription: v }))
                     }
                     className="text-sm text-gray-800 leading-5"
                     textAlignVertical="top"
