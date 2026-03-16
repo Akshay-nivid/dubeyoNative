@@ -63,11 +63,16 @@ const normalizeFieldKey = (field: string) =>
     .replace(/[^a-z]/g, "");
 
 const getStableKey = (item: any): string => {
-  return (
-    item?.key ||
-    item?.slug ||
-    normalizeFieldKey(item?.field || item?.label || "")
-  );
+  if (!item) return "";
+  const key =
+    item.key ||
+    item.slug ||
+    item.field ||
+    item.label ||
+    item.name ||
+    ("");
+  
+  return typeof key === "string" ? normalizeFieldKey(key) : "";
 };
 
 const extractQuestions = (payload: any): Question[] => {
@@ -87,15 +92,7 @@ const extractQuestions = (payload: any): Question[] => {
   return questionsList
     .filter((q) => {
       const text = (q.question || q.label || q.field || "").toLowerCase();
-      const key = getStableKey(q).toLowerCase();
-
       if (!text || seen.has(text)) return false;
-
-      const isRedundant = REDUNDANT_KEYS.some(
-        (rk) => key.includes(rk) || text.includes(rk),
-      );
-      if (isRedundant) return false;
-
       seen.add(text);
       return true;
     })
@@ -247,17 +244,49 @@ export const usePostAdAI = () => {
         const contextPrefix = `ITEM: ${categoryLabel}${subcategoryLabel ? ` > ${subcategoryLabel}` : ""}\n\n`;
         const contextualDetails = contextPrefix + details;
 
-        const missingSpecs = (
-          Array.isArray(intermediate?.specs) ? intermediate.specs : []
-        )
-          .filter((s: any) => !isValidSpecValue(s.value))
-          .map((s: any) => getStableKey(s));
+        const rawSpecs = intermediate?.specs;
+        const missingSpecs: { key: string; dataType: string }[] = [];
+        
+        if (Array.isArray(rawSpecs)) {
+          rawSpecs.forEach((s: any) => {
+            const key = getStableKey(s);
+            if (key && !isValidSpecValue(s.value)) {
+              missingSpecs.push({
+                key,
+                dataType: s.dataType || "text",
+              });
+            }
+          });
+        } else if (rawSpecs && typeof rawSpecs === "object") {
+          Object.entries(rawSpecs).forEach(([k, v]) => {
+            const key = normalizeFieldKey(k);
+            if (key && !isValidSpecValue(v)) {
+              missingSpecs.push({
+                key,
+                dataType: "text",
+              });
+            }
+          });
+        }
+
+        // Also check if division is missing
+        if (
+          !isValidSpecValue(intermediate?.division) &&
+          !isValidSpecValue(intermediate?.divisionId)
+        ) {
+          if (!missingSpecs.find((s: any) => s.key === "division")) {
+            missingSpecs.push({ key: "division", dataType: "select" });
+          }
+        }
+
+        // Send ONLY keys to the API as strings
+        const missingSpecKeys = missingSpecs.map(s => s.key);
 
         const res = await post(
           PostAdApi.finalPreview,
           {
-            details: contextualDetails,
-            specs: missingSpecs,
+            details, // Remove contextPrefix to be safe
+            specs: missingSpecKeys,
             location: null,
             subcategoryId,
             images,
@@ -268,66 +297,29 @@ export const usePostAdAI = () => {
         if (currentGenerationId !== generationIdRef.current) return;
 
         const finalPayload = res?.data ?? res ?? {};
+        const apiQuestions = extractQuestions(finalPayload);
 
-        const intermediateSpecs = Array.isArray(intermediate?.specs)
-          ? intermediate.specs
-          : [];
-        let questionsData = extractQuestions(finalPayload).filter((q) =>
-          missingSpecs.includes(getStableKey(q)),
-        );
+        // FALLBACK: If API didn't provide questions for some missing specs, create them locally
+        const fallbackQuestions: Question[] = missingSpecs
+          .filter(
+            (ms) => !apiQuestions.some((aq) => getStableKey(aq) === ms.key)
+          )
+          .map((ms) => ({
+            key: ms.key,
+            question: `What is the ${ms.key.replace(/_/g, " ")}?`,
+            dataType: ms.dataType || "text",
+            options: [],
+          }));
 
-        if (questionsData.length === 0) {
-          const unresolvedKeys =
-            Array.isArray(finalPayload.specs) &&
-            finalPayload.specs.every((s: any) => typeof s === "string")
-              ? finalPayload.specs
-              : missingSpecs;
+        const combinedQuestions = [...apiQuestions, ...fallbackQuestions];
 
-          questionsData = unresolvedKeys.map((key: string) => {
-            const matchedSpec = intermediateSpecs.find(
-              (s: any) => getStableKey(s) === key,
-            );
-            if (matchedSpec) {
-              return {
-                ...matchedSpec,
-                label: matchedSpec.name || key,
-                question: matchedSpec.name || key,
-                field: matchedSpec.key || key,
-                options: Array.isArray(matchedSpec.options)
-                  ? matchedSpec.options
-                  : [],
-              };
-            }
-            return { key, field: key, label: key, question: key };
-          });
-        }
+        if (combinedQuestions.length > 0) {
+          setQuestions(combinedQuestions);
 
-        // Ensure options are populated from the intermediate response for any question
-        questionsData = questionsData.map((q) => {
-          const matchedSpec = intermediateSpecs.find(
-            (s: any) => getStableKey(s) === getStableKey(q),
-          );
-          if (
-            matchedSpec &&
-            Array.isArray(matchedSpec.options) &&
-            matchedSpec.options.length > 0
-          ) {
-            return {
-              ...q,
-              options: matchedSpec.options,
-              dataType: matchedSpec.dataType || q.dataType,
-            };
-          }
-          return q;
-        });
-
-        if (questionsData.length > 0) {
-          setQuestions(questionsData);
-
-          // Update specMetadata with metadata from questions
           const metadataUpdate: Record<string, any> = {};
-          questionsData.forEach((q) => {
-            metadataUpdate[getStableKey(q)] = q;
+          combinedQuestions.forEach((q) => {
+            const key = getStableKey(q);
+            if (key) metadataUpdate[key] = q;
           });
           setSpecMetadata((prev) => ({ ...prev, ...metadataUpdate }));
         }

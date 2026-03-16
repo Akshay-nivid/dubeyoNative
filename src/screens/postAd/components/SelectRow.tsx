@@ -14,6 +14,7 @@ interface SelectRowProps {
   options: any[];
   onSelect: (option: any) => void;
   isLoading?: boolean;
+  containerStyle?: object | any[];
 }
 
 const SelectRow = ({
@@ -22,12 +23,13 @@ const SelectRow = ({
   options,
   onSelect,
   isLoading = false,
+  containerStyle,
 }: SelectRowProps) => {
   const [open, setOpen] = useState(false);
 
   return (
-    <View className="mb-4">
-      <Text className="text-black font-bold text-sm mb-1.5 ml-1">
+    <View className="mb-5" style={containerStyle}>
+      <Text className="text-gray-600 font-bold text-[13px] mb-2 ml-1">
         {label}
       </Text>
       <TouchableOpacity
@@ -36,38 +38,40 @@ const SelectRow = ({
           setOpen(!open);
         }}
         disabled={isLoading}
-        className={`bg-white rounded-2xl px-4 h-12 shadow-sm shadow-black/5 flex-row justify-between items-center ${isLoading ? "opacity-50" : ""}`}
+        activeOpacity={0.7}
+        className={`bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 h-12 shadow-sm shadow-black/[0.02] flex-row justify-between items-center ${isLoading ? "opacity-50" : ""}`}
       >
         <Text
-          className={`text-sm font-medium ${value ? "text-gray-900" : "text-gray-400"}`}
+          numberOfLines={1}
+          className={`text-sm font-semibold flex-1 mr-2 ${value ? "text-gray-900" : "text-gray-400"}`}
         >
           {isLoading ? "Loading..." : value || `Select ${label}`}
         </Text>
         <View className="flex-row items-center">
           {isLoading && (
-            <ActivityIndicator size="small" color="#A855F7" className="mr-2" />
+            <ActivityIndicator size="small" color="#6366F1" className="mr-2" />
           )}
           <Ionicons
             name={open ? "chevron-up" : "chevron-down"}
-            size={16}
+            size={14}
             color="#9CA3AF"
           />
         </View>
       </TouchableOpacity>
       {open && options?.length > 0 && (
-        <View className="mt-2 bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-xl shadow-black/5 max-h-64">
-          <ScrollView nestedScrollEnabled>
-            {options.map((opt: any) => (
+        <View className="mt-2 bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-2xl shadow-black/10 max-h-64 z-50">
+          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+            {options.map((opt: any, index: number) => (
               <TouchableOpacity
-                key={opt.id || opt._id || opt.value}
+                key={opt.id || opt._id || opt.value || index}
                 onPress={() => {
                   onSelect(opt);
                   setOpen(false);
                 }}
-                className="px-4 py-3 border-b border-gray-50 active:bg-gray-50"
+                className="px-4 py-3.5 border-b border-gray-50 active:bg-indigo-50/30"
               >
-                <Text className="text-sm text-gray-700">
-                  {opt.name || opt.label}
+                <Text className="text-sm text-gray-700 font-medium">
+                  {typeof opt === "string" ? opt : opt.name || opt.label || String(opt)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -76,7 +80,7 @@ const SelectRow = ({
       )}
       {open && (!options || options.length === 0) && (
         <View className="mt-2 bg-gray-50 border border-gray-100 rounded-2xl p-4">
-          <Text className="text-gray-400 text-sm text-center italic">
+          <Text className="text-gray-400 text-xs text-center italic font-medium">
             No options available
           </Text>
         </View>

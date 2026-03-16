@@ -3,7 +3,7 @@ import { post } from "@/src/services/api";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -28,6 +28,48 @@ import ImagePreviewCard from "./components/ImagePreviewCard";
 import PostAdSkeleton from "./components/PostAdSkeleton";
 import SelectRow from "./components/SelectRow";
 import SuccessModal from "./components/SuccessModal";
+
+/* -------------------------------------------------------------------------- */
+/*                              PURE HELPERS                                  */
+/* -------------------------------------------------------------------------- */
+
+/** Builds the specs payload combining data.specs + questionAnswers, tagged with metadata labels. */
+const buildSpecsPayload = (
+  specs: Record<string, any> | undefined,
+  questionAnswers: Record<string, any>,
+  specMetadata: Record<string, any>,
+  questions: any[],
+  normalizeFieldKey: (s: string) => string,
+): Record<string, { value: any; label: string }> => {
+  const formattedSpecs: Record<string, { value: any; label: string }> = {};
+
+  if (specs) {
+    Object.entries(specs).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") {
+        formattedSpecs[k] = { value: v, label: specMetadata[k]?.name || k };
+      }
+    });
+  }
+
+  Object.entries(questionAnswers).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") {
+      const meta = specMetadata[k];
+      const q = questions.find((q) => {
+        const qKey =
+          q.key ||
+          q.slug ||
+          normalizeFieldKey(q.field || q.label || "question");
+        return qKey === k;
+      });
+      formattedSpecs[k] = {
+        value: v,
+        label: meta?.name || q?.label || q?.field || k,
+      };
+    }
+  });
+
+  return formattedSpecs;
+};
 
 /* -------------------------------------------------------------------------- */
 /*                           MAIN SCREEN COMPONENT                            */
@@ -66,6 +108,7 @@ const PostAdDetails = () => {
     setData,
     questions,
     specMetadata,
+    imageKeys,
     fetchPreview,
     normalizeFieldKey,
   } = usePostAdAI();
@@ -128,6 +171,101 @@ const PostAdDetails = () => {
       (v) => v !== null && v !== "" && v !== undefined,
     );
   }, [data.specs]);
+
+  /**
+   * Computes the spec items and groups them into rows for the 2‑column grid.
+   * Binary (Yes/No) items always get their own full-width row.
+   * Moved out of the render block into a useMemo to avoid heavy re-computation on every render.
+   */
+  const specsGridGroups = useMemo(() => {
+    const items: any[] = [];
+
+    // Collect spec items
+    if (data.specs) {
+      Object.entries(data.specs as Record<string, any>).forEach(([key, val]) => {
+        const strVal = String(val ?? "").trim();
+        const lowerVal = strVal.toLowerCase();
+        if (!strVal || lowerVal === "null" || lowerVal === "undefined") return;
+
+        const meta = specMetadata[key];
+        const dataType = meta?.dataType;
+
+        const rawMetaOptions = Array.isArray(meta?.options) ? meta.options : [];
+        const options = rawMetaOptions
+          .filter((opt: any) => opt != null)
+          .map((opt: any) => {
+            if (typeof opt === "string") return { label: opt, value: opt };
+            return {
+              label: opt.name || opt.label || String(opt),
+              value: opt.id || opt._id || opt.value || opt.name || opt.label || String(opt),
+            };
+          });
+
+        if (dataType === "boolean" && options.length === 0) {
+          options.push({ label: "Yes", value: "Yes" }, { label: "No", value: "No" });
+        }
+
+        const isBinary =
+          dataType === "boolean" ||
+          (options.length === 2 &&
+            options.some((o: any) =>
+              ["yes", "no", "true", "false"].includes(
+                String(o.label || o.value).toLowerCase(),
+              ),
+            ));
+
+        items.push({
+          key,
+          val,
+          meta,
+          options,
+          isBinary,
+          dataType,
+          label: meta?.name || meta?.label || key.replace(/_/g, " "),
+          type: "spec",
+        });
+      });
+    }
+
+    // Collect division item
+    if (data.division) {
+      items.push({
+        key: "division",
+        label: "Division / Type",
+        val: data.division,
+        type: "division",
+        isBinary: false,
+        options: divisions.map((d) => ({
+          label: d.name || d.label,
+          value: d.id || d._id || d.value,
+        })),
+      });
+    }
+
+    // Group into rows: binary items → full-width row; others → pair into 2-col rows
+    const groups: any[][] = [];
+    let currentGroup: any[] = [];
+
+    items.forEach((item) => {
+      if (item.isBinary) {
+        if (currentGroup.length > 0) {
+          groups.push(currentGroup);
+          currentGroup = [];
+        }
+        groups.push([item]);
+      } else {
+        currentGroup.push(item);
+        if (currentGroup.length === 2) {
+          groups.push(currentGroup);
+          currentGroup = [];
+        }
+      }
+    });
+    if (currentGroup.length > 0) groups.push(currentGroup);
+
+    return groups;
+  }, [data.specs, data.division, specMetadata, divisions]);
+
   // Auto-map string division to ID if possible
   useEffect(() => {
     if (
@@ -150,6 +288,12 @@ const PostAdDetails = () => {
       }
     }
   }, [divisions, data.division, data.divisionId]);
+
+  /* --- IMAGE HELPERS --- */
+  // Derived image list: latest data.images, falling back to initialImages from params
+  const currentImages: string[] = (data.images?.length ?? 0) > 0
+    ? (data.images as string[])
+    : (initialImages || []);
 
   /* --- SUBMISSION LOGIC --- */
   const handleSubmit = async () => {
@@ -185,32 +329,23 @@ const PostAdDetails = () => {
       const rawPrice = Number(data.price);
       const normalizedPrice = isNaN(rawPrice) ? 0 : rawPrice;
 
-      const formattedSpecs: any = {};
+      // Use the extracted helper — no inline business logic in the component
+      const formattedSpecs = buildSpecsPayload(
+        data.specs,
+        questionAnswers,
+        specMetadata,
+        questions,
+        normalizeFieldKey,
+      );
 
-      if (data.specs) {
-        Object.entries(data.specs).forEach(([k, v]) => {
-          if (v !== undefined && v !== null && v !== "") {
-            formattedSpecs[k] = { value: v, label: specMetadata[k]?.name || k };
-          }
-        });
-      }
-
-      Object.entries(questionAnswers).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && v !== "") {
-          const meta = specMetadata[k];
-          const q = questions.find((q) => {
-            const qKey =
-              q.key ||
-              q.slug ||
-              normalizeFieldKey(q.field || q.label || "question");
-            return qKey === k;
-          });
-          formattedSpecs[k] = {
-            value: v,
-            label: meta?.name || q?.label || q?.field || k,
-          };
-        }
-      });
+      // Prefer server-side imageKeys (from upload in hook) over raw local URIs.
+      // Fall back to data.images then initialImages for robustness.
+      const submissionImages =
+        imageKeys.length > 0
+          ? imageKeys
+          : (data.images?.length ?? 0) > 0
+            ? data.images
+            : initialImages;
 
       const payload = {
         ...data,
@@ -229,7 +364,7 @@ const PostAdDetails = () => {
           type: "Point",
           coordinates: [coordinates.lon, coordinates.lat],
         },
-        images: (data.images?.length ?? 0) > 0 ? data.images : initialImages,
+        images: submissionImages,
       };
 
       const res = await post(PostAdApi.createProduct, payload);
@@ -273,26 +408,80 @@ const PostAdDetails = () => {
       edges={["top"]}
     >
       <LinearGradient
-        colors={["#f7e2fbff", "#d8ecf9ff", "#d7d1f3ff"]}
+        colors={["#FFFFFF", "#F3F0FF", "#E9E0FF"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ flex: 1 }}
       >
         {/* Header */}
-        <View className="px-5 py-4 flex-row items-center border-b border-white/50 bg-white/50 backdrop-blur-md">
+        <View className="px-5 py-4 flex-row items-center justify-between border-b border-gray-100 bg-white">
+          <View className="flex-row items-center flex-1 pr-4">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="w-10 h-10 items-center justify-center bg-white border border-gray-200 rounded-full mr-4"
+            >
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color="#000"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setLocationPickerVisible(true)}
+              className="flex-1 justify-center"
+            >
+              <Text
+                style={{
+                  fontFamily: "DM Serif Display",
+                  fontSize: 15,
+                  fontWeight: "400",
+                  color: "#333333",
+                  lineHeight: 20,
+                  marginBottom: 2,
+                }}
+              >
+                Ad Details
+              </Text>
+              <View className="flex-row items-center">
+                {place ? (
+                  <Text
+                    className="text-[14px] text-gray-500 font-medium"
+                    numberOfLines={1}
+                    style={{ maxWidth: 180 }}
+                  >
+                    {place}
+                  </Text>
+                ) : (
+                  <Text className="text-[14px] text-gray-400 font-medium">
+                    Select location
+                  </Text>
+                )}
+                <Ionicons
+                  name="chevron-down"
+                  size={14}
+                  color="#6366F1"
+                  style={{ marginLeft: 4 }}
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-10 h-10 items-center justify-center bg-gray-50 rounded-full"
+            onPress={handleSubmit}
+            disabled={clicked || isFormLoading || !data.title}
+            className={`px-6 py-2.5 rounded-[24px] ${clicked || isFormLoading || !data.title
+                ? "bg-gray-100"
+                : "bg-[#1A1A1A]"
+              }`}
           >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color="#000"
-            />
+            {clicked ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text className={`font-bold text-[15px] ${clicked || isFormLoading || !data.title ? "text-gray-400" : "text-white"}`}>
+                Post
+              </Text>
+            )}
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-gray-900 flex-1 text-center mr-10">
-            Post Ad Details
-          </Text>
         </View>
 
         <ScrollView
@@ -300,21 +489,25 @@ const PostAdDetails = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}
         >
+          {/* Image Grid — managed by ImagePreviewCard */}
           <ImagePreviewCard
-            isLoading={generationStep === GENERATION_STEPS.PREVIEW}
-            imageUri={initialImages[0]}
-            categoryName={categoryName}
-            subcategoryName={subcategoryName}
-            title={data.title}
-            description={data.enhancedDescription}
+            images={currentImages}
+            initialImages={initialImages}
+            onChange={(newImages) =>
+              setData((prev: any) => ({ ...prev, images: newImages }))
+            }
           />
 
-          <View className="bg-[#EDEDED] rounded-[32px] p-6 mb-4">
+          {/* Basic Details Section */}
+          <View className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 mb-6">
             <View className="flex-row justify-between items-center mb-6">
-              <AISuggestedTag />
-              <Text className="text-xl font-bold text-gray-900">
+              <Text 
+                style={{ fontFamily: "DM Serif Display" }}
+                className="text-xl text-gray-900"
+              >
                 Basic Details
               </Text>
+              <AISuggestedTag />
             </View>
             {generationStep < GENERATION_STEPS.BASIC_FORM ? (
               <>
@@ -331,52 +524,59 @@ const PostAdDetails = () => {
                     setData((prev) => ({ ...prev, title: val }))
                   }
                 />
-                <SelectRow
-                  label="Category"
-                  value={categoryName}
-                  options={categories}
-                  onSelect={(opt: any) => {
-                    const catId = opt.id || opt._id || opt.value;
-                    setData((prev) => ({
-                      ...prev,
-                      categoryId: catId,
-                      category: opt,
-                      subcategoryId: undefined,
-                      subcategory: undefined,
-                    }));
-                  }}
-                />
-                <SelectRow
-                  label="Subcategory"
-                  value={subcategoryName}
-                  options={subcategories}
-                  isLoading={isLoadingSubcategories}
-                  onSelect={(opt: any) => {
-                    setData((prev) => ({
-                      ...prev,
-                      subcategoryId: opt.id || opt._id,
-                      subcategory: opt,
-                      divisionId: undefined,
-                      division: undefined,
-                    }));
-                  }}
-                />
+                <View className="flex-row justify-between w-full">
+                  <SelectRow
+                    label="Category"
+                    value={categoryName}
+                    options={categories}
+                    containerStyle={{ width: "48%" }}
+                    onSelect={(opt: any) => {
+                      const catId = opt.id || opt._id || opt.value;
+                      setData((prev) => ({
+                        ...prev,
+                        categoryId: catId,
+                        category: opt,
+                        subcategoryId: undefined,
+                        subcategory: undefined,
+                      }));
+                    }}
+                  />
+                  <SelectRow
+                    label="Sub Category"
+                    value={subcategoryName}
+                    options={subcategories}
+                    isLoading={isLoadingSubcategories}
+                    containerStyle={{ width: "48%" }}
+                    onSelect={(opt: any) => {
+                      setData((prev) => ({
+                        ...prev,
+                        subcategoryId: opt.id || opt._id,
+                        subcategory: opt,
+                        divisionId: undefined,
+                        division: undefined,
+                      }));
+                    }}
+                  />
+                </View>
               </>
             )}
           </View>
 
-          {/* Specs */}
+          {/* Specifications Section */}
           {generationStep >= GENERATION_STEPS.BASIC_FORM &&
             (generationStep < GENERATION_STEPS.SPECS_FORM ||
               hasValidSpecs ||
               divisions.length > 0 ||
               !!data.division) && (
-              <View className="bg-[#EDEDED] rounded-[32px] p-6 mb-4">
+              <View className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 mb-6">
                 <View className="flex-row justify-between items-center mb-6">
-                  <AISuggestedTag />
-                  <Text className="text-xl font-bold text-gray-900">
+                  <Text 
+                    style={{ fontFamily: "DM Serif Display" }}
+                    className="text-xl text-gray-900"
+                  >
                     Specifications
                   </Text>
+                  <AISuggestedTag />
                 </View>
                 {generationStep < GENERATION_STEPS.SPECS_FORM ? (
                   <>
@@ -385,223 +585,175 @@ const PostAdDetails = () => {
                   </>
                 ) : (
                   <>
-                    {data.division && divisions.length === 0 && (
-                      <View className="mb-4">
-                        <Text className="text-black font-bold text-sm mb-1.5 ml-1">
-                          Division
-                        </Text>
-                        <View className="bg-white rounded-2xl px-4 py-3.5 shadow-sm shadow-black/5">
-                          <Text className="text-gray-900 text-sm font-medium">
-                            {typeof data.division === "string"
-                              ? data.division
-                              : data.division.name ||
-                                data.division.label ||
-                                "Selected"}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
+                    {/* Specs Grid — computed via useMemo, not recalculated every render */}
+                    <View>
+                      {specsGridGroups.map((group, gIdx) => {
+                        // Binary items always occupy a full-width solo row
+                        if (group.length === 1 && group[0].isBinary) {
+                          const item = group[0];
+                          const itemValId =
+                            item.val && typeof item.val === "object"
+                              ? item.val.id || item.val._id || item.val.value
+                              : item.val;
 
-                    {data.specs &&
-                      Object.entries(data.specs as Record<string, any>)
-                        .filter(([_, val]) => {
-                          const strVal = String(val ?? "")
-                            .trim()
-                            .toLowerCase();
-                          return (
-                            strVal &&
-                            strVal !== "null" &&
-                            strVal !== "undefined"
-                          );
-                        })
-                        .map(([key, val]) => {
-                          const meta = specMetadata[key];
-                          const label =
-                            meta?.name || meta?.label || key.replace(/_/g, " ");
-                          const dataType = meta?.dataType;
-
-                          let options = (meta?.options || []).map(
-                            (opt: any) => ({
-                              label:
-                                typeof opt === "string"
-                                  ? opt
-                                  : opt.name || opt.label,
-                              value:
-                                typeof opt === "string"
-                                  ? opt
-                                  : opt.id ||
-                                    opt._id ||
-                                    opt.value ||
-                                    opt.name ||
-                                    opt.label,
-                            }),
-                          );
-
-                          // Fallback for boolean if no options provided
-                          if (dataType === "boolean" && options.length === 0) {
-                            options = [
-                              { label: "Yes", value: "Yes" },
-                              { label: "No", value: "No" },
-                            ];
-                          }
-
-                          const isBinary =
-                            dataType === "boolean" ||
-                            (options.length === 2 &&
-                              options.some((o: any) =>
-                                ["yes", "no", "true", "false"].includes(
-                                  String(o.label || o.value).toLowerCase(),
-                                ),
-                              ));
-
-                          if (isBinary) {
-                            const isSelected = (optValue: string) => {
-                              const currentVal = String(val).toLowerCase();
-                              const targetVal = String(optValue).toLowerCase();
-                              return (
-                                currentVal === targetVal ||
-                                (currentVal === "true" &&
-                                  targetVal === "yes") ||
-                                (currentVal === "false" && targetVal === "no")
-                              );
-                            };
-
+                          const isSelected = (optValue: string) => {
+                            const cVal = String(itemValId ?? "").toLowerCase();
+                            const tVal = String(optValue).toLowerCase();
                             return (
-                              <View
-                                key={key}
-                                className="mb-6"
-                              >
-                                <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
-                                  {label}
-                                </Text>
-                                <View
-                                  className="flex-row items-center flex-wrap"
-                                  style={{ gap: 24 }}
-                                >
-                                  {options.map((opt: any) => (
-                                    <TouchableOpacity
-                                      key={opt.value}
-                                      onPress={() => {
+                              cVal === tVal ||
+                              (cVal === "true" && tVal === "yes") ||
+                              (cVal === "false" && tVal === "no")
+                            );
+                          };
+
+                          return (
+                            <View key={item.key} className="mb-5 w-full">
+                              <Text className="text-gray-600 font-bold text-[13px] mb-2 ml-1">
+                                {item.label}
+                              </Text>
+                              <View className="flex-row items-center bg-gray-50/50 border border-gray-100 rounded-[18px] p-1.5">
+                                {(item.options || []).map((opt: any) => (
+                                  <TouchableOpacity
+                                    key={opt.value}
+                                    onPress={() => {
+                                      if (item.type === "division") {
+                                        const fullOpt = Array.isArray(divisions)
+                                          ? divisions.find((d) => (d.id || d._id || d.value) === opt.value)
+                                          : null;
                                         setData((prev) => ({
                                           ...prev,
-                                          specs: {
-                                            ...prev.specs,
-                                            [key]: opt.value,
-                                          },
+                                          division: fullOpt || opt.value,
+                                          divisionId: opt.value,
                                         }));
-                                      }}
-                                      className="flex-row items-center py-1 pr-4"
-                                    >
-                                      <View
-                                        style={{
-                                          width: 20,
-                                          height: 20,
-                                          borderRadius: 10,
-                                          borderWidth: 2,
-                                          borderColor: isSelected(opt.value)
-                                            ? "#000"
-                                            : "#D1D5DB",
-                                          justifyContent: "center",
-                                          alignItems: "center",
-                                          marginRight: 10,
-                                          backgroundColor: isSelected(opt.value) ? "#FFFFFF" : "#F3F4F6"
-                                        }}
-                                      >
-                                        {isSelected(opt.value) && (
-                                          <View
-                                            style={{
-                                              width: 10,
-                                              height: 10,
-                                              borderRadius: 5,
-                                              backgroundColor: "#4C6FFF",
-                                            }}
-                                          />
-                                        )}
-                                      </View>
-                                      <Text
-                                        className={`text-sm ${
-                                          isSelected(opt.value)
-                                            ? "text-black font-bold"
-                                            : "text-gray-600 font-medium"
-                                        }`}
-                                      >
-                                        {opt.label}
-                                      </Text>
-                                    </TouchableOpacity>
-                                  ))}
-                                </View>
+                                      } else {
+                                        setData((prev) => ({
+                                          ...prev,
+                                          specs: { ...prev.specs, [item.key]: opt.value },
+                                        }));
+                                      }
+                                    }}
+                                    className={`flex-1 flex-row items-center justify-center py-2 rounded-[14px] ${isSelected(opt.value) ? "bg-white shadow-sm" : ""}`}
+                                  >
+                                    <Text className={`text-sm ${isSelected(opt.value) ? "text-black font-bold" : "text-gray-400 font-medium"}`}>
+                                      {opt.label}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))}
                               </View>
-                            );
-                          }
-
-                          if (dataType === "select") {
-                            return (
-                              <SelectRow
-                                key={key}
-                                label={label}
-                                value={
-                                  options.find((o: any) => o.value === val)
-                                    ?.label || val
-                                }
-                                options={options}
-                                onSelect={(opt: any) => {
-                                  setData((prev) => ({
-                                    ...prev,
-                                    specs: {
-                                      ...prev.specs,
-                                      [key]:
-                                        opt.id || opt._id || opt.value || opt,
-                                    },
-                                  }));
-                                }}
-                              />
-                            );
-                          }
-
-                          return (
-                            <EditableRow
-                              key={key}
-                              label={label}
-                              value={val}
-                              onChange={(text: string) =>
-                                setData((prev) => ({
-                                  ...prev,
-                                  specs: { ...prev.specs, [key]: text },
-                                }))
-                              }
-                            />
+                            </View>
                           );
-                        })}
+                        }
 
-                    {(!data.division || divisions.length > 0) && (
-                      <SelectRow
-                        label="Division / Type"
-                        value={data.division?.name || data.division?.label}
-                        options={divisions}
-                        isLoading={isLoadingDivisions}
-                        onSelect={(opt: any) => {
-                          setData((prev) => ({
-                            ...prev,
-                            divisionId: opt.id || opt._id || opt.value,
-                            division: opt,
-                          }));
-                        }}
-                      />
-                    )}
+                        // Non-binary: render as a 2-column flex-row
+                        return (
+                          <View key={gIdx} className="flex-row justify-between w-full">
+                            {group.map((item) => {
+                              const width = group.length === 1 ? "100%" : "48%";
+                              const isSelect =
+                                item.dataType === "select" || item.type === "division";
+                              const itemValId =
+                                item.val && typeof item.val === "object"
+                                  ? item.val.id || item.val._id || item.val.value
+                                  : item.val;
+
+                              const hasValue =
+                                !!itemValId &&
+                                String(itemValId).toLowerCase() !== "null";
+
+                              // Fixed: normalize division object display to name/label string
+                              const displayValue = isSelect
+                                ? item.options.find((o: any) => o.value === itemValId)?.label ||
+                                  (typeof item.val === "object"
+                                    ? item.val?.name || item.val?.label || ""
+                                    : item.val)
+                                : item.val;
+
+                              if (isSelect && !hasValue && item.type === "division" && divisions.length > 0) {
+                                return (
+                                  <SelectRow
+                                    key={item.key}
+                                    label={item.label}
+                                    value={displayValue || "Select"}
+                                    options={divisions}
+                                    isLoading={isLoadingDivisions}
+                                    containerStyle={{ width }}
+                                    onSelect={(opt: any) => {
+                                      setData((prev) => ({
+                                        ...prev,
+                                        divisionId: opt.id || opt._id || opt.value,
+                                        division: opt,
+                                      }));
+                                    }}
+                                  />
+                                );
+                              }
+
+                              if (isSelect && !hasValue && item.type === "spec") {
+                                return (
+                                  <SelectRow
+                                    key={item.key}
+                                    label={item.label}
+                                    value={displayValue || "Select"}
+                                    options={item.options || []}
+                                    containerStyle={{ width }}
+                                    onSelect={(opt: any) => {
+                                      setData((prev) => ({
+                                        ...prev,
+                                        specs: {
+                                          ...prev.specs,
+                                          [item.key]: opt.id || opt._id || opt.value || opt,
+                                        },
+                                      }));
+                                    }}
+                                  />
+                                );
+                              }
+
+                              // Default: editable text field
+                              return (
+                                <EditableRow
+                                  key={item.key}
+                                  label={item.label}
+                                  value={displayValue}
+                                  containerStyle={{ width }}
+                                  onChange={(text: string) => {
+                                    if (item.type === "division") {
+                                      setData((prev) => ({
+                                        ...prev,
+                                        division: text,
+                                        divisionId: text,
+                                      }));
+                                    } else {
+                                      setData((prev) => ({
+                                        ...prev,
+                                        specs: { ...prev.specs, [item.key]: text },
+                                      }));
+                                    }
+                                  }}
+                                />
+                              );
+                            })}
+                          </View>
+                        );
+                      })}
+                    </View>
                   </>
                 )}
               </View>
             )}
 
-          {/* Questions */}
+          {/* Helpful Details Section */}
           {(generationStep < GENERATION_STEPS.DONE || questions.length > 0) &&
             generationStep >= GENERATION_STEPS.SPECS_FORM && (
-              <View className="bg-[#EDEDED] rounded-[32px] p-6 mb-4">
+              <View className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 mb-6">
                 <View className="flex-row justify-between items-center mb-6">
-                  <AISuggestedTag />
-                  <Text className="text-xl font-bold text-gray-900">
+                  <Text 
+                    style={{ fontFamily: "DM Serif Display" }}
+                    className="text-xl text-gray-900"
+                  >
                     Helpful Details
                   </Text>
+                  <AISuggestedTag />
                 </View>
                 {generationStep < GENERATION_STEPS.DONE ? (
                   <>
@@ -624,7 +776,8 @@ const PostAdDetails = () => {
                       options = ["Yes", "No"];
                     } else {
                       const rawOptions = q.options || meta?.options || [];
-                      options = rawOptions
+                      const optionsArray = Array.isArray(rawOptions) ? rawOptions : [];
+                      options = optionsArray
                         .map((opt: any) =>
                           typeof opt === "string" ? opt : opt.name || opt.label,
                         )
@@ -639,10 +792,11 @@ const PostAdDetails = () => {
 
                     const isSelected = (opt: string) => {
                       const current = questionAnswers[fieldKey];
+                      const metaOptions = Array.isArray(meta?.options) ? meta.options : [];
                       return (
                         current === opt ||
-                        meta?.options?.find(
-                          (o: any) => (o.id || o._id) === current,
+                        metaOptions.find(
+                          (o: any) => o && (o.id || o._id) === current,
                         )?.name === opt
                       );
                     };
@@ -653,9 +807,9 @@ const PostAdDetails = () => {
                         if (isSelected(opt)) {
                           delete newState[fieldKey];
                         } else {
-                          // Try to find the original ID if it's a select spec
-                          const originalOpt = meta?.options?.find(
-                            (o: any) => o.name === opt || o.label === opt,
+                          const metaOptions = Array.isArray(meta?.options) ? meta.options : [];
+                          const originalOpt = metaOptions.find(
+                            (o: any) => o && (o.name === opt || o.label === opt),
                           );
                           newState[fieldKey] = originalOpt
                             ? originalOpt.id || originalOpt._id
@@ -665,17 +819,13 @@ const PostAdDetails = () => {
                       });
                     };
 
-                    if (options.length > 0 && dataType !== "boolean") {
+                    if (options.length > 0 && (dataType === "select" || (options.length > 3))) {
                       return (
                         <SelectRow
                           key={idx}
                           label={questionLabel}
                           value={
-                            options.find(
-                              (o: any) =>
-                                o.value === questionAnswers[fieldKey] ||
-                                o.label === questionAnswers[fieldKey],
-                            )?.label ||
+                            options.find((opt: string) => isSelected(opt)) ||
                             questionAnswers[fieldKey] ||
                             "Select Option"
                           }
@@ -695,35 +845,20 @@ const PostAdDetails = () => {
                         key={idx}
                         className="mb-6"
                       >
-                        <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
+                        <Text className="text-gray-600 font-bold text-[13px] mb-2 ml-1">
                           {questionLabel}
                         </Text>
 
                         {options.length > 0 ? (
-                          <View className="flex-row flex-wrap gap-2">
+                          <View className="flex-row items-center bg-gray-50/50 border border-gray-100 rounded-[18px] p-1.5">
                             {options.map((opt: string) => (
                               <TouchableOpacity
                                 key={opt}
                                 onPress={() => handleSelect(opt)}
-                                style={{
-                                  paddingHorizontal: 16,
-                                  paddingVertical: 10,
-                                  borderRadius: 16,
-                                  borderWidth: 1.5,
-                                  borderColor: isSelected(opt)
-                                    ? "#000"
-                                    : "#E5E7EB",
-                                  backgroundColor: isSelected(opt)
-                                    ? "#000"
-                                    : "#fff",
-                                }}
+                                className={`flex-1 flex-row items-center justify-center py-2.5 rounded-[14px] ${isSelected(opt) ? "bg-white shadow-sm" : ""}`}
                               >
                                 <Text
-                                  style={{
-                                    fontSize: 12,
-                                    fontWeight: isSelected(opt) ? "700" : "500",
-                                    color: isSelected(opt) ? "#fff" : "#4B5563",
-                                  }}
+                                  className={`text-sm ${isSelected(opt) ? "text-black font-bold" : "text-gray-400 font-medium"}`}
                                 >
                                   {opt}
                                 </Text>
@@ -731,10 +866,15 @@ const PostAdDetails = () => {
                             ))}
                           </View>
                         ) : (
-                          <View className="bg-gray-50 border border-gray-200 rounded-2xl px-4 h-14 justify-center shadow-inner shadow-gray-100/50">
+                          <View className="bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 h-12 justify-center shadow-sm shadow-black/[0.02]">
                             <TextInput
                               value={questionAnswers[fieldKey] || ""}
-                              onChangeText={(text) => handleSelect(text)}
+                              onChangeText={(text) =>
+                                setQuestionAnswers((prev: any) => ({
+                                  ...prev,
+                                  [fieldKey]: text,
+                                }))
+                              }
                               placeholder="Type your answer..."
                               placeholderTextColor="#9CA3AF"
                               keyboardType={
@@ -743,7 +883,8 @@ const PostAdDetails = () => {
                                   ? "numeric"
                                   : "default"
                               }
-                              className="text-gray-900 text-sm font-medium w-full h-full"
+                              className="text-gray-900 text-sm font-semibold w-full h-full"
+                              style={{ paddingVertical: 0 }}
                             />
                           </View>
                         )}
@@ -757,28 +898,36 @@ const PostAdDetails = () => {
           {/* Final Sections */}
           {generationStep === GENERATION_STEPS.DONE && (
             <>
-              <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
-                <Text className="text-xl font-bold text-gray-900 mb-5">
+              <View className="h-[1px] bg-gray-200 w-full my-6" />
+              <View className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 mb-6">
+                <Text 
+                  style={{ fontFamily: "DM Serif Display" }}
+                  className="text-xl text-gray-900 mb-6"
+                >
                   Set Price
                 </Text>
-                <View className="bg-gray-50 border border-gray-100 rounded-[6px] px-4 flex-row items-center">
-                  <Text className="text-gray-400 font-bold mr-2">AED</Text>
+                <View className="bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 flex-row items-center h-16 shadow-sm shadow-black/[0.02]">
+                  <View className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 mr-3 shadow-sm">
+                    <Text className="text-gray-900 font-bold text-xs">AED</Text>
+                  </View>
                   <TextInput
-                    placeholder="0"
+                    placeholder="0.00"
                     keyboardType="numeric"
                     value={data.price?.toString()}
                     onChangeText={(v) =>
                       setData((prev) => ({ ...prev, price: v }))
                     }
                     className="flex-1 text-2xl font-black text-gray-900"
+                    placeholderTextColor="#D1D5DB"
                   />
                 </View>
                 <TouchableOpacity
                   onPress={() => setIsNegotiable((prev) => !prev)}
-                  className="flex-row items-center mt-6 ml-2"
+                  className="flex-row items-center mt-6 ml-1"
+                  activeOpacity={0.7}
                 >
                   <View
-                    className={`w-6 h-6 rounded-lg border-2 items-center justify-center mr-3 ${isNegotiable ? "bg-green-500 border-green-500" : "border-gray-200"}`}
+                    className={`w-6 h-6 rounded-lg border-2 items-center justify-center mr-3 ${isNegotiable ? "bg-indigo-600 border-indigo-600" : "bg-gray-50 border-gray-200"}`}
                   >
                     {isNegotiable && (
                       <Ionicons
@@ -788,59 +937,34 @@ const PostAdDetails = () => {
                       />
                     )}
                   </View>
-                  <Text className="text-gray-700 font-bold text-sm">
+                  <Text className={`text-sm font-semibold ${isNegotiable ? "text-indigo-600" : "text-gray-500"}`}>
                     Allow Price Negotiation
                   </Text>
                 </TouchableOpacity>
               </View>
 
-              <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
-                <Text className="text-xl font-bold text-gray-900 mb-5">
-                  Location
-                </Text>
-                <View className="mb-4">
-                  <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">
-                    Current Location
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setLocationPickerVisible(true)}
-                    className="bg-white border border-gray-100 rounded-2xl px-4 h-12 flex-row justify-between items-center shadow-sm shadow-gray-100"
-                  >
-                    <View className="flex-row items-center flex-1 mr-2">
-                      <Ionicons
-                        name="location-sharp"
-                        size={18}
-                        color="#A855F7"
-                      />
-                      <Text
-                        numberOfLines={1}
-                        className="text-gray-900 text-sm font-medium ml-2 flex-1"
-                      >
-                        {place || "Select Location"}
-                      </Text>
-                    </View>
-                    <Text className="text-purple-600 text-xs font-bold">
-                      Change
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
 
-              <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-10">
-                <AISuggestedTag />
-                <Text className="text-xl font-bold text-gray-900 mb-5">
-                  Final Description
-                </Text>
-                <View className="bg-gray-50 border border-gray-100 rounded-3xl p-5">
+              <View className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 mb-10">
+                <View className="flex-row justify-between items-center mb-6">
+                  <Text 
+                    style={{ fontFamily: "DM Serif Display" }}
+                    className="text-xl text-gray-900"
+                  >
+                    Final Description
+                  </Text>
+                  <AISuggestedTag />
+                </View>
+                <View className="bg-gray-50/50 border border-gray-100 rounded-[24px] p-5 shadow-sm shadow-black/[0.02]">
                   <TextInput
                     multiline
                     value={data.enhancedDescription}
                     onChangeText={(v) =>
                       setData((prev) => ({ ...prev, enhancedDescription: v }))
                     }
-                    className="text-sm text-gray-800 leading-5"
+                    className="text-sm text-gray-800 leading-5 font-medium"
                     textAlignVertical="top"
                     placeholder="Review the AI enhanced description..."
+                    style={{ minHeight: 120 }}
                   />
                 </View>
               </View>
@@ -848,17 +972,19 @@ const PostAdDetails = () => {
               <TouchableOpacity
                 onPress={handleSubmit}
                 disabled={clicked || isFormLoading || !data.title}
-                className={`rounded-2xl py-4 items-center justify-center flex-row shadow-sm ${clicked || isFormLoading || !data.title
-                    ? "bg-gray-100 border border-gray-200"
-                    : "bg-black shadow-lg shadow-purple-500/20"
-                  }`}
+                activeOpacity={0.8}
+                className={`mb-10 rounded-[24px] py-5 items-center justify-center flex-row shadow-xl ${
+                  clicked || isFormLoading || !data.title
+                    ? "bg-gray-100"
+                    : "bg-[#1A1A1A]"
+                }`}
               >
                 {clicked ? (
-                  <ActivityIndicator color="#A855F7" />
+                  <ActivityIndicator color="#fff" />
                 ) : (
                   <>
                     <View
-                      className={`mr-2 ${clicked || isFormLoading || !data.title ? "opacity-50" : ""}`}
+                      className={`mr-3 ${clicked || isFormLoading || !data.title ? "opacity-50" : ""}`}
                     >
                       <Ionicons
                         name="sparkles"
@@ -866,12 +992,12 @@ const PostAdDetails = () => {
                         color={
                           clicked || isFormLoading || !data.title
                             ? "#9CA3AF"
-                            : "#A855F7"
+                            : "#818CF8"
                         }
                       />
                     </View>
                     <Text
-                      className={`font-bold text-base ${clicked || isFormLoading || !data.title ? "text-gray-400" : "text-white"}`}
+                      className={`font-bold text-base tracking-tight ${clicked || isFormLoading || !data.title ? "text-gray-400" : "text-white"}`}
                     >
                       Post Ad Now
                     </Text>
