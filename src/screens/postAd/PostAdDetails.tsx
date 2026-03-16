@@ -282,7 +282,7 @@ const PostAdDetails = () => {
         <View className="px-5 py-4 flex-row items-center border-b border-white/50 bg-white/50 backdrop-blur-md">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-10 h-10 items-center justify-center bg-white rounded-full shadow-sm"
+            className="w-10 h-10 items-center justify-center bg-gray-50 rounded-full"
           >
             <Ionicons
               name="arrow-back"
@@ -290,8 +290,8 @@ const PostAdDetails = () => {
               color="#000"
             />
           </TouchableOpacity>
-          <Text className="text-xl font-black text-gray-900 flex-1 text-center mr-10">
-            Sell with AI
+          <Text className="text-xl font-bold text-gray-900 flex-1 text-center mr-10">
+            Post Ad Details
           </Text>
         </View>
 
@@ -309,12 +309,13 @@ const PostAdDetails = () => {
             description={data.enhancedDescription}
           />
 
-          {/* Basic Info */}
-          <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
-            <AISuggestedTag />
-            <Text className="text-xl font-bold text-gray-900 mb-5">
-              Basic Information
-            </Text>
+          <View className="bg-[#EDEDED] rounded-[32px] p-6 mb-4">
+            <View className="flex-row justify-between items-center mb-6">
+              <AISuggestedTag />
+              <Text className="text-xl font-bold text-gray-900">
+                Basic Details
+              </Text>
+            </View>
             {generationStep < GENERATION_STEPS.BASIC_FORM ? (
               <>
                 <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
@@ -370,11 +371,13 @@ const PostAdDetails = () => {
               hasValidSpecs ||
               divisions.length > 0 ||
               !!data.division) && (
-              <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
-                <AISuggestedTag />
-                <Text className="text-xl font-bold text-gray-900 mb-5">
-                  Specifications
-                </Text>
+              <View className="bg-[#EDEDED] rounded-[32px] p-6 mb-4">
+                <View className="flex-row justify-between items-center mb-6">
+                  <AISuggestedTag />
+                  <Text className="text-xl font-bold text-gray-900">
+                    Specifications
+                  </Text>
+                </View>
                 {generationStep < GENERATION_STEPS.SPECS_FORM ? (
                   <>
                     <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
@@ -384,10 +387,10 @@ const PostAdDetails = () => {
                   <>
                     {data.division && divisions.length === 0 && (
                       <View className="mb-4">
-                        <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1 capitalize">
+                        <Text className="text-black font-bold text-sm mb-1.5 ml-1">
                           Division
                         </Text>
-                        <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5">
+                        <View className="bg-white rounded-2xl px-4 py-3.5 shadow-sm shadow-black/5">
                           <Text className="text-gray-900 text-sm font-medium">
                             {typeof data.division === "string"
                               ? data.division
@@ -500,7 +503,8 @@ const PostAdDetails = () => {
                                             : "#D1D5DB",
                                           justifyContent: "center",
                                           alignItems: "center",
-                                          marginRight: 8,
+                                          marginRight: 10,
+                                          backgroundColor: isSelected(opt.value) ? "#FFFFFF" : "#F3F4F6"
                                         }}
                                       >
                                         {isSelected(opt.value) && (
@@ -509,7 +513,7 @@ const PostAdDetails = () => {
                                               width: 10,
                                               height: 10,
                                               borderRadius: 5,
-                                              backgroundColor: "#000",
+                                              backgroundColor: "#4C6FFF",
                                             }}
                                           />
                                         )}
@@ -592,11 +596,13 @@ const PostAdDetails = () => {
           {/* Questions */}
           {(generationStep < GENERATION_STEPS.DONE || questions.length > 0) &&
             generationStep >= GENERATION_STEPS.SPECS_FORM && (
-              <View className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mb-3">
-                <AISuggestedTag />
-                <Text className="text-xl font-bold text-gray-900 mb-5">
-                  Helpful Details
-                </Text>
+              <View className="bg-[#EDEDED] rounded-[32px] p-6 mb-4">
+                <View className="flex-row justify-between items-center mb-6">
+                  <AISuggestedTag />
+                  <Text className="text-xl font-bold text-gray-900">
+                    Helpful Details
+                  </Text>
+                </View>
                 {generationStep < GENERATION_STEPS.DONE ? (
                   <>
                     <PostAdSkeleton className="h-20 w-full rounded-xl mb-3" />
@@ -624,6 +630,12 @@ const PostAdDetails = () => {
                         )
                         .filter((o: any) => !!o && String(o).trim().length > 0);
                     }
+
+                    const questionLabel =
+                      q.question ||
+                      q.label ||
+                      q.field ||
+                      `About the ${meta?.name || fieldKey}`;
 
                     const isSelected = (opt: string) => {
                       const current = questionAnswers[fieldKey];
@@ -653,16 +665,38 @@ const PostAdDetails = () => {
                       });
                     };
 
+                    if (options.length > 0 && dataType !== "boolean") {
+                      return (
+                        <SelectRow
+                          key={idx}
+                          label={questionLabel}
+                          value={
+                            options.find(
+                              (o: any) =>
+                                o.value === questionAnswers[fieldKey] ||
+                                o.label === questionAnswers[fieldKey],
+                            )?.label ||
+                            questionAnswers[fieldKey] ||
+                            "Select Option"
+                          }
+                          options={options.map((opt) => ({
+                            label: opt,
+                            value: opt,
+                          }))}
+                          onSelect={(opt: any) =>
+                            handleSelect(opt.id || opt._id || opt.value || opt)
+                          }
+                        />
+                      );
+                    }
+
                     return (
                       <View
                         key={idx}
                         className="mb-6"
                       >
                         <Text className="text-gray-800 text-sm font-bold mb-3 ml-1 leading-5">
-                          {q.question ||
-                            q.label ||
-                            q.field ||
-                            `About the ${meta?.name || fieldKey}`}
+                          {questionLabel}
                         </Text>
 
                         {options.length > 0 ? (
@@ -700,12 +734,7 @@ const PostAdDetails = () => {
                           <View className="bg-gray-50 border border-gray-200 rounded-2xl px-4 h-14 justify-center shadow-inner shadow-gray-100/50">
                             <TextInput
                               value={questionAnswers[fieldKey] || ""}
-                              onChangeText={(text) =>
-                                setQuestionAnswers((prev: any) => ({
-                                  ...prev,
-                                  [fieldKey]: text,
-                                }))
-                              }
+                              onChangeText={(text) => handleSelect(text)}
                               placeholder="Type your answer..."
                               placeholderTextColor="#9CA3AF"
                               keyboardType={
@@ -819,11 +848,10 @@ const PostAdDetails = () => {
               <TouchableOpacity
                 onPress={handleSubmit}
                 disabled={clicked || isFormLoading || !data.title}
-                className={`rounded-2xl py-4 items-center justify-center flex-row shadow-sm ${
-                  clicked || isFormLoading || !data.title
+                className={`rounded-2xl py-4 items-center justify-center flex-row shadow-sm ${clicked || isFormLoading || !data.title
                     ? "bg-gray-100 border border-gray-200"
                     : "bg-black shadow-lg shadow-purple-500/20"
-                }`}
+                  }`}
               >
                 {clicked ? (
                   <ActivityIndicator color="#A855F7" />

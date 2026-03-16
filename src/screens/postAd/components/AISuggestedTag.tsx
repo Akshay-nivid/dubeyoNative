@@ -1,10 +1,14 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Text, View } from "react-native";
 
 const AISuggestedTag = () => (
-  <View className="flex-row items-center self-start px-2.5 py-1 rounded-full border border-purple-200 mb-3 bg-purple-50/50">
-    <Text className="text-yellow-500 mr-1.5 text-xs">✨</Text>
-    <Text className="text-purple-600 font-bold text-[10px] tracking-wider uppercase">
-      AI Suggested
+  <View 
+    className="flex-row items-center px-3 py-1.5 rounded-full"
+    style={{ backgroundColor: '#9EAFFE' }}
+  >
+    <Ionicons name="sparkles" size={12} color="white" className="mr-1.5" />
+    <Text className="text-white font-medium text-[10px]">
+      Ai generated Details
     </Text>
   </View>
 );

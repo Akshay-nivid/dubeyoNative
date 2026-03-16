@@ -27,7 +27,7 @@ const SelectRow = ({
 
   return (
     <View className="mb-4">
-      <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1.5 ml-1">
+      <Text className="text-black font-bold text-sm mb-1.5 ml-1">
         {label}
       </Text>
       <TouchableOpacity
@@ -36,7 +36,7 @@ const SelectRow = ({
           setOpen(!open);
         }}
         disabled={isLoading}
-        className={`bg-white border border-gray-100 rounded-2xl px-4 h-12 shadow-sm shadow-gray-100 flex-row justify-between items-center ${isLoading ? "opacity-50" : ""}`}
+        className={`bg-white rounded-2xl px-4 h-12 shadow-sm shadow-black/5 flex-row justify-between items-center ${isLoading ? "opacity-50" : ""}`}
       >
         <Text
           className={`text-sm font-medium ${value ? "text-gray-900" : "text-gray-400"}`}
