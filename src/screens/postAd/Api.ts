@@ -4,7 +4,7 @@ export const PostAdApi = {
   intermediatePreview: "/product/v1/intermediate/preview",
   finalPreview: "/product/v1/final/preview",
   profile: "/user/me",
-  createProduct: "/product/create",
+  createProduct: "/product/v1/create",
   Image: "/product/image/url",
   categories: "/category/all",
   subcategories: "/subcategory/all",

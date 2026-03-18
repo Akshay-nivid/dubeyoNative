@@ -17,8 +17,11 @@ const EditableRow = ({
   type = "default",
   containerStyle,
 }: EditableRowProps) => (
-  <View className="mb-5" style={containerStyle}>
-    <Text className="text-gray-500 font-bold text-[10px] uppercase tracking-wider mb-2 ml-1">
+  <View className="mb-4" style={containerStyle}>
+    <Text 
+      className="text-gray-900 font-bold text-[13px] mb-1.5 ml-1"
+      style={{ flexWrap: 'wrap' }}
+    >
       {label}
     </Text>
     <View 
