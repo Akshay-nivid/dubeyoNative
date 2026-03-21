@@ -5,10 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
-  Modal,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -17,269 +14,47 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
-// Hooks
 import { GENERATION_STEPS, usePostAdAI, normalizeFieldKey } from "../../hooks/usePostAdAI";
 import { usePostAdData } from "../../hooks/usePostAdData";
 import { useUserLocation } from "../../hooks/useUserLocation";
 
-// Components
 import { PostAdApi } from "./Api";
 import AISuggestedTag from "./components/AISuggestedTag";
+import { AmenitiesSection } from "./components/AmenitiesSection";
 import EditableRow from "./components/EditableRow";
 import ImagePreviewCard from "./components/ImagePreviewCard";
+import { InlinePicker } from "./components/InlinePicker";
+import { InlineToggle } from "./components/InlineToggle";
 import PostAdSkeleton from "./components/PostAdSkeleton";
 import SelectRow from "./components/SelectRow";
 import SuccessModal from "./components/SuccessModal";
 
-/* -------------------------------------------------------------------------- */
-/*  ROOT CAUSE NOTE:
- *
- *  react-native-css-interop intercepts every component that receives a
- *  `className` prop. During its "upgrade warning" check it calls
- *  Object.entries() on the React Navigation context — which throws
- *  "Couldn't find a navigation context" when the component is rendered
- *  inside a .map() callback that fires from an async state update
- *  (questions arriving from the AI API) before navigation is fully settled.
- *
- *  FIX: inside every .map() callback (questions.map, specsGridGroups.map,
- *  options.map) use plain `style={...}` props only — never `className`.
- *  Outside of .map() (static JSX) className is fine.
- *
- *  SelectRow is also banned inside .map() because it uses useNavigation()
- *  internally. Use InlinePicker (pure RN Modal, zero nav dep) instead.
- * -------------------------------------------------------------------------- */
-
-/* -------------------------------------------------------------------------- */
-/*                     SAFE INLINE PICKER (zero nav / className dep)          */
-/* -------------------------------------------------------------------------- */
-interface InlinePickerOption {
-  label: string;
-  value: string;
-}
-
-interface InlinePickerProps {
-  label: string;
-  value: string;
-  options: InlinePickerOption[];
-  containerStyle?: any;
-  isLoading?: boolean;
-  onSelect: (opt: InlinePickerOption) => void;
-}
-
-const InlinePicker: React.FC<InlinePickerProps> = ({
-  label,
-  value,
-  options,
-  containerStyle,
-  isLoading,
-  onSelect,
-}) => {
-  const [open, setOpen] = useState(false);
-
-  // All styles are inline — no className anywhere in this component
-  return (
-    <View style={[{ marginBottom: 14 }, containerStyle]}>
-      <Text style={ip.label}>{label}</Text>
-      <TouchableOpacity
-        onPress={() => !isLoading && setOpen(true)}
-        style={ip.trigger}
-        activeOpacity={0.7}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#6366F1" />
-        ) : (
-          <>
-            <Text
-              style={[
-                ip.triggerText,
-                { color: value && value !== "Select" && value !== "Select Option" ? "#111827" : "#9CA3AF" },
-              ]}
-              numberOfLines={1}
-            >
-              {value || "Select"}
-            </Text>
-            <Ionicons name="chevron-down" size={14} color="#6366F1" />
-          </>
-        )}
-      </TouchableOpacity>
-
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={ip.backdrop} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View style={ip.sheet}>
-            <View style={ip.handle} />
-            <Text style={ip.sheetTitle}>{label}</Text>
-            <FlatList
-              data={options}
-              keyExtractor={(item) => item.value}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  onPress={() => { onSelect(item); setOpen(false); }}
-                  style={ip.row}
-                >
-                  <Text style={[ip.rowText, item.label === value && { color: "#6366F1" }]}>
-                    {item.label}
-                  </Text>
-                  {item.label === value && (
-                    <Ionicons name="checkmark" size={16} color="#6366F1" />
-                  )}
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
-};
-
-const ip = StyleSheet.create({
-  label: { color: "#111827", fontWeight: "700", fontSize: 13, marginBottom: 6, marginLeft: 4 },
-  trigger: {
-    backgroundColor: "rgba(249,250,251,0.5)",
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    height: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  triggerText: { fontSize: 13, fontWeight: "600", flex: 1 },
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
-  sheet: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 16,
-    paddingBottom: 32,
-    maxHeight: "60%",
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  sheetTitle: { fontWeight: "700", fontSize: 15, color: "#111827", marginBottom: 12, paddingHorizontal: 20 },
-  row: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  rowText: { fontSize: 14, fontWeight: "600", color: "#374151" },
-});
-
-/* -------------------------------------------------------------------------- */
-/*                     INLINE TOGGLE (safe, no className inside map)          */
-/* -------------------------------------------------------------------------- */
-
-// Extracted so we never accidentally add className inside a .map()
-interface InlineToggleProps {
-  options: string[];
-  selectedChecker: (opt: string) => boolean;
-  onSelect: (opt: string) => void;
-}
-
-const InlineToggle: React.FC<InlineToggleProps> = ({ options, selectedChecker, onSelect }) => (
-  <View style={tog.wrap}>
-    {options.map((opt) => {
-      const selected = selectedChecker(opt);
-      return (
-        // NO className here — plain style only
-        <TouchableOpacity
-          key={opt}
-          onPress={() => onSelect(opt)}
-          style={[
-            tog.btn,
-            options.length <= 2 ? tog.btnFlex : tog.btnPad,
-            selected ? tog.btnSelected : undefined,
-          ]}
-        >
-          <Text style={[tog.txt, selected ? tog.txtSelected : tog.txtUnselected]}>
-            {String(opt)}
-          </Text>
-        </TouchableOpacity>
-      );
-    })}
-  </View>
-);
-
-const tog = StyleSheet.create({
-  wrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    backgroundColor: "rgba(249,250,251,0.5)",
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-    borderRadius: 18,
-    padding: 6,
-  },
-  btn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 8,
-    borderRadius: 14,
-  },
-  btnFlex: { flex: 1 },
-  btnPad: { paddingHorizontal: 16, margin: 4, minWidth: "44%" },
-  btnSelected: { backgroundColor: "#fff", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  txt: { fontSize: 13 },
-  txtSelected: { color: "#6366F1", fontWeight: "700" },
-  txtUnselected: { color: "#9CA3AF", fontWeight: "600" },
-});
-
-/* -------------------------------------------------------------------------- */
-/*                              PURE HELPERS                                  */
-/* -------------------------------------------------------------------------- */
+/* ─────────────────────────────────────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────────────────────────────────────── */
 
 const buildSpecsPayload = (
   specs: Record<string, any> | undefined,
   questionAnswers: Record<string, any>,
-  specMetadata: Record<string, any>,
-  questions: any[],
-  normalizeFieldKey: (s: string) => string,
-): Record<string, { value: any; label: string }> => {
-  const formattedSpecs: Record<string, { value: any; label: string }> = {};
-
+): Record<string, any> => {
+  const out: Record<string, any> = {};
   if (specs) {
     Object.entries(specs).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") {
-        formattedSpecs[k] = { value: v, label: specMetadata[k]?.name || k };
-      }
+      if (v !== undefined && v !== null && v !== "") out[k] = v;
     });
   }
-
   Object.entries(questionAnswers).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== "") {
-      const meta = specMetadata[k];
-      const q = questions.find((q) => {
-        const qKey = q.key || q.slug || normalizeFieldKey(q.field || q.label || "question");
-        return qKey === k;
-      });
-      formattedSpecs[k] = { value: v, label: meta?.name || q?.label || q?.field || k };
-    }
+    if (v !== undefined && v !== null && v !== "") out[k] = v;
   });
-
-  return formattedSpecs;
+  return out;
 };
 
-/* -------------------------------------------------------------------------- */
-/*                           MAIN SCREEN COMPONENT                            */
-/* -------------------------------------------------------------------------- */
+/* ─────────────────────────────────────────────────────────────────────────────
+   MAIN SCREEN
+───────────────────────────────────────────────────────────────────────────── */
+
 const PostAdDetails = () => {
+  /* ── 1. Hooks & State ── */
   const router = useRouter();
   const params = useLocalSearchParams();
 
@@ -287,47 +62,120 @@ const PostAdDetails = () => {
   const initialImages = useMemo(() => {
     try {
       return params.images ? (JSON.parse(params.images as string) as string[]) : [];
-    } catch (e) {
-      if (__DEV__) console.warn("Failed to parse images param", e);
+    } catch {
       return [];
     }
   }, [params.images]);
 
-  const { coordinates, place, updateLocation, useCurrentLocation, getPlaceName, getCoordinatesFromName } = useUserLocation();
-  const { generationStep, isFormLoading, data, setData, questions, specMetadata, imageKeys, fetchPreview } = usePostAdAI();
-  const { categories, subcategories, divisions, isLoadingSubcategories, isLoadingDivisions } = usePostAdData(data.categoryId, data.subcategoryId);
+  const {
+    coordinates, place,
+    updateLocation, useCurrentLocation,
+    getPlaceName, getCoordinatesFromName,
+  } = useUserLocation();
 
-  const [clicked, setClicked] = useState(false);
-  const [isNegotiable, setIsNegotiable] = useState(false);
-  const [questionAnswers, setQuestionAnswers] = useState<any>({});
+  const {
+    generationStep, isFormLoading,
+    data, setData,
+    questions, specMetadata,
+    imageKeys,
+    amenities, isAmenitiesLoading,
+    fetchPreview, fetchAmenities,
+  } = usePostAdAI();
+
+  const {
+    categories, subcategories, divisions,
+    isLoadingSubcategories, isLoadingDivisions,
+  } = usePostAdData(data.categoryId, data.subcategoryId);
+
+  const [clicked, setClicked]                             = useState(false);
+  const [isNegotiable, setIsNegotiable]                   = useState(false);
+  const [questionAnswers, setQuestionAnswers]             = useState<Record<string, any>>({});
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
-  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdProductId, setCreatedProductId]           = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal]           = useState(false);
 
   const hasInitialized = React.useRef(false);
 
+  /* ── 2. Lifecycle ── */
+
+  // AI pipeline start
   useEffect(() => {
     if (!initialDescription || initialImages.length === 0 || hasInitialized.current) return;
     hasInitialized.current = true;
-    fetchPreview(initialDescription, initialImages);
+    fetchPreview(
+      initialDescription,
+      initialImages,
+      coordinates ? { lat: coordinates.lat, lon: coordinates.lon } : null,
+    );
   }, [initialDescription, initialImages]);
+  
+  // Fetch amenities when location changes, if required by the category
+  useEffect(() => {
+    if (data.isAmenitiesRequired && coordinates?.lat && coordinates?.lon) {
+      fetchAmenities(coordinates.lat, coordinates.lon);
+    }
+  }, [coordinates?.lat, coordinates?.lon, !!data.isAmenitiesRequired, fetchAmenities]);
+
+  // Sync division label → id
+  useEffect(() => {
+    if (
+      divisions.length > 0 &&
+      data.division &&
+      typeof data.division === "string" &&
+      !data.divisionId
+    ) {
+      const match = divisions.find(
+        (d) =>
+          d.name?.toLowerCase()  === (data.division as string).toLowerCase() ||
+          d.label?.toLowerCase() === (data.division as string).toLowerCase(),
+      );
+      if (match) {
+        setData((prev: any) => ({
+          ...prev,
+          division:   match,
+          divisionId: match.id || match._id || match.value,
+        }));
+      }
+    }
+  }, [divisions, data.division, data.divisionId]);
+
+  /* ── 3. Derived Values ── */
 
   const categoryName = useMemo(() => {
-    if (!data?.categoryId || categories.length === 0) return data?.category?.name || data?.category?.label || "";
+    if (!data?.categoryId || categories.length === 0)
+      return data?.category?.name || data?.category?.label || "";
     const cat = categories.find((c) => (c.id || c._id || c.value) === data.categoryId);
     return cat?.name || cat?.label || data?.category?.name || "";
   }, [categories, data.categoryId, data?.category]);
 
   const subcategoryName = useMemo(() => {
-    if (!data?.subcategoryId || subcategories.length === 0) return data?.subcategory?.name || data?.subcategory?.label || "";
+    if (!data?.subcategoryId || subcategories.length === 0)
+      return data?.subcategory?.name || data?.subcategory?.label || "";
     const sub = subcategories.find((s) => (s.id || s._id || s.value) === data.subcategoryId);
     return sub?.name || sub?.label || data?.subcategory?.name || "";
   }, [subcategories, data.subcategoryId, data?.subcategory]);
 
-  const hasValidSpecs = useMemo(() => {
-    if (!data?.specs) return false;
-    return Object.values(data.specs).some((v) => v !== null && v !== "" && v !== undefined);
-  }, [data.specs]);
+  const hasValidSpecs = useMemo(
+    () => !!data?.specs && Object.values(data.specs).some(
+      (v) => v !== null && v !== "" && v !== undefined,
+    ),
+    [data.specs],
+  );
+
+  const currentImages: string[] =
+    (data.images?.length ?? 0) > 0 ? (data.images as string[]) : initialImages;
+
+  const showAmenities = useMemo(
+    () =>
+      data.isAmenitiesRequired === true &&
+      amenities !== null &&
+      Object.keys(amenities).length > 0,
+    [data.isAmenitiesRequired, amenities],
+  );
+
+  const isPostDisabled = clicked || isFormLoading || !data.title;
+
+  /* ── specs grid ── */
 
   const specsGridGroups = useMemo(() => {
     const items: any[] = [];
@@ -335,22 +183,19 @@ const PostAdDetails = () => {
     if (data.specs) {
       Object.entries(data.specs as Record<string, any>).forEach(([key, val]) => {
         const strVal = String(val ?? "").trim();
-        const lowerVal = strVal.toLowerCase();
-        if (!strVal || lowerVal === "null" || lowerVal === "undefined") return;
+        if (!strVal || strVal.toLowerCase() === "null" || strVal.toLowerCase() === "undefined") return;
 
-        const meta = specMetadata[key];
+        const meta     = specMetadata[key];
         const dataType = meta?.dataType;
 
         const rawMetaOptions = Array.isArray(meta?.options) ? meta.options : [];
         const options = rawMetaOptions
-          .filter((opt: any) => opt != null)
-          .map((opt: any) => {
-            if (typeof opt === "string") return { label: opt, value: opt };
-            return {
-              label: opt.name || opt.label || String(opt),
-              value: opt.id || opt._id || opt.value || opt.name || opt.label || String(opt),
-            };
-          });
+          .filter((o: any) => o != null)
+          .map((o: any) =>
+            typeof o === "string"
+              ? { label: o, value: o }
+              : { label: o.name || o.label || String(o), value: o.id || o._id || o.value || o.name || o.label || String(o) },
+          );
 
         if (dataType === "boolean" && options.length === 0) {
           options.push({ label: "Yes", value: "Yes" }, { label: "No", value: "No" });
@@ -373,11 +218,8 @@ const PostAdDetails = () => {
 
     if (data.division) {
       items.push({
-        key: "division",
-        label: "Division / Type",
-        val: data.division,
-        type: "division",
-        isBinary: false,
+        key: "division", label: "Division / Type", val: data.division,
+        type: "division", isBinary: false,
         options: divisions.map((d) => ({
           label: d.name || d.label || "",
           value: d.id || d._id || d.value || "",
@@ -386,75 +228,65 @@ const PostAdDetails = () => {
     }
 
     const groups: any[][] = [];
-    let currentGroup: any[] = [];
-
+    let cur: any[] = [];
     items.forEach((item) => {
       if (item.isBinary) {
-        if (currentGroup.length > 0) { groups.push(currentGroup); currentGroup = []; }
+        if (cur.length > 0) { groups.push(cur); cur = []; }
         groups.push([item]);
       } else {
-        currentGroup.push(item);
-        if (currentGroup.length === 2) { groups.push(currentGroup); currentGroup = []; }
+        cur.push(item);
+        if (cur.length === 2) { groups.push(cur); cur = []; }
       }
     });
-    if (currentGroup.length > 0) groups.push(currentGroup);
-
+    if (cur.length > 0) groups.push(cur);
     return groups;
   }, [data.specs, data.division, specMetadata, divisions]);
 
-  useEffect(() => {
-    if (divisions.length > 0 && data.division && typeof data.division === "string" && !data.divisionId) {
-      const match = divisions.find(
-        (d) =>
-          d.name?.toLowerCase() === (data.division as string).toLowerCase() ||
-          d.label?.toLowerCase() === (data.division as string).toLowerCase(),
-      );
-      if (match) {
-        setData((prev: any) => ({
-          ...prev,
-          division: match,
-          divisionId: match.id || match._id || match.value,
-        }));
-      }
-    }
-  }, [divisions, data.division, data.divisionId]);
-
-  const currentImages: string[] =
-    (data.images?.length ?? 0) > 0 ? (data.images as string[]) : initialImages || [];
+  /* ── submit ── */
 
   const handleSubmit = async () => {
     if (clicked) return;
-    setClicked(true);
 
-    if (!coordinates || typeof coordinates.lat !== "number" || typeof coordinates.lon !== "number" || coordinates.lat === 0) {
+    if (!data.title?.trim()) {
+      Toast.show({ type: "error", text1: "Title required", text2: "Please add a title for your ad." });
+      return;
+    }
+    if (!data.price || Number(data.price) <= 0) {
+      Toast.show({ type: "error", text1: "Price required", text2: "Please enter a valid price." });
+      return;
+    }
+    if (!coordinates?.lat || !coordinates?.lon || coordinates.lat === 0) {
       Toast.show({ type: "info", text1: "Location Required", text2: "Requesting location permission..." });
       try { useCurrentLocation(); } catch (err) { console.error("Failed to request location", err); }
-      Toast.show({ type: "error", text1: "Location not found", text2: "Please enable location and try again" });
-      setClicked(false);
+      Toast.show({ type: "error", text1: "Location not found", text2: "Please enable location and try again." });
       return;
     }
 
+    setClicked(true);
     try {
-      const rawPrice = Number(data.price);
-      const normalizedPrice = isNaN(rawPrice) ? 0 : rawPrice;
-
-      const formattedSpecs = buildSpecsPayload(data.specs, questionAnswers, specMetadata, questions, normalizeFieldKey);
-
+      const normalizedPrice = isNaN(Number(data.price)) ? 0 : Number(data.price);
+      const formattedSpecs  = buildSpecsPayload(data.specs, questionAnswers);
       const submissionImages =
-        imageKeys.length > 0 ? imageKeys : (data.images?.length ?? 0) > 0 ? data.images : initialImages;
+        imageKeys.length > 0 ? imageKeys
+          : (data.images?.length ?? 0) > 0 ? data.images
+          : initialImages;
 
       const payload = {
         ...data,
-        categoryId: data.categoryId || data.category?.id || data.category?._id,
-        subcategoryId: data.subcategoryId || data.subcategory?.id || data.subcategory?._id,
-        divisionId: data.divisionId || data.division?.id || data.division?._id,
-        category: undefined, subcategory: undefined, division: undefined,
-        price: normalizedPrice,
-        specs: formattedSpecs,
-        negotiate: isNegotiable,
-        description: data.enhancedDescription,
-        location: { type: "Point", coordinates: [coordinates.lon, coordinates.lat] },
-        images: submissionImages,
+        categoryId:          data.categoryId    || data.category?.id    || data.category?._id,
+        subcategoryId:       data.subcategoryId || data.subcategory?.id || data.subcategory?._id,
+        divisionId:          data.divisionId    || data.division?.id    || data.division?._id,
+        category:            undefined,
+        subcategory:         undefined,
+        division:            undefined,
+        isAmenitiesRequired: undefined,
+        enhancedDescription: undefined,
+        price:               normalizedPrice,
+        specs:               formattedSpecs,
+        negotiate:           isNegotiable,
+        description:         data.enhancedDescription,
+        location:            { type: "Point", coordinates: [coordinates.lon, coordinates.lat] },
+        images:              submissionImages,
       };
 
       const res = await post(PostAdApi.createProduct, payload);
@@ -468,22 +300,20 @@ const PostAdDetails = () => {
         if (res.data && typeof res.data === "object") {
           const details = res.data.message || res.data.errors || res.data;
           if (typeof details === "string") errorMsg = details;
-          else if (Array.isArray(details)) errorMsg = details.map((e: any) => e.msg || e.message || JSON.stringify(e)).join("\n");
+          else if (Array.isArray(details))
+            errorMsg = details.map((e: any) => e.msg || e.message || JSON.stringify(e)).join("\n");
         }
-        Toast.show({ type: "error", text1: "Validation Error", text2: errorMsg });
+        Toast.show({ type: "error", text1: "Submission Error", text2: errorMsg });
       }
-    } catch (err) {
-      Toast.show({ type: "error", text1: "Error", text2: "Failed to submit ad" });
+    } catch {
+      Toast.show({ type: "error", text1: "Error", text2: "Failed to submit ad. Please try again." });
     } finally {
       setClicked(false);
     }
   };
 
-  /* -------------------------------------------------------------------------- */
-  /*  SPEC ITEM RENDERER
-   *  Uses InlinePicker (no nav dep, no className) for all dropdown cases.
-   *  Uses plain style= everywhere — no className.
-   * -------------------------------------------------------------------------- */
+  /* ── 4. Renderers ── */
+
   const renderSpecItem = (item: any, width: string | number) => {
     const itemValId =
       item.val && typeof item.val === "object"
@@ -496,20 +326,23 @@ const PostAdDetails = () => {
           (typeof item.val === "object" ? item.val?.name || item.val?.label || "" : item.val)
         : item.val;
 
-    const safeDisplayValue = String(displayValue ?? "");
+    const safeDisplay = String(displayValue ?? "");
 
     if (item.type === "division" && divisions.length > 0) {
       return (
         <InlinePicker
           key={item.key}
           label={item.label}
-          value={safeDisplayValue || "Select"}
-          options={divisions.map((d) => ({ label: d.name || d.label || "", value: d.id || d._id || d.value || "" }))}
+          value={safeDisplay || "Select"}
+          options={divisions.map((d) => ({
+            label: d.name || d.label || "",
+            value: d.id || d._id || d.value || "",
+          }))}
           isLoading={isLoadingDivisions}
           containerStyle={{ width }}
           onSelect={(opt) => {
-            const fullOpt = divisions.find((d) => (d.id || d._id || d.value) === opt.value);
-            setData((prev) => ({ ...prev, divisionId: opt.value, division: fullOpt || opt }));
+            const full = divisions.find((d) => (d.id || d._id || d.value) === opt.value);
+            setData((prev: any) => ({ ...prev, divisionId: opt.value, division: full || opt }));
           }}
         />
       );
@@ -520,12 +353,12 @@ const PostAdDetails = () => {
         <InlinePicker
           key={item.key}
           label={item.label}
-          value={safeDisplayValue || "Select"}
+          value={safeDisplay || "Select"}
           options={item.options}
           containerStyle={{ width }}
-          onSelect={(opt) => {
-            setData((prev) => ({ ...prev, specs: { ...prev.specs, [item.key]: opt.value } }));
-          }}
+          onSelect={(opt) =>
+            setData((prev: any) => ({ ...prev, specs: { ...prev.specs, [item.key]: opt.value } }))
+          }
         />
       );
     }
@@ -534,177 +367,158 @@ const PostAdDetails = () => {
       <EditableRow
         key={item.key}
         label={item.label}
-        value={safeDisplayValue}
+        value={safeDisplay}
         containerStyle={{ width }}
         onChange={(text: string) => {
           if (item.type === "division") {
-            setData((prev) => ({ ...prev, division: text, divisionId: text }));
+            setData((prev: any) => ({ ...prev, division: text, divisionId: text }));
           } else {
-            setData((prev) => ({ ...prev, specs: { ...prev.specs, [item.key]: text } }));
+            setData((prev: any) => ({ ...prev, specs: { ...prev.specs, [item.key]: text } }));
           }
         }}
       />
     );
   };
 
-  /* -------------------------------------------------------------------------- */
-  /*  SPEC BINARY ROW RENDERER
-   *  Full-width Yes/No toggle — no className anywhere.
-   * -------------------------------------------------------------------------- */
   const renderBinarySpecItem = (item: any, gIdx: number) => {
     const itemValId =
       item.val && typeof item.val === "object"
         ? item.val.id || item.val._id || item.val.value
         : item.val;
 
-    const isSelected = (optValue: string) => {
-      const cVal = itemValId;
-      if (item.dataType === "boolean" || ["yes", "no", "true", "false"].includes(String(cVal).toLowerCase())) {
-        if (optValue === "Yes") return cVal === true || String(cVal).toLowerCase() === "yes" || String(cVal).toLowerCase() === "true";
-        if (optValue === "No") return cVal === false || String(cVal).toLowerCase() === "no" || String(cVal).toLowerCase() === "false";
+    const isSelected = (optLabel: string): boolean => {
+      const v = itemValId;
+      const isYesNo =
+        item.dataType === "boolean" ||
+        ["yes", "no", "true", "false"].includes(String(v ?? "").toLowerCase());
+      if (isYesNo) {
+        if (optLabel === "Yes") return v === true  || String(v).toLowerCase() === "yes"  || String(v).toLowerCase() === "true";
+        if (optLabel === "No")  return v === false || String(v).toLowerCase() === "no"   || String(v).toLowerCase() === "false";
       }
-      return String(cVal ?? "").toLowerCase() === String(optValue).toLowerCase();
+      return String(v ?? "").toLowerCase() === String(optLabel).toLowerCase();
     };
 
+    const handleToggle = (optLabel: string) => {
+      const opt = (item.options || []).find((o: any) => (o.label || o.value) === optLabel);
+      if (!opt) return;
+      if (item.type === "division") {
+        const full = Array.isArray(divisions)
+          ? divisions.find((d) => (d.id || d._id || d.value) === opt.value)
+          : null;
+        setData((prev: any) => ({ ...prev, division: full || opt.value, divisionId: opt.value }));
+      } else {
+        setData((prev: any) => ({
+          ...prev,
+          specs: {
+            ...prev.specs,
+            [item.key]: item.dataType === "boolean" ? opt.value === "Yes" : opt.value,
+          },
+        }));
+      }
+    };
+
+    const optionLabels: string[] = (item.options || []).map((o: any) => o.label || o.value || "");
+
     return (
-      // NO className — plain style only
-      <View key={item.key || gIdx} style={s.binaryRow}>
-        <Text style={s.specLabel}>{String(item.label || item.key || "")}</Text>
-        <View style={tog.wrap}>
-          {(item.options || []).map((opt: any) => (
-            <TouchableOpacity
-              key={opt.value}
-              onPress={() => {
-                if (item.type === "division") {
-                  const fullOpt = Array.isArray(divisions)
-                    ? divisions.find((d) => (d.id || d._id || d.value) === opt.value)
-                    : null;
-                  setData((prev) => ({ ...prev, division: fullOpt || opt.value, divisionId: opt.value }));
-                } else {
-                  setData((prev) => ({
-                    ...prev,
-                    specs: {
-                      ...prev.specs,
-                      [item.key]: item.dataType === "boolean" ? opt.value === "Yes" : opt.value,
-                    },
-                  }));
-                }
-              }}
-              style={[tog.btn, tog.btnFlex, isSelected(opt.value) ? tog.btnSelected : undefined]}
-            >
-              <Text style={[tog.txt, isSelected(opt.value) ? tog.txtSelected : tog.txtUnselected]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+      <View key={item.key || gIdx} className="mb-4 w-full">
+        <Text className="text-[#111827] font-bold text-[13px] mb-1.5 ml-0.5 flex-wrap leading-5">
+          {String(item.label || item.key || "")}
+        </Text>
+        <InlineToggle options={optionLabels} selectedChecker={isSelected} onSelect={handleToggle} />
       </View>
     );
   };
 
-  /* -------------------------------------------------------------------------- */
-  /*  QUESTION ITEM RENDERER
-   *  Extracted so the render tree is clean and we can audit className usage.
-   *  NO className on any element inside here.
-   * -------------------------------------------------------------------------- */
   const renderQuestionItem = (q: any, idx: number) => {
     if (!q) return null;
 
     const fieldKey =
-      q.key ||
-      q.slug ||
+      q.key || q.slug ||
       normalizeFieldKey(String(q.field || q.label || "")) ||
       `question_${idx}`;
 
-    const meta = specMetadata[fieldKey];
+    const meta     = specMetadata[fieldKey];
     const dataType = meta?.dataType || q.dataType;
 
     let options: string[] = [];
     if (dataType === "boolean") {
       options = ["Yes", "No"];
     } else {
-      const rawOptions = q.options || meta?.options || [];
-      const optionsArray = Array.isArray(rawOptions) ? rawOptions : [];
-      options = optionsArray
-        .map((opt: any) => (typeof opt === "string" ? opt : opt.name || opt.label))
+      const raw = Array.isArray(q.options || meta?.options) ? (q.options || meta?.options) : [];
+      options = raw
+        .map((o: any) => (typeof o === "string" ? o : o.name || o.label))
         .filter((o: any) => !!o && String(o).trim().length > 0);
     }
 
     const questionLabel = q.question || q.label || q.field || `About the ${meta?.name || fieldKey}`;
 
-    const isSelected = (opt: string) => {
+    const isSelected = (opt: string): boolean => {
       if (!fieldKey) return false;
       const current = questionAnswers?.[fieldKey];
-
-      if (dataType === "boolean" || ["yes", "no", "true", "false"].includes(String(current).toLowerCase())) {
-        if (opt === "Yes") return current === true || String(current).toLowerCase() === "yes" || String(current).toLowerCase() === "true";
-        if (opt === "No") return current === false || String(current).toLowerCase() === "no" || String(current).toLowerCase() === "false";
+      const isBoolCtx =
+        dataType === "boolean" ||
+        ["yes", "no", "true", "false"].includes(String(current ?? "").toLowerCase());
+      if (isBoolCtx) {
+        if (opt === "Yes") return current === true  || String(current).toLowerCase() === "yes"  || String(current).toLowerCase() === "true";
+        if (opt === "No")  return current === false || String(current).toLowerCase() === "no"   || String(current).toLowerCase() === "false";
       }
-
       const sCurrent = String(current ?? "").toLowerCase();
-      const sOpt = String(opt ?? "").toLowerCase();
+      const sOpt     = String(opt ?? "").toLowerCase();
       if (sCurrent === sOpt) return true;
-
       const metaOptions = Array.isArray(meta?.options) ? meta.options : [];
-      const matchingOpt = metaOptions.find(
+      const matched = metaOptions.find(
         (o: any) => o && String(o.id || o._id || o.value || "").toLowerCase() === sCurrent,
       );
-      return String(matchingOpt?.name || matchingOpt?.label || matchingOpt?.value || "").toLowerCase() === sOpt;
+      return String(matched?.name || matched?.label || matched?.value || "").toLowerCase() === sOpt;
     };
 
     const handleSelect = (opt: string) => {
       if (!fieldKey || opt == null) return;
-      setQuestionAnswers((prev: any) => {
-        const newState = { ...(prev || {}) };
+      setQuestionAnswers((prev) => {
+        const next = { ...(prev || {}) };
         if (dataType === "boolean") {
-          newState[fieldKey] = opt === "Yes";
+          next[fieldKey] = opt === "Yes";
         } else {
           const metaOptions = Array.isArray(meta?.options) ? meta.options : [];
-          const originalOpt = metaOptions.find(
+          const original    = metaOptions.find(
             (o: any) => o && (o.name === opt || o.label === opt || o.value === opt || o === opt),
           );
-          newState[fieldKey] = originalOpt ? originalOpt.id || originalOpt._id || originalOpt.value : opt;
+          next[fieldKey] = original ? original.id || original._id || original.value : opt;
         }
-        return newState;
+        return next;
       });
     };
 
-    // Large non-boolean lists → InlinePicker (no nav dep, no className)
     if (options.length > 3 && dataType !== "boolean" && options.length !== 2) {
       return (
         <InlinePicker
           key={fieldKey}
           label={String(questionLabel)}
-          value={options.find((opt: string) => isSelected(opt)) || questionAnswers?.[fieldKey] || "Select Option"}
-          options={options.map((opt) => ({ label: String(opt), value: String(opt) }))}
-          onSelect={(opt) => { if (!opt) return; handleSelect(opt.value); }}
+          value={options.find((o) => isSelected(o)) || questionAnswers?.[fieldKey] || "Select Option"}
+          options={options.map((o) => ({ label: String(o), value: String(o) }))}
+          onSelect={(opt) => { if (opt) handleSelect(opt.value); }}
         />
       );
     }
 
-    // Boolean / ≤3 options → InlineToggle (no className, no nav dep)
     return (
-      // NO className — plain style only
-      <View key={fieldKey} style={s.questionWrap}>
-        <Text style={s.questionLabel}>{String(questionLabel)}</Text>
-
+      <View key={fieldKey} className="mb-4">
+        <Text className="text-[#111827] font-bold text-[13px] mb-1.5 ml-0.5 flex-wrap leading-5">
+          {String(questionLabel)}
+        </Text>
         {options.length > 0 ? (
-          <InlineToggle
-            options={options}
-            selectedChecker={isSelected}
-            onSelect={handleSelect}
-          />
+          <InlineToggle options={options} selectedChecker={isSelected} onSelect={handleSelect} />
         ) : (
-          <View style={s.textInputWrap}>
+          <View className="bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 h-[48px] justify-center">
             <TextInput
               value={String(questionAnswers[fieldKey] ?? "")}
               onChangeText={(text) =>
-                setQuestionAnswers((prev: any) => ({ ...prev, [fieldKey]: text }))
+                setQuestionAnswers((prev) => ({ ...prev, [fieldKey]: text }))
               }
               placeholder="Type your answer..."
               placeholderTextColor="#9CA3AF"
               keyboardType={meta?.dataType === "number" || q.dataType === "number" ? "numeric" : "default"}
-              style={s.textInput}
+              className="text-gray-900 text-[14px] font-semibold w-full h-full py-0"
             />
           </View>
         )}
@@ -712,13 +526,13 @@ const PostAdDetails = () => {
     );
   };
 
-  /* -------------------------------------------------------------------------- */
-  /*                                   RENDER                                   */
-  /* -------------------------------------------------------------------------- */
+  /* ── 5. Render ── */
+
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: "#F7F6F3" }} edges={["top"]}>
-      <View style={{ flex: 1, backgroundColor: "#F7F6F3" }}>
-        {/* Header — static JSX, className is safe here */}
+    <SafeAreaView className="flex-1 bg-[#F7F6F3]" edges={["top"]}>
+      <View className="flex-1 bg-[#F7F6F3]">
+
+        {/* ── Header ── */}
         <View className="px-5 py-4 flex-row items-center justify-between border-b border-gray-100 bg-white">
           <View className="flex-row items-center flex-1 pr-4">
             <TouchableOpacity
@@ -727,51 +541,63 @@ const PostAdDetails = () => {
             >
               <Ionicons name="chevron-back" size={20} color="#000" />
             </TouchableOpacity>
+
             <TouchableOpacity onPress={() => setLocationPickerVisible(true)} className="flex-1 justify-center">
-              <Text style={{ fontFamily: "DM Serif Display", fontSize: 15, fontWeight: "400", color: "#333333", lineHeight: 20, marginBottom: 2 }}>
+              <Text 
+                className="text-[15px] font-normal text-[#333333] leading-5 mb-0.5" 
+                style={{ fontFamily: "DM Serif Display" }}
+              >
                 Ad Details
               </Text>
               <View className="flex-row items-center">
                 {place ? (
-                  <Text className="text-[14px] text-gray-500 font-medium" numberOfLines={1} style={{ maxWidth: 180 }}>
+                  <Text className="text-[14px] text-gray-500 font-medium max-w-[180px]" numberOfLines={1}>
                     {place}
                   </Text>
                 ) : (
                   <Text className="text-[14px] text-gray-400 font-medium">Select location</Text>
                 )}
-                <Ionicons name="chevron-down" size={14} color="#6366F1" style={{ marginLeft: 4 }} />
+                <Ionicons name="chevron-down" size={14} color="#6366F1" className="ml-1" />
               </View>
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={clicked || isFormLoading || !data.title}
-            className={`px-6 py-2.5 rounded-[24px] ${clicked || isFormLoading || !data.title ? "bg-gray-100" : "bg-[#1A1A1A]"}`}
+            disabled={isPostDisabled}
+            className={`px-6 py-2.5 rounded-[24px] ${isPostDisabled ? "bg-gray-100" : "bg-[#1A1A1A]"}`}
           >
             {clicked ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text className={`font-bold text-[15px] ${clicked || isFormLoading || !data.title ? "text-gray-400" : "text-white"}`}>
+              <Text className={`font-bold text-[15px] ${isPostDisabled ? "text-gray-400" : "text-white"}`}>
                 Post
               </Text>
             )}
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* ── Scroll ── */}
+        <ScrollView
+          className="flex-1 px-5 pt-6"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
+        >
           <ImagePreviewCard
             images={currentImages}
             initialImages={initialImages}
-            onChange={(newImages) => setData((prev: any) => ({ ...prev, images: newImages }))}
+            onChange={(imgs) => setData((prev: any) => ({ ...prev, images: imgs }))}
           />
 
-          {/* Basic Details — static, className safe */}
-          <View className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 mb-5">
+          {/* ── Basic Details ── */}
+          <View className="bg-white rounded-[16px] p-5 shadow-sm border border-gray-100 mb-5">
             <View className="flex-row justify-between items-center mb-5">
-              <Text style={{ fontFamily: "DM Serif Display" }} className="text-xl text-gray-900">Basic Details</Text>
+              <Text className="text-xl text-gray-900" style={{ fontFamily: "DM Serif Display" }}>
+                Basic Details
+              </Text>
               <AISuggestedTag />
             </View>
+
             {generationStep < GENERATION_STEPS.BASIC_FORM ? (
               <>
                 <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
@@ -783,18 +609,22 @@ const PostAdDetails = () => {
                 <EditableRow
                   label="Title"
                   value={data.title}
-                  onChange={(val: string) => setData((prev) => ({ ...prev, title: val }))}
+                  onChange={(v: string) => setData((prev: any) => ({ ...prev, title: v }))}
                 />
                 <View className="flex-row justify-between w-full">
-                  {/* SelectRow here is safe — NOT inside .map() */}
                   <SelectRow
                     label="Category"
                     value={categoryName}
                     options={categories}
                     containerStyle={{ width: "48%" }}
                     onSelect={(opt: any) => {
-                      const catId = opt.id || opt._id || opt.value;
-                      setData((prev) => ({ ...prev, categoryId: catId, category: opt, subcategoryId: undefined, subcategory: undefined }));
+                      setData((prev: any) => ({
+                        ...prev,
+                        categoryId:    opt.id || opt._id || opt.value,
+                        category:      opt,
+                        subcategoryId: undefined,
+                        subcategory:   undefined,
+                      }));
                     }}
                   />
                   <SelectRow
@@ -804,7 +634,13 @@ const PostAdDetails = () => {
                     isLoading={isLoadingSubcategories}
                     containerStyle={{ width: "48%" }}
                     onSelect={(opt: any) => {
-                      setData((prev) => ({ ...prev, subcategoryId: opt.id || opt._id, subcategory: opt, divisionId: undefined, division: undefined }));
+                      setData((prev: any) => ({
+                        ...prev,
+                        subcategoryId: opt.id || opt._id,
+                        subcategory:   opt,
+                        divisionId:    undefined,
+                        division:      undefined,
+                      }));
                     }}
                   />
                 </View>
@@ -812,14 +648,18 @@ const PostAdDetails = () => {
             )}
           </View>
 
-          {/* Specifications — renderBinarySpecItem + renderSpecItem, no className inside */}
+          {/* ── Specifications ── */}
           {generationStep >= GENERATION_STEPS.BASIC_FORM &&
-            (generationStep < GENERATION_STEPS.SPECS_FORM || hasValidSpecs || divisions.length > 0 || !!data.division) && (
-              <View className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 mb-5">
+            (generationStep < GENERATION_STEPS.SPECS_FORM ||
+              hasValidSpecs || divisions.length > 0 || !!data.division) && (
+              <View className="bg-white rounded-[16px] p-5 shadow-sm border border-gray-100 mb-5">
                 <View className="flex-row justify-between items-center mb-5">
-                  <Text style={{ fontFamily: "DM Serif Display" }} className="text-xl text-gray-900">Specifications</Text>
+                  <Text className="text-xl text-gray-900" style={{ fontFamily: "DM Serif Display" }}>
+                    Specifications
+                  </Text>
                   <AISuggestedTag />
                 </View>
+
                 {generationStep < GENERATION_STEPS.SPECS_FORM ? (
                   <>
                     <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
@@ -832,8 +672,13 @@ const PostAdDetails = () => {
                         return renderBinarySpecItem(group[0], gIdx);
                       }
                       return (
-                        <View key={gIdx} style={{ flexDirection: "row", justifyContent: "space-between", width: "100%" }}>
-                          {group.map((item) => renderSpecItem(item, group.length === 1 ? "100%" : "48%"))}
+                        <View
+                          key={gIdx}
+                          className="flex-row justify-between w-full"
+                        >
+                          {group.map((item) =>
+                            renderSpecItem(item, group.length === 1 ? "100%" : "48%"),
+                          )}
                         </View>
                       );
                     })}
@@ -842,14 +687,17 @@ const PostAdDetails = () => {
               </View>
             )}
 
-          {/* Helpful Details — renderQuestionItem, no className inside */}
+          {/* ── Helpful Details ── */}
           {(generationStep < GENERATION_STEPS.DONE || questions.length > 0) &&
             generationStep >= GENERATION_STEPS.SPECS_FORM && (
-              <View className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 mb-5">
+              <View className="bg-white rounded-[16px] p-5 shadow-sm border border-gray-100 mb-5">
                 <View className="flex-row justify-between items-center mb-5">
-                  <Text style={{ fontFamily: "DM Serif Display" }} className="text-xl text-gray-900">Helpful Details</Text>
+                  <Text className="text-xl text-gray-900" style={{ fontFamily: "DM Serif Display" }}>
+                    Helpful Details
+                  </Text>
                   <AISuggestedTag />
                 </View>
+
                 {generationStep < GENERATION_STEPS.DONE ? (
                   <>
                     <PostAdSkeleton className="h-20 w-full rounded-xl mb-3" />
@@ -861,26 +709,46 @@ const PostAdDetails = () => {
               </View>
             )}
 
-          {/* Final Sections — static, className safe */}
+          {/* ── Nearby Amenities ── */}
+          <AmenitiesSection 
+            generationStep={generationStep}
+            isAmenitiesRequired={data.isAmenitiesRequired || false}
+            amenities={amenities}
+            isAmenitiesLoading={isAmenitiesLoading}
+            showAmenities={showAmenities}
+          />
+
+          {/* ── Price + Description + Submit ── */}
           {generationStep === GENERATION_STEPS.DONE && (
             <>
-              <View className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 mb-5">
-                <Text style={{ fontFamily: "DM Serif Display" }} className="text-xl text-gray-900 mb-5">Set Price</Text>
-                <View className="bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 flex-row items-center h-16 shadow-sm shadow-black/[0.02]">
-                  <View className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 mr-3 shadow-sm">
+              {/* Price */}
+              <View className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100 mb-5">
+                <Text className="text-xl text-gray-900 mb-5" style={{ fontFamily: "DM Serif Display" }}>
+                  Set Price
+                </Text>
+                <View className="bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 flex-row items-center h-16">
+                  <View className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 mr-3">
                     <Text className="text-gray-900 font-bold text-xs">AED</Text>
                   </View>
                   <TextInput
                     placeholder="0.00"
                     keyboardType="numeric"
                     value={data.price?.toString() || ""}
-                    onChangeText={(v) => setData((prev) => ({ ...prev, price: v }))}
+                    onChangeText={(v) => setData((prev: any) => ({ ...prev, price: v }))}
                     className="flex-1 text-2xl font-black text-gray-900"
                     placeholderTextColor="#D1D5DB"
                   />
                 </View>
-                <TouchableOpacity onPress={() => setIsNegotiable((prev) => !prev)} className="flex-row items-center mt-4 ml-1" activeOpacity={0.7}>
-                  <View className={`w-6 h-6 rounded-lg border-2 items-center justify-center mr-3 ${isNegotiable ? "bg-indigo-600 border-indigo-600" : "bg-gray-50 border-gray-200"}`}>
+                <TouchableOpacity
+                  onPress={() => setIsNegotiable((p) => !p)}
+                  className="flex-row items-center mt-4 ml-1"
+                  activeOpacity={0.7}
+                >
+                  <View
+                    className={`w-6 h-6 rounded-lg border-2 items-center justify-center mr-3 ${
+                      isNegotiable ? "bg-indigo-600 border-indigo-600" : "bg-gray-50 border-gray-200"
+                    }`}
+                  >
                     {isNegotiable && <Ionicons name="checkmark" size={16} color="white" />}
                   </View>
                   <Text className={`text-sm font-semibold ${isNegotiable ? "text-indigo-600" : "text-gray-500"}`}>
@@ -889,38 +757,46 @@ const PostAdDetails = () => {
                 </TouchableOpacity>
               </View>
 
+              {/* Final Description */}
               <View className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 mb-8">
                 <View className="flex-row justify-between items-center mb-5">
-                  <Text style={{ fontFamily: "DM Serif Display" }} className="text-xl text-gray-900">Final Description</Text>
+                  <Text className="text-xl text-gray-900" style={{ fontFamily: "DM Serif Display" }}>
+                    Final Description
+                  </Text>
                   <AISuggestedTag />
                 </View>
-                <View className="bg-gray-50/50 border border-gray-100 rounded-[24px] p-5 shadow-sm shadow-black/[0.02]">
+                <View className="bg-gray-50/50 border border-gray-100 rounded-[24px] p-5">
                   <TextInput
                     multiline
                     value={data.enhancedDescription}
-                    onChangeText={(v) => setData((prev) => ({ ...prev, enhancedDescription: v }))}
-                    className="text-sm text-gray-800 leading-5 font-medium"
-                    textAlignVertical="top"
+                    onChangeText={(v) => setData((prev: any) => ({ ...prev, enhancedDescription: v }))}
                     placeholder="Review the AI enhanced description..."
-                    style={{ minHeight: 120 }}
+                    className="text-sm text-gray-800 leading-5 font-medium min-h-[120px]"
                   />
                 </View>
               </View>
 
+              {/* Post button */}
               <TouchableOpacity
                 onPress={handleSubmit}
-                disabled={clicked || isFormLoading || !data.title}
+                disabled={isPostDisabled}
                 activeOpacity={0.8}
-                className={`mb-10 rounded-[24px] py-5 items-center justify-center flex-row shadow-xl ${clicked || isFormLoading || !data.title ? "bg-gray-100" : "bg-[#1A1A1A]"}`}
+                className={`mb-10 rounded-[24px] py-5 items-center justify-center flex-row shadow-xl ${
+                  isPostDisabled ? "bg-gray-100" : "bg-[#1A1A1A]"
+                }`}
               >
                 {clicked ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <View className={`mr-3 ${clicked || isFormLoading || !data.title ? "opacity-50" : ""}`}>
-                      <Ionicons name="sparkles" size={18} color={clicked || isFormLoading || !data.title ? "#9CA3AF" : "#818CF8"} />
+                    <View className={`mr-3 ${isPostDisabled ? "opacity-50" : ""}`}>
+                      <Ionicons
+                        name="sparkles"
+                        size={18}
+                        color={isPostDisabled ? "#9CA3AF" : "#818CF8"}
+                      />
                     </View>
-                    <Text className={`font-bold text-base tracking-tight ${clicked || isFormLoading || !data.title ? "text-gray-400" : "text-white"}`}>
+                    <Text className={`font-bold text-base tracking-tight ${isPostDisabled ? "text-gray-400" : "text-white"}`}>
                       Post Ad Now
                     </Text>
                   </>
@@ -934,7 +810,10 @@ const PostAdDetails = () => {
       <LocationPicker
         visible={locationPickerVisible}
         onClose={() => setLocationPickerVisible(false)}
-        currentLocation={{ coordinates: { lat: coordinates?.lat || 0, lon: coordinates?.lon || 0 }, place: place || "Your location" }}
+        currentLocation={{
+          coordinates: { lat: coordinates?.lat || 0, lon: coordinates?.lon || 0 },
+          place: place || "Your location",
+        }}
         onSelectLocation={updateLocation}
         onUseCurrentLocation={useCurrentLocation}
         getPlaceName={getPlaceName}
@@ -946,35 +825,14 @@ const PostAdDetails = () => {
         onDone={() => {
           setShowSuccessModal(false);
           if (createdProductId) {
-            router.replace({ pathname: "/product/[id]", params: { id: createdProductId } } as any);
+            router.push(`/product/${createdProductId}`);
           } else {
-            router.replace("/home");
+            router.push("/home");
           }
         }}
       />
     </SafeAreaView>
   );
 };
-
-/* -------------------------------------------------------------------------- */
-/*  Styles used inside .map() renderers — defined once, referenced by name.   */
-/*  These replace every className that was previously on map-rendered nodes.  */
-/* -------------------------------------------------------------------------- */
-const s = StyleSheet.create({
-  binaryRow: { marginBottom: 16, width: "100%" },
-  specLabel: { color: "#111827", fontWeight: "700", fontSize: 13, marginBottom: 6, marginLeft: 2, flexWrap: "wrap", lineHeight: 18 },
-  questionWrap: { marginBottom: 16 },
-  questionLabel: { color: "#111827", fontWeight: "700", fontSize: 13, marginBottom: 6, marginLeft: 2, flexWrap: "wrap", lineHeight: 18 },
-  textInputWrap: {
-    backgroundColor: "rgba(249,250,251,0.5)",
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    height: 48,
-    justifyContent: "center",
-  },
-  textInput: { color: "#111827", fontSize: 14, fontWeight: "600", width: "100%", height: "100%", paddingVertical: 0 },
-});
 
 export default PostAdDetails;

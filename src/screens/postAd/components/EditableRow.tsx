@@ -19,13 +19,13 @@ const EditableRow = ({
 }: EditableRowProps) => (
   <View className="mb-4" style={containerStyle}>
     <Text 
-      className="text-gray-900 font-bold text-[13px] mb-1.5 ml-1"
+      className="text-gray-900 font-semibold text-[12px] mb-1.5 ml-1"
       style={{ flexWrap: 'wrap' }}
     >
       {label}
     </Text>
     <View 
-      className="bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 h-12 justify-center shadow-sm shadow-black/[0.02]"
+      className="bg-gray-50/50 border border-gray-100 rounded-[8px] px-4 h-12 justify-center shadow-sm shadow-black/[0.02]"
     >
       <TextInput
         value={value?.toString()}

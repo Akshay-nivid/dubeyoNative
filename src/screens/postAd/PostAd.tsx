@@ -28,6 +28,7 @@ import { useUserLocation } from "../../hooks/useUserLocation";
 import { Api, fetchProfile } from "../../screens/home/Api";
 import { get } from "../../services/api";
 import { getToken } from "../../services/storage/tokenStorage";
+import LocationPicker from "@/src/components/LocationPicker";
 
 const PostAd = () => {
   const router = useRouter();
@@ -40,8 +41,16 @@ const PostAd = () => {
   const [imageError, setImageError] = useState("");
   const [editLoaded, setEditLoaded] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
-  const { place } = useUserLocation();
+  const {
+    coordinates,
+    place,
+    updateLocation,
+    useCurrentLocation,
+    getPlaceName,
+    getCoordinatesFromName,
+  } = useUserLocation();
   const [userName, setUserName] = useState("User");
 
   // Keyboard handling
@@ -494,21 +503,44 @@ const PostAd = () => {
         className="flex-1 bg-transparent"
         edges={["top"]}
       >
-        {/* Header */}
-        <View className="px-4 py-2 flex-row items-center">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100"
-          >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color="#000"
-            />
-          </TouchableOpacity>
+        <View className="px-4 py-2 flex-row items-center justify-between">
+          <View className="flex-row items-center flex-1 pr-4">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100 mr-4"
+            >
+              <Ionicons
+                name="arrow-back"
+                size={24}
+                color="#000"
+              />
+            </TouchableOpacity>
 
-          <View className="ml-4">
-            <Text className="text-xl font-bold text-gray-900">Post ad</Text>
+            <TouchableOpacity
+              onPress={() => setShowLocationPicker(true)}
+              className="flex-1 justify-center"
+            >
+              <Text className="text-xl font-bold text-gray-900">Post ad</Text>
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="location-outline"
+                  size={12}
+                  color="#6B7280"
+                />
+                <Text
+                  className="text-xs text-gray-500 font-medium ml-1"
+                  numberOfLines={1}
+                >
+                  {place || "Select location"}
+                </Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={12}
+                  color="#6366F1"
+                  style={{ marginLeft: 4 }}
+                />
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -747,6 +779,16 @@ const PostAd = () => {
           </Animated.View>
         </View>
       </Modal>
+
+      <LocationPicker
+        visible={showLocationPicker}
+        onClose={() => setShowLocationPicker(false)}
+        currentLocation={{ coordinates, place }}
+        onSelectLocation={updateLocation}
+        onUseCurrentLocation={useCurrentLocation}
+        getPlaceName={getPlaceName}
+        getCoordinatesFromName={getCoordinatesFromName}
+      />
     </LinearGradient>
   );
 };

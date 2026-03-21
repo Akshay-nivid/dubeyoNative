@@ -30,7 +30,7 @@ const SelectRow = ({
   return (
     <View className="mb-4" style={containerStyle}>
       <Text 
-        className="text-gray-900 font-bold text-[13px] mb-1.5 ml-1"
+        className="text-gray-900 font-semibold text-[12px] mb-1.5 ml-1"
         style={{ flexWrap: 'wrap' }}
       >
         {label}
@@ -42,7 +42,7 @@ const SelectRow = ({
         }}
         disabled={isLoading}
         activeOpacity={0.7}
-        className={`bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 h-12 shadow-sm shadow-black/[0.02] flex-row justify-between items-center ${isLoading ? "opacity-50" : ""}`}
+        className={`bg-gray-50/50 border border-gray-100 rounded-[8px] px-4 h-12 shadow-sm shadow-black/[0.02] flex-row justify-between items-center ${isLoading ? "opacity-50" : ""}`}
       >
         <Text
           numberOfLines={1}
@@ -62,7 +62,7 @@ const SelectRow = ({
         </View>
       </TouchableOpacity>
       {open && options?.length > 0 && (
-        <View className="mt-2 bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-2xl shadow-black/10 max-h-64 z-50">
+        <View className="mt-2 bg-white border border-gray-100 rounded-xl overflow-hidden shadow-2xl shadow-black/10 max-h-64 z-50">
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
             {options.map((opt: any, index: number) => (
               <TouchableOpacity

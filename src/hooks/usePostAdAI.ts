@@ -1,65 +1,71 @@
 import { API_BASE_URL } from "@/src/constants/env";
-import { post } from "@/src/services/api";
+import { get, post } from "@/src/services/api";
 import { getToken } from "@/src/services/storage/tokenStorage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Toast from "react-native-toast-message";
 import { PostAdApi } from "../screens/postAd/Api";
 
 /* ─────────────────────────────────────────────────────────────
-   TYPES
+   TYPES & INTERFACES
 ───────────────────────────────────────────────────────────── */
 
 export const GENERATION_STEPS = {
-  PREVIEW:    0,
+  PREVIEW: 0,
   BASIC_FORM: 1,
   SPECS_FORM: 2,
-  DONE:       3,
+  DONE: 3,
 } as const;
 
 export type GenerationStep = (typeof GENERATION_STEPS)[keyof typeof GENERATION_STEPS];
 
 export interface Question {
-  key?:      string;
-  slug?:     string;
-  field?:    string;
+  key?: string;
+  slug?: string;
+  field?: string;
   question?: string;
-  label?:    string;
-  options?:  any[];
+  label?: string;
+  options?: any[];
   dataType?: string;
   [key: string]: any;
 }
 
 interface CategoryInfo {
-  id?:    string;
-  _id?:   string;
+  id?: string;
+  _id?: string;
   value?: string;
-  name?:  string;
+  name?: string;
   label?: string;
 }
 
 export interface PostAdData {
-  title:               string;
+  title: string;
   enhancedDescription: string;
-  categoryId?:         string;
-  subcategoryId?:      string;
-  divisionId?:         string;
-  category?:           CategoryInfo;
-  subcategory?:        CategoryInfo;
-  division?:           any;
-  price:               string | number;
-  images?:             string[];
-  specs?:              Record<string, any>;
-  [key: string]:       any;
+  categoryId?: string;
+  subcategoryId?: string;
+  divisionId?: string;
+  category?: CategoryInfo;
+  subcategory?: CategoryInfo;
+  division?: any;
+  price: string | number;
+  images?: string[];
+  specs?: Record<string, any>;
+  isAmenitiesRequired?: boolean;
+  [key: string]: any;
 }
 
+export interface AmenityItem {
+  name: string;
+  type: string;
+  distance_km: number;
+  coordinates?: { lat: number; lon: number };
+}
+
+export type AmenitiesData = Record<string, AmenityItem[]>;
+
 /* ─────────────────────────────────────────────────────────────
-   CONSTANTS
+   CONSTANTS & CONFIG
 ───────────────────────────────────────────────────────────── */
 
-/**
- * Word-boundary patterns for spec keys / question text that should be
- * filtered out of the "Helpful Details" section (handled elsewhere in the UI).
- */
 const REDUNDANT_KEY_PATTERNS = [
   /\blocation\b/,
   /\bprice\b/,
@@ -69,10 +75,12 @@ const REDUNDANT_KEY_PATTERNS = [
 ];
 
 /* ─────────────────────────────────────────────────────────────
-   PURE UTILITIES  (exported so screens can import directly)
+   UTILITIES (Pure Helpers)
 ───────────────────────────────────────────────────────────── */
 
-/** Normalises any string into a lowercase, whitespace-free, alphanum+underscore key. */
+/**
+ * Normalizes a field key to a standard format (lowercase, no spaces, alphanumeric).
+ */
 export const normalizeFieldKey = (field: any): string =>
   String(field || "")
     .toLowerCase()
@@ -80,119 +88,105 @@ export const normalizeFieldKey = (field: any): string =>
     .replace(/[^a-z0-9_]/g, "");
 
 /**
- * Returns a stable, normalised key for a spec / question object.
- * Falls back to an optional `fallbackKey` before returning an empty string.
+ * Gets a stable, normalized identifier for a dynamic item.
  */
 export const getStableKey = (item: any, fallbackKey?: string): string => {
   if (!item) return "";
-  const raw = item.key || item.slug || item.field || item.label || item.name || fallbackKey || "";
-  return typeof raw === "string" ? normalizeFieldKey(raw) : "";
+  const rawIdentifier =
+    item.key || item.slug || item.field || item.label || item.name || fallbackKey || "";
+  return typeof rawIdentifier === "string" ? normalizeFieldKey(rawIdentifier) : "";
 };
 
-/* ─────────────────────────────────────────────────────────────
-   PRIVATE UTILITIES
-───────────────────────────────────────────────────────────── */
-
-const normalizeBooleanValue = (val: any): any => {
+const normalizeBooleanString = (val: any): any => {
   if (val === "Yes") return true;
-  if (val === "No")  return false;
+  if (val === "No") return false;
   return val;
 };
 
-/** Returns false for null / undefined / "" / "null". Everything else passes. */
-const isValidSpecValue = (val: any): boolean => {
+const hasValidValue = (val: any): boolean => {
   if (val == null || val === "") return false;
   if (typeof val === "string" && val.toLowerCase() === "null") return false;
   return true;
 };
 
-/** A division is valid only if it carries a real id, not just any truthy value. */
-const isDivisionValid = (division: any): boolean => {
-  if (!division) return false;
-  if (typeof division === "string") return division.trim().length > 0;
-  return isValidSpecValue(division?.id || division?._id);
-};
-
-/** Extracts a consistent id string from any entity shape the API may return. */
-const extractEntityId = (entity: any): string | undefined =>
+const resolveEntityId = (entity: any): string | undefined =>
   entity?.id || entity?._id || entity?.value || undefined;
 
 /* ─────────────────────────────────────────────────────────────
-   QUESTION EXTRACTION
+   DATA TRANSFORMERS
 ───────────────────────────────────────────────────────────── */
 
-const extractQuestions = (payload: any): Question[] => {
+/**
+ * Extracts and cleans a list of questions from various backend payload fields.
+ */
+const transformQuestions = (payload: any): Question[] => {
   if (!payload || typeof payload !== "object") return [];
 
-  const questionsList: Question[] = [
-    ...(Array.isArray(payload.questions)           ? payload.questions           : []),
-    ...(Array.isArray(payload.dynamicQuestions)    ? payload.dynamicQuestions    : []),
+  const rawQuestions: Question[] = [
+    ...(Array.isArray(payload.question) ? payload.question : []),
+    ...(Array.isArray(payload.questions) ? payload.questions : []),
+    ...(Array.isArray(payload.dynamicQuestions) ? payload.dynamicQuestions : []),
     ...(Array.isArray(payload.additionalQuestions) ? payload.additionalQuestions : []),
   ];
 
-  const seen = new Set<string>();
+  const seenText = new Set<string>();
 
-  return questionsList
+  return rawQuestions
     .filter((q) => {
       const text = String(q.question || q.label || q.field || "").toLowerCase().trim();
-      const key  = getStableKey(q).toLowerCase();
+      const key = getStableKey(q).toLowerCase();
 
-      if (!text || seen.has(text)) return false;
+      if (!text || seenText.has(text)) return false;
 
       const isRedundant = REDUNDANT_KEY_PATTERNS.some(
-        (pattern) => pattern.test(key) || pattern.test(text),
+        (pattern) => pattern.test(key) || pattern.test(text)
       );
       if (isRedundant) return false;
 
-      seen.add(text);
+      seenText.add(text);
       return true;
     })
     .map((q) => {
-      const options = Array.isArray(q.options)
+      const rawOptions = Array.isArray(q.options)
         ? q.options.filter((o: any) => o != null)
         : [];
 
-      // Ensure boolean questions always have toggle options
-      if (q.dataType === "boolean" && options.length === 0) {
+      // Inject standard Yes/No if missing for boolean types
+      if (q.dataType === "boolean" && rawOptions.length === 0) {
         return { ...q, options: ["Yes", "No"] };
       }
-
-      return { ...q, options };
+      return { ...q, options: rawOptions };
     });
 };
 
-/* ─────────────────────────────────────────────────────────────
-   SPEC NORMALISATION
-───────────────────────────────────────────────────────────── */
-
-const normalizeSpecs = (specs: Record<string, any> | any[] = {}): Record<string, any> => {
+/**
+ * Normalizes a complex specifications object or array into a flat Record.
+ */
+const transformSpecifications = (specs: Record<string, any> | any[] = {}): Record<string, any> => {
   if (!specs || typeof specs !== "object") return {};
 
-  // Array shape: [{ key/label, value }, ...]
   if (Array.isArray(specs)) {
     return Object.fromEntries(
       specs
-        .filter((s: any) => s && isValidSpecValue(s.value))
-        .map((s: any) => [getStableKey(s), normalizeBooleanValue(s.value)]),
+        .filter((s: any) => s && hasValidValue(s.value))
+        .map((s: any) => [getStableKey(s), normalizeBooleanString(s.value)])
     );
   }
 
-  // Object shape: { key: spec | flatValue }
   const normalized: Record<string, any> = {};
   Object.entries(specs).forEach(([key, spec]) => {
     if (!spec) return;
 
-    // Avoid re-normalising already-flat values from prev.specs
-    const rawValue = typeof spec === "object" && spec !== null && "value" in spec
-      ? spec.value
-      : spec;
+    const rawValue =
+      typeof spec === "object" && spec !== null && "value" in spec ? spec.value : spec;
+    const value = normalizeBooleanString(rawValue);
 
-    const value = normalizeBooleanValue(rawValue);
-    if (!isValidSpecValue(value)) return;
+    if (!hasValidValue(value)) return;
 
-    const stableKey = typeof spec === "object" && spec !== null
-      ? getStableKey(spec, key)
-      : normalizeFieldKey(key);
+    const stableKey =
+      typeof spec === "object" && spec !== null
+        ? getStableKey(spec, key)
+        : normalizeFieldKey(key);
 
     normalized[stableKey] = value;
   });
@@ -201,365 +195,485 @@ const normalizeSpecs = (specs: Record<string, any> | any[] = {}): Record<string,
 };
 
 /* ─────────────────────────────────────────────────────────────
-   HOOK
+   MAIN HOOK
 ───────────────────────────────────────────────────────────── */
 
 export const usePostAdAI = () => {
+  // --- UI STATE ---
   const [generationStep, setGenerationStep] = useState<GenerationStep>(GENERATION_STEPS.PREVIEW);
-  const [isFormLoading, setIsFormLoading]   = useState(true);
-  const [data, setData]                     = useState<PostAdData>({ title: "", enhancedDescription: "", price: "" });
-  const [questions, setQuestions]           = useState<Question[]>([]);
-  const [specMetadata, setSpecMetadata]     = useState<Record<string, any>>({});
-  const [imageKeys, setImageKeys]           = useState<string[]>([]);
+  const [isFormLoading, setIsFormLoading] = useState(true);
 
+  // --- DATA STATE ---
+  const [data, setData] = useState<PostAdData>({ title: "", enhancedDescription: "", price: "" });
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [specMetadata, setSpecMetadata] = useState<Record<string, any>>({});
+  const [imageKeys, setImageKeys] = useState<string[]>([]);
+
+  // --- AMENITIES STATE ---
+  const [amenities, setAmenities] = useState<AmenitiesData | null>(null);
+  const [isAmenitiesLoading, setIsAmenitiesLoading] = useState(false);
+
+  // --- REFS (FOR CONCURRENCY & CANCELLATION) ---
   const abortControllerRef = useRef<AbortController | null>(null);
-  const generationIdRef    = useRef<number>(0);
+  const generationIdRef = useRef<number>(0);
+  const amenitiesAbortRef = useRef<AbortController | null>(null);
 
-  // Abort any in-flight request when the hook unmounts
-  useEffect(() => () => { abortControllerRef.current?.abort(); }, []);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      amenitiesAbortRef.current?.abort();
+    };
+  }, []);
 
+  /**
+   * Generates a fresh AbortSignal, cancelling any previous main pipeline calls.
+   */
   const createAbortSignal = (): AbortSignal => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
     return abortControllerRef.current.signal;
   };
 
-  /* ── Image Upload ─────────────────────────────────────────── */
-
+  /**
+   * Uploads local image URIs to the server and returns their unique keys.
+   */
   const uploadImages = useCallback(async (uris: string[], signal?: AbortSignal): Promise<string[]> => {
     const uploadedKeys: string[] = [];
-    const token     = await getToken();
+    const token = await getToken();
     const targetUrl = `${API_BASE_URL}${PostAdApi.uploadImage}`;
 
     await Promise.all(
       uris.map(async (uri) => {
         if (signal?.aborted) return;
-
         try {
           const formData = new FormData();
-          let fileName   = uri.split("/").pop() || "image.jpg";
-          let ext        = fileName.includes(".") ? fileName.split(".").pop()?.toLowerCase() || "jpg" : "jpg";
+          const fileName = uri.split("/").pop() || "image.jpg";
+          let ext = fileName.includes(".")
+            ? fileName.split(".").pop()?.toLowerCase() || "jpg"
+            : "jpg";
 
           if (!["jpg", "jpeg", "png", "webp"].includes(ext)) {
-            ext      = "jpg";
-            fileName = `${fileName.split(".")[0]}.jpg`;
+            ext = "jpg";
           }
 
-          formData.append("image", { uri, name: fileName, type: `image/${ext === "jpg" ? "jpeg" : ext}` } as any);
+          formData.append("image", {
+            uri,
+            name: fileName.includes(".") ? fileName : `${fileName}.jpg`,
+            type: `image/${ext === "jpg" ? "jpeg" : ext}`,
+          } as any);
 
-          const res    = await fetch(targetUrl, { method: "POST", body: formData, headers: { Accept: "application/json", Authorization: `Bearer ${token}` }, signal });
-          const result = await res.json();
+          const response = await fetch(targetUrl, {
+            method: "POST",
+            body: formData,
+            headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+            signal,
+          });
 
-          if (signal?.aborted) return;
-
-          if (result?.data) {
+          const result = await response.json();
+          if (!signal?.aborted && result?.data) {
             uploadedKeys.push(result.data);
-          } else {
-            console.warn("Upload failed for:", uri, result);
           }
         } catch (err) {
           if ((err as any).name !== "AbortError") {
-            console.warn("Image upload error:", uri, err);
+            console.warn("[uploadImages] Error uploading:", uri, err);
           }
         }
-      }),
+      })
     );
 
-    // Discard results if aborted to prevent stale keys leaking into the next generation
-    if (signal?.aborted) return [];
-    return uploadedKeys;
+    return signal?.aborted ? [] : uploadedKeys;
   }, []);
 
-  /* ── Final Preview (3rd API) ──────────────────────────────── */
+  /**
+   * Fetches nearby highlights (amenities) from the backend based on coordinates.
+   */
+  const fetchAmenities = useCallback(async (lat: number, lon: number): Promise<void> => {
+    // Cancel any in-flight amenities requests
+    amenitiesAbortRef.current?.abort();
+    const signal = (amenitiesAbortRef.current = new AbortController()).signal;
 
-  const fetchFinal = useCallback(async ({
-    details,
-    intermediate,
-    images,
-    subcategoryId,
-    categoryLabel,
-    subcategoryLabel,
-    currentGenerationId,
-    signal,
-  }: any) => {
-    if (currentGenerationId !== generationIdRef.current || signal?.aborted) return;
-
+    setIsAmenitiesLoading(true);
     try {
-      const contextPrefix    = `ITEM: ${categoryLabel}${subcategoryLabel ? ` > ${subcategoryLabel}` : ""}\n\n`;
-      const contextualDetails = contextPrefix + details;
+      const response = await get(PostAdApi.getLocationHighlights, { params: { lat, lon }, signal });
 
-      const rawSpecs = Array.isArray(intermediate?.specs) ? intermediate.specs : [];
-
-      // Collect spec keys that still have no value (to ask the user about)
-      const missingSpecKeys: string[] = rawSpecs
-        .filter((s: any) => !isValidSpecValue(s.value))
-        .map((s: any)    => getStableKey(s))
-        .filter(Boolean);
-
-      if (!isDivisionValid(intermediate?.division) && !missingSpecKeys.includes("division")) {
-        missingSpecKeys.push("division");
+      if (!signal.aborted && response?.data?.data) {
+        setAmenities(response.data.data);
       }
-
-      const res = await post(
-        PostAdApi.finalPreview,
-        { details: contextualDetails, specs: missingSpecKeys, location: null, subcategoryId, images },
-        { signal },
-      );
-
-      if (currentGenerationId !== generationIdRef.current) return;
-
-      const finalPayload = res?.data ?? res ?? {};
-
-      // ── Build questions list ──────────────────────────────
-      let questionsData = extractQuestions(finalPayload);
-
-      const existingKeys = new Set(questionsData.map((q) => getStableKey(q)));
-
-      // Add placeholder questions for missing specs the API didn't cover
-      const additionalFromMissing: Question[] = missingSpecKeys
-        .filter((key) => !existingKeys.has(key))
-        .map((key) => {
-          const matchedSpec = rawSpecs.find((s: any) => getStableKey(s) === key);
-          const label       = matchedSpec?.name || matchedSpec?.label || key;
-          return {
-            ...(matchedSpec || {}),
-            key,
-            field:    key,
-            label,
-            question: `Please specify the ${label.toLowerCase()}`,
-            options:  Array.isArray(matchedSpec?.options) ? matchedSpec.options : [],
-            dataType: matchedSpec?.dataType,
-          };
-        });
-
-      questionsData = [...questionsData, ...additionalFromMissing];
-
-      // Back-fill options + dataType from intermediate spec metadata
-      questionsData = questionsData.map((q) => {
-        const matchedSpec = rawSpecs.find((s: any) => getStableKey(s) === getStableKey(q));
-        if (!matchedSpec) return q;
-        return {
-          ...q,
-          options:  Array.isArray(matchedSpec.options) && matchedSpec.options.length > 0 ? matchedSpec.options : q.options,
-          dataType: matchedSpec.dataType || q.dataType,
-        };
-      });
-
-      if (questionsData.length > 0) {
-        setQuestions(questionsData);
-
-        const metadataUpdate: Record<string, any> = {};
-        questionsData.forEach((q) => {
-          const key = getStableKey(q);
-          if (key) metadataUpdate[key] = { ...q, dataType: q.dataType || specMetadata[key]?.dataType };
-        });
-        setSpecMetadata((prev) => ({ ...prev, ...metadataUpdate }));
-      }
-
-      // ── Merge final data into state ───────────────────────
-      // Destructure to avoid mutating finalPayload
-      const { specs: rawFinalSpecs, ...safePayload } = finalPayload;
-
-      // Discard specs if the API only returned a string[] of missing key names
-      const finalSpecs = Array.isArray(rawFinalSpecs) && rawFinalSpecs.every((s: any) => typeof s === "string")
-        ? undefined
-        : normalizeSpecs(rawFinalSpecs);
-
-      setData((prev) => ({
-        ...prev,
-        ...safePayload,
-        title:               safePayload.title               || prev.title,
-        enhancedDescription: safePayload.enhanced_description || prev.enhancedDescription,
-        categoryId:          extractEntityId(safePayload.category)   || prev.categoryId,
-        subcategoryId:       extractEntityId(safePayload.subcategory) || prev.subcategoryId,
-        category:            safePayload.category   || prev.category,
-        subcategory:         safePayload.subcategory || prev.subcategory,
-        divisionId:          extractEntityId(safePayload.division) || prev.divisionId,
-        division:            safePayload.division || prev.division,
-        specs:               { ...(prev.specs || {}), ...(finalSpecs || {}) },
-        price:               safePayload.price || prev.price,
-      }));
-
-      setIsFormLoading(false);
-      setGenerationStep(GENERATION_STEPS.DONE);
     } catch (err) {
       if ((err as any).name !== "AbortError") {
-        console.error("Final AI generation error:", err);
-        setIsFormLoading(false);
-        setGenerationStep(GENERATION_STEPS.DONE);
+        console.warn("[fetchAmenities] Failed:", err);
+        setAmenities({});
+      }
+    } finally {
+      if (!signal.aborted) {
+        setIsAmenitiesLoading(false);
       }
     }
   }, []);
 
-  /* ── Intermediate Preview (2nd API) ──────────────────────── */
+  /**
+   * Final Step: Enhances description and identifies missing specifications.
+   */
+  const fetchFinalStep = useCallback(
+    async ({
+      descriptionText,
+      intermediateData,
+      imageKeys,
+      subcategoryId,
+      categoryLabel,
+      subcategoryLabel,
+      currentGenerationId,
+      signal,
+      location,
+      brandId,
+    }: any) => {
+      if (currentGenerationId !== generationIdRef.current || signal?.aborted) return;
 
-  const fetchIntermediate = useCallback(async (
-    basic: any,
-    currentGenerationId: number,
-    signal: AbortSignal,
-  ) => {
-    if (currentGenerationId !== generationIdRef.current || signal.aborted) return;
+      try {
+        const contextPrefix = `ITEM: ${categoryLabel}${
+          subcategoryLabel ? ` > ${subcategoryLabel}` : ""
+        }\n\n`;
+        const contextualDetails = contextPrefix + descriptionText;
 
-    try {
-      const subcategoryId = extractEntityId(basic?.subcategory) || basic?.subcategoryId;
+        const rawSpecs = Array.isArray(intermediateData?.specs) ? intermediateData.specs : [];
+        const missingSpecs: Question[] = rawSpecs.filter((s: any) => !hasValidValue(s.value));
+        const missingSpecKeys: string[] = missingSpecs
+          .map((s: any) => getStableKey(s))
+          .filter(Boolean);
 
-      const res = await post(
-        PostAdApi.intermediatePreview,
-        {
-          subcategoryId,
-          details: basic?.details || basic?.enhanced_description || basic?.description,
-          images:  basic.images || [],
-        },
-        { signal },
-      );
+        // Add special check for division if invalid
+        const isDivInvalid =
+          !intermediateData?.division ||
+          (typeof intermediateData.division === "object" &&
+            !hasValidValue(intermediateData.division?.id || intermediateData.division?._id));
 
-      if (currentGenerationId !== generationIdRef.current) return;
-
-      const intermediate                        = res?.data || {};
-      const metadata:      Record<string, any>  = {};
-      const extractedSpecs: Record<string, any> = {};
-
-      if (Array.isArray(intermediate.specs)) {
-        intermediate.specs.forEach((spec: any) => {
-          const key = getStableKey(spec);
-          if (!key) return;
-          metadata[key]      = spec;
-          extractedSpecs[key] = spec;
-        });
-      }
-
-      // Capture any extra top-level spec-shaped fields the AI may have returned
-      const SKIP_KEYS = new Set([
-        "slug", "images", "questions", "specs", "specifications",
-        "category", "subcategory", "division", "title",
-        "description", "details", "enhanced_description",
-      ]);
-
-      Object.entries(intermediate).forEach(([key, value]) => {
-        if (SKIP_KEYS.has(key)) return;
-        if (value && typeof value === "object" && "value" in (value as any) && isValidSpecValue((value as any).value)) {
-          const stableKey = getStableKey(value as any, key);
-          if (stableKey) {
-            metadata[stableKey]       = value;
-            extractedSpecs[stableKey] = value;
-          }
+        if (isDivInvalid && !missingSpecKeys.includes("division")) {
+          missingSpecKeys.push("division");
         }
-      });
 
-      setSpecMetadata((prev) => ({ ...prev, ...metadata }));
+        const response = await post(
+          PostAdApi.finalPreview,
+          {
+            details: contextualDetails,
+            specs: missingSpecs,
+            location,
+            subcategoryId,
+            images: imageKeys,
+            brandId,
+          },
+          { signal }
+        );
 
-      setData((prev) => ({
-        ...prev,
-        ...intermediate,
-        title:               intermediate.title               || prev.title,
-        enhancedDescription: intermediate.enhanced_description || prev.enhancedDescription,
-        categoryId:          extractEntityId(intermediate.category)   || prev.categoryId,
-        subcategoryId:       extractEntityId(intermediate.subcategory) || prev.subcategoryId,
-        category:            intermediate.category   || prev.category,
-        subcategory:         intermediate.subcategory || prev.subcategory,
-        divisionId:          extractEntityId(intermediate.division) || prev.divisionId,
-        division:            intermediate.division || prev.division,
-        specs:               Object.keys(extractedSpecs).length > 0 ? normalizeSpecs(extractedSpecs) : prev.specs || {},
-        price:               intermediate.price || prev.price,
-      }));
+        if (currentGenerationId !== generationIdRef.current) return;
 
-      setGenerationStep(GENERATION_STEPS.SPECS_FORM);
+        const payload = response?.data ?? response ?? {};
+        let extractedQs = transformQuestions(payload);
 
-      const catLabel    = intermediate.category?.name    || intermediate.category?.label    || basic.category?.name    || basic.category?.label    || "";
-      const subCatLabel = intermediate.subcategory?.name || intermediate.subcategory?.label || basic.subcategory?.name || basic.subcategory?.label || "";
+        // Merge with missing specs to ensure labels are correct
+        const existingKeys = new Set(extractedQs.map((q) => getStableKey(q)));
 
-      const finalSubcategoryId =
-        extractEntityId(intermediate.subcategory) ||
-        extractEntityId(basic.subcategory)         ||
-        basic.subcategoryId;
+        const additionalFromMissing: Question[] = missingSpecKeys
+          .filter((key) => !existingKeys.has(key))
+          .map((key) => {
+            const matchedSpec = rawSpecs.find((s: any) => getStableKey(s) === key);
+            const label = matchedSpec?.name || matchedSpec?.label || key;
+            return {
+              ...(matchedSpec || {}),
+              key,
+              field: key,
+              label,
+              question: `Please specify the ${label.toLowerCase()}`,
+              options: Array.isArray(matchedSpec?.options) ? matchedSpec.options : [],
+              dataType: matchedSpec?.dataType,
+            };
+          });
 
-      await fetchFinal({
-        details:            basic.details || basic.enhanced_description || basic.description,
-        subcategoryId:      finalSubcategoryId,
-        intermediate,
-        images:             basic.images || [],
-        categoryLabel:      catLabel,
-        subcategoryLabel:   subCatLabel,
-        currentGenerationId,
-        signal,
-      });
-    } catch (err) {
-      if ((err as any).name !== "AbortError") {
-        console.error("Intermediate AI failed:", err);
+        const finalQuestions = [...extractedQs, ...additionalFromMissing].map((q) => {
+          const matchingSpec = rawSpecs.find((s: any) => getStableKey(s) === getStableKey(q));
+          return matchingSpec
+            ? {
+                ...q,
+                options:
+                  Array.isArray(matchingSpec.options) && matchingSpec.options.length > 0
+                    ? matchingSpec.options
+                    : q.options,
+                dataType: matchingSpec.dataType || q.dataType,
+              }
+            : q;
+        });
+
+        if (finalQuestions.length > 0) {
+          setQuestions(finalQuestions);
+          const metadataUpdates: Record<string, any> = {};
+          finalQuestions.forEach((q) => {
+            const key = getStableKey(q);
+            if (key) {
+              metadataUpdates[key] = {
+                ...q,
+                dataType: q.dataType || specMetadata[key]?.dataType,
+              };
+            }
+          });
+          setSpecMetadata((prev) => ({ ...prev, ...metadataUpdates }));
+        }
+
+        const { specs: rawFinalSpecs, ...otherData } = payload;
+        const normalizedFinalSpecs =
+          Array.isArray(rawFinalSpecs) && rawFinalSpecs.every((s: any) => typeof s === "string")
+            ? undefined
+            : transformSpecifications(rawFinalSpecs);
+
+        setData((prev) => ({
+          ...prev,
+          ...otherData,
+          enhancedDescription: otherData.enhanced_description || prev.enhancedDescription,
+          categoryId: resolveEntityId(otherData.category) || prev.categoryId,
+          subcategoryId: resolveEntityId(otherData.subcategory) || prev.subcategoryId,
+          divisionId: resolveEntityId(otherData.division) || prev.divisionId,
+          specs: { ...(prev.specs || {}), ...(normalizedFinalSpecs || {}) },
+        }));
+
         setIsFormLoading(false);
         setGenerationStep(GENERATION_STEPS.DONE);
-        Toast.show({ type: "info", text1: "AI Partial Completion", text2: "Please review and fill remaining details." });
+      } catch (err) {
+        if ((err as any).name !== "AbortError") {
+          console.error("[fetchFinalStep] Error:", err);
+          setIsFormLoading(false);
+          setGenerationStep(GENERATION_STEPS.DONE);
+        }
       }
-    }
-  }, [fetchFinal]);
+    },
+    [specMetadata]
+  );
 
-  /* ── First Preview (1st API) ──────────────────────────────── */
+  /**
+   * Intermediate Step: Identifies relevant specifications and category structure.
+   */
+  const fetchIntermediateStep = useCallback(
+    async (
+      basicData: any,
+      currentGenerationId: number,
+      signal: AbortSignal,
+      location?: { lat: number; lon: number } | null
+    ) => {
+      if (currentGenerationId !== generationIdRef.current || signal.aborted) return;
 
-  const fetchPreview = useCallback(async (description: string, images: string[]) => {
-    const currentGenerationId = ++generationIdRef.current;
-    const signal              = createAbortSignal();
+      try {
+        const subcategoryId = resolveEntityId(basicData?.subcategory) || basicData?.subcategoryId;
+        const detailsText =
+          basicData?.details || basicData?.enhanced_description || basicData?.description;
 
-    try {
-      setIsFormLoading(true);
-      setGenerationStep(GENERATION_STEPS.PREVIEW);
+        const response = await post(
+          PostAdApi.intermediatePreview,
+          {
+            subcategoryId,
+            details: detailsText,
+            images: basicData.images || [],
+          },
+          { signal }
+        );
 
-      const uploadedImageKeys = await uploadImages(images, signal);
+        if (currentGenerationId !== generationIdRef.current) return;
 
-      if (signal.aborted || currentGenerationId !== generationIdRef.current) return;
+        const intermediate = response?.data || {};
+        const metadata: Record<string, any> = {};
+        const specsFound: Record<string, any> = {};
 
-      if (uploadedImageKeys.length === 0 && images.length > 0) {
-        Toast.show({ type: "error", text1: "Upload failed", text2: "Failed to upload images." });
-        setIsFormLoading(false);
-        return;
-      }
+        // 1. Process explicit specs array
+        if (Array.isArray(intermediate.specs)) {
+          intermediate.specs.forEach((s: any) => {
+            const k = getStableKey(s);
+            if (k) {
+              metadata[k] = s;
+              specsFound[k] = s;
+            }
+          });
+        }
 
-      if (uploadedImageKeys.length > 0 && uploadedImageKeys.length < images.length) {
-        Toast.show({
-          type:  "info",
-          text1: "Some images failed to upload",
-          text2: `${uploadedImageKeys.length} of ${images.length} uploaded. You can add more later.`,
+        // 2. Process inferred specs from top-level fields
+        const EXCLUDE_KEYS = new Set([
+          "slug",
+          "images",
+          "questions",
+          "specs",
+          "specifications",
+          "category",
+          "subcategory",
+          "division",
+          "title",
+          "description",
+          "details",
+          "enhanced_description",
+        ]);
+        Object.entries(intermediate).forEach(([key, value]) => {
+          const isPotentialSpec =
+            !EXCLUDE_KEYS.has(key) &&
+            value &&
+            typeof value === "object" &&
+            "value" in (value as any) &&
+            hasValidValue((value as any).value);
+          if (isPotentialSpec) {
+            const stableKey = getStableKey(value as any, key);
+            if (stableKey) {
+              metadata[stableKey] = value;
+              specsFound[stableKey] = value;
+            }
+          }
         });
+
+        setSpecMetadata((prev) => ({ ...prev, ...metadata }));
+        setData((prev) => ({
+          ...prev,
+          ...intermediate,
+          enhancedDescription: intermediate.enhanced_description || prev.enhancedDescription,
+          categoryId: resolveEntityId(intermediate.category) || prev.categoryId,
+          subcategoryId: resolveEntityId(intermediate.subcategory) || prev.subcategoryId,
+          divisionId: resolveEntityId(intermediate.division) || prev.divisionId,
+          brandId: resolveEntityId(intermediate.brand) || prev.brandId,
+          specs:
+            Object.keys(specsFound).length > 0
+              ? transformSpecifications(specsFound)
+              : prev.specs || {},
+        }));
+
+        setGenerationStep(GENERATION_STEPS.SPECS_FORM);
+
+        // Resolve labels for the final context
+        const categoryLabel =
+          intermediate.category?.name ||
+          intermediate.category?.label ||
+          basicData.category?.name ||
+          basicData.category?.label ||
+          "";
+        const subLabel =
+          intermediate.subcategory?.name ||
+          intermediate.subcategory?.label ||
+          basicData.subcategory?.name ||
+          basicData.subcategory?.label ||
+          "";
+
+        const finalParams = {
+          descriptionText: detailsText,
+          subcategoryId:
+            resolveEntityId(intermediate.subcategory) ||
+            resolveEntityId(basicData.subcategory) ||
+            basicData.subcategoryId,
+          intermediateData: intermediate,
+          imageKeys: basicData.images || [],
+          categoryLabel,
+          subcategoryLabel: subLabel,
+          currentGenerationId,
+          signal,
+          location,
+          brandId: resolveEntityId(intermediate.brand),
+        };
+
+        await fetchFinalStep(finalParams);
+      } catch (err) {
+        if ((err as any).name !== "AbortError") {
+          console.error("[fetchIntermediateStep] Error:", err);
+          setIsFormLoading(false);
+          setGenerationStep(GENERATION_STEPS.DONE);
+          Toast.show({
+            type: "info",
+            text1: "AI Analysis Partial",
+            text2: "Some details may need manual review.",
+          });
+        }
       }
+    },
+    [fetchFinalStep]
+  );
 
-      setImageKeys(uploadedImageKeys);
+  /**
+   * Initial Entry Point: Categorizes the product and starts parallel tasks.
+   */
+  const fetchPreview = useCallback(
+    async (
+      description: string,
+      images: string[],
+      location?: { lat: number; lon: number } | null
+    ) => {
+      const currentGenerationId = ++generationIdRef.current;
+      const signal = createAbortSignal();
 
-      const res = await post(
-        PostAdApi.previewProduct,
-        { description, images: uploadedImageKeys.length > 0 ? uploadedImageKeys : images },
-        { signal },
-      );
+      // Reset questions only (Keep amenities unless we specifically need to)
+      setQuestions([]);
 
-      if (currentGenerationId !== generationIdRef.current) return;
-      if (!res?.data) throw new Error("No data returned from preview API");
+      try {
+        setIsFormLoading(true);
+        setGenerationStep(GENERATION_STEPS.PREVIEW);
 
-      const basic = res.data;
+        // --- Task 1: Upload Images ---
+        const uploadedImageKeys = await uploadImages(images, signal);
 
-      setData({
-        ...basic,
-        title:               basic.title || "",
-        enhancedDescription: basic.details || basic.enhanced_description || basic.description || "",
-        categoryId:          extractEntityId(basic.category),
-        subcategoryId:       extractEntityId(basic.subcategory),
-        price:               basic.price || "",
-      });
+        if (signal.aborted || currentGenerationId !== generationIdRef.current) return;
 
-      setGenerationStep(GENERATION_STEPS.BASIC_FORM);
+        if (uploadedImageKeys.length === 0 && images.length > 0) {
+          Toast.show({ type: "error", text1: "Upload Failed", text2: "Could not process images." });
+          setIsFormLoading(false);
+          return;
+        }
+        setImageKeys(uploadedImageKeys);
 
-      await fetchIntermediate(
-        { ...basic, images: uploadedImageKeys.length > 0 ? uploadedImageKeys : images },
-        currentGenerationId,
-        signal,
-      );
-    } catch (err) {
-      if ((err as any).name !== "AbortError") {
-        console.error("Preview failed:", err);
-        Toast.show({ type: "error", text1: "Error", text2: "AI Analysis failed" });
-        setIsFormLoading(false);
+        // --- Task 2: No immediate parallel load (Moved to after AI analysis) ---
+
+        // --- Task 3: Primary AI Analysis ---
+        const activeImageSet = uploadedImageKeys.length > 0 ? uploadedImageKeys : images;
+        const response = await post(
+          PostAdApi.previewProduct,
+          { description, images: activeImageSet },
+          { signal }
+        );
+
+        if (currentGenerationId !== generationIdRef.current) return;
+
+        const basicResult = response?.data;
+        if (!basicResult) throw new Error("Preview API returned no data");
+
+        setData({
+          ...basicResult,
+          title: basicResult.title || "",
+          enhancedDescription:
+            basicResult.details ||
+            basicResult.enhanced_description ||
+            basicResult.description ||
+            "",
+          categoryId: resolveEntityId(basicResult.category),
+          subcategoryId: resolveEntityId(basicResult.subcategory),
+          price: basicResult.price || "",
+          isAmenitiesRequired: basicResult.isAmenitiesRequired ?? false,
+        });
+
+        setGenerationStep(GENERATION_STEPS.BASIC_FORM);
+
+        // --- Task 4: Parallel Amenity Load (Conditional) ---
+        if (basicResult.isAmenitiesRequired && location?.lat && location?.lon) {
+          fetchAmenities(location.lat, location.lon);
+        }
+
+        // --- Task 5: Continue to Next Stage ---
+        await fetchIntermediateStep(
+          { ...basicResult, images: activeImageSet },
+          currentGenerationId,
+          signal,
+          location
+        );
+      } catch (err) {
+        if ((err as any).name !== "AbortError") {
+          console.error("[fetchPreview] Initial analysis failed:", err);
+          Toast.show({
+            type: "error",
+            text1: "AI Busy",
+            text2: "Could not analyze the ad. Please try again.",
+          });
+          setIsFormLoading(false);
+        }
       }
-    }
-  }, [uploadImages, fetchIntermediate]);
-
-  /* ── Public API ───────────────────────────────────────────── */
+    },
+    [uploadImages, fetchIntermediateStep, fetchAmenities]
+  );
 
   return {
     generationStep,
@@ -569,8 +683,9 @@ export const usePostAdAI = () => {
     questions,
     specMetadata,
     imageKeys,
+    amenities,
+    isAmenitiesLoading,
     fetchPreview,
-    // normalizeFieldKey is a named export — import it directly where needed:
-    // import { normalizeFieldKey } from './usePostAdAI'
+    fetchAmenities,
   };
 };

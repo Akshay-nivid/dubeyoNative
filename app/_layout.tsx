@@ -12,6 +12,11 @@ import { Stack, usePathname, useRouter } from "expo-router";
 import { Dimensions, StatusBar, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { useFonts, DMSerifDisplay_400Regular } from "@expo-google-fonts/dm-serif-display";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+
+SplashScreen.preventAutoHideAsync();
 
 const { width } = Dimensions.get("window");
 
@@ -104,9 +109,22 @@ const styles = StyleSheet.create({
 });
 
 export default function RootLayout() {
-  const router = useRouter();
+  const [loaded, error] = useFonts({
+    "DM Serif Display": DMSerifDisplay_400Regular,
+  });
 
+  const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (loaded || error) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, error]);
+
+  if (!loaded && !error) {
+    return null;
+  }
 
   const showBottomBar = ["/home", "/chat"].includes(pathname);
 
