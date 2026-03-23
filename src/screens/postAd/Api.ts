@@ -11,4 +11,5 @@ export const PostAdApi = {
   divisions: "/division/all",
   divisionBySubcategory: "/division/view",
   getLocationHighlights: "/product/v1/getlocationhighlights",
+  brandsBySubcategory: "/brand/getbrandsbysubcategoryid",
 };

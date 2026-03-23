@@ -50,6 +50,9 @@ export interface PostAdData {
   images?: string[];
   specs?: Record<string, any>;
   isAmenitiesRequired?: boolean;
+  isbrandrequired?: boolean;
+  brand?: any;
+  brandId?: string;
   [key: string]: any;
 }
 
@@ -243,8 +246,13 @@ export const usePostAdAI = () => {
     const token = await getToken();
     const targetUrl = `${API_BASE_URL}${PostAdApi.uploadImage}`;
 
+    const filesToUpload = uris.filter(uri => uri.startsWith('file://') || uri.startsWith('content://'));
+    const alreadyUploaded = uris.filter(uri => !uri.startsWith('file://') && !uri.startsWith('content://'));
+    
+    uploadedKeys.push(...alreadyUploaded);
+
     await Promise.all(
-      uris.map(async (uri) => {
+      filesToUpload.map(async (uri) => {
         if (signal?.aborted) return;
         try {
           const formData = new FormData();
@@ -358,9 +366,9 @@ export const usePostAdAI = () => {
             details: contextualDetails,
             specs: missingSpecs,
             location,
-            subcategoryId,
-            images: imageKeys,
-            brandId,
+            subcategoryId: subcategoryId || null,
+            images: imageKeys || [],
+            brandId: brandId || null,
           },
           { signal }
         );
@@ -431,6 +439,9 @@ export const usePostAdAI = () => {
           categoryId: resolveEntityId(otherData.category) || prev.categoryId,
           subcategoryId: resolveEntityId(otherData.subcategory) || prev.subcategoryId,
           divisionId: resolveEntityId(otherData.division) || prev.divisionId,
+          brandId: resolveEntityId(otherData.brand) || prev.brandId,
+          brand: otherData.brand || prev.brand,
+          isbrandrequired: otherData.isbrandrequired ?? prev.isbrandrequired,
           specs: { ...(prev.specs || {}), ...(normalizedFinalSpecs || {}) },
         }));
 
@@ -531,6 +542,8 @@ export const usePostAdAI = () => {
           subcategoryId: resolveEntityId(intermediate.subcategory) || prev.subcategoryId,
           divisionId: resolveEntityId(intermediate.division) || prev.divisionId,
           brandId: resolveEntityId(intermediate.brand) || prev.brandId,
+          brand: intermediate.brand || prev.brand,
+          isbrandrequired: intermediate.isbrandrequired ?? prev.isbrandrequired,
           specs:
             Object.keys(specsFound).length > 0
               ? transformSpecifications(specsFound)
@@ -644,6 +657,9 @@ export const usePostAdAI = () => {
           subcategoryId: resolveEntityId(basicResult.subcategory),
           price: basicResult.price || "",
           isAmenitiesRequired: basicResult.isAmenitiesRequired ?? false,
+          isbrandrequired: basicResult.isbrandrequired ?? false,
+          brandId: resolveEntityId(basicResult.brand) || "",
+          brand: basicResult.brand,
         });
 
         setGenerationStep(GENERATION_STEPS.BASIC_FORM);

@@ -7,9 +7,11 @@ export const usePostAdData = (categoryId?: string, subcategoryId?: string) => {
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [allSubcategories, setAllSubcategories] = useState<any[]>([]);
   const [divisions, setDivisions] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
 
   const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(false);
   const [isLoadingDivisions, setIsLoadingDivisions] = useState(false);
+  const [isLoadingBrands, setIsLoadingBrands] = useState(false);
 
   useEffect(() => {
     const fetchDropdowns = async () => {
@@ -74,11 +76,37 @@ export const usePostAdData = (categoryId?: string, subcategoryId?: string) => {
     fetchDivisions();
   }, [subcategoryId]);
 
+  // Fetch brands if subcategory changes
+  useEffect(() => {
+    const fetchBrands = async () => {
+      if (!subcategoryId) {
+        setBrands([]);
+        return;
+      }
+
+      try {
+        setIsLoadingBrands(true);
+        const res = await get(
+          `${PostAdApi.brandsBySubcategory}?subcategoryId=${subcategoryId}`,
+        );
+        const brandsData = res?.data?.brands || res?.data?.data || res?.data || [];
+        setBrands(Array.isArray(brandsData) ? brandsData : []);
+      } catch (error) {
+        console.error("Failed to fetch brands", error);
+      } finally {
+        setIsLoadingBrands(false);
+      }
+    };
+    fetchBrands();
+  }, [subcategoryId]);
+
   return {
     categories,
     subcategories,
     divisions,
+    brands,
     isLoadingSubcategories,
     isLoadingDivisions,
+    isLoadingBrands,
   };
 };

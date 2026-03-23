@@ -26,12 +26,26 @@ import ImagePreviewCard from "./components/ImagePreviewCard";
 import { InlinePicker } from "./components/InlinePicker";
 import { InlineToggle } from "./components/InlineToggle";
 import PostAdSkeleton from "./components/PostAdSkeleton";
-import SelectRow from "./components/SelectRow";
 import SuccessModal from "./components/SuccessModal";
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   HELPERS
+   HELPERS & LOCAL COMPONENTS
 ───────────────────────────────────────────────────────────────────────────── */
+
+const LocalTextInput = ({ value, onChangeText, ...props }: any) => {
+  const [local, setLocal] = useState(value?.toString() || "");
+  useEffect(() => setLocal(value?.toString() || ""), [value]);
+  return (
+    <TextInput
+      {...props}
+      value={local}
+      onChangeText={(t) => {
+        setLocal(t);
+        if (onChangeText) onChangeText(t);
+      }}
+    />
+  );
+};
 
 const buildSpecsPayload = (
   specs: Record<string, any> | undefined,
@@ -83,8 +97,8 @@ const PostAdDetails = () => {
   } = usePostAdAI();
 
   const {
-    categories, subcategories, divisions,
-    isLoadingSubcategories, isLoadingDivisions,
+    categories, subcategories, divisions, brands,
+    isLoadingSubcategories, isLoadingDivisions, isLoadingBrands,
   } = usePostAdData(data.categoryId, data.subcategoryId);
 
   const [clicked, setClicked]                             = useState(false);
@@ -139,6 +153,29 @@ const PostAdDetails = () => {
     }
   }, [divisions, data.division, data.divisionId]);
 
+  // Sync brand label → id
+  useEffect(() => {
+    if (
+      brands.length > 0 &&
+      data.brand &&
+      typeof data.brand === "string" &&
+      !data.brandId
+    ) {
+      const match = brands.find(
+        (b) =>
+          b.name?.toLowerCase()  === (data.brand as string).toLowerCase() ||
+          b.label?.toLowerCase() === (data.brand as string).toLowerCase(),
+      );
+      if (match) {
+        setData((prev: any) => ({
+          ...prev,
+          brand:   match,
+          brandId: match.id || match._id || match.value,
+        }));
+      }
+    }
+  }, [brands, data.brand, data.brandId]);
+
   /* ── 3. Derived Values ── */
 
   const categoryName = useMemo(() => {
@@ -154,6 +191,13 @@ const PostAdDetails = () => {
     const sub = subcategories.find((s) => (s.id || s._id || s.value) === data.subcategoryId);
     return sub?.name || sub?.label || data?.subcategory?.name || "";
   }, [subcategories, data.subcategoryId, data?.subcategory]);
+
+  const brandName = useMemo(() => {
+    if (!data?.brandId || brands.length === 0)
+      return data?.brand?.name || data?.brand?.label || "";
+    const brand = brands.find((b) => (b.id || b._id || b.value) === data.brandId);
+    return brand?.name || brand?.label || data?.brand?.name || "";
+  }, [brands, data.brandId, data?.brand]);
 
   const hasValidSpecs = useMemo(
     () => !!data?.specs && Object.values(data.specs).some(
@@ -183,7 +227,7 @@ const PostAdDetails = () => {
     if (data.specs) {
       Object.entries(data.specs as Record<string, any>).forEach(([key, val]) => {
         const strVal = String(val ?? "").trim();
-        if (!strVal || strVal.toLowerCase() === "null" || strVal.toLowerCase() === "undefined") return;
+        if (val === null || val === undefined || strVal.toLowerCase() === "null" || strVal.toLowerCase() === "undefined") return;
 
         const meta     = specMetadata[key];
         const dataType = meta?.dataType;
@@ -279,7 +323,9 @@ const PostAdDetails = () => {
         category:            undefined,
         subcategory:         undefined,
         division:            undefined,
+        brand:               undefined,
         isAmenitiesRequired: undefined,
+        isbrandrequired:     undefined,
         enhancedDescription: undefined,
         price:               normalizedPrice,
         specs:               formattedSpecs,
@@ -489,7 +535,14 @@ const PostAdDetails = () => {
       });
     };
 
-    if (options.length > 3 && dataType !== "boolean" && options.length !== 2) {
+    const isBinary =
+      dataType === "boolean" ||
+      (options.length === 2 &&
+        options.some((o) =>
+          ["yes", "no", "true", "false"].includes(String(o).toLowerCase())
+        ));
+
+    if (!isBinary && options.length > 0) {
       return (
         <InlinePicker
           key={fieldKey}
@@ -510,10 +563,10 @@ const PostAdDetails = () => {
           <InlineToggle options={options} selectedChecker={isSelected} onSelect={handleSelect} />
         ) : (
           <View className="bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 h-[48px] justify-center">
-            <TextInput
+            <LocalTextInput
               value={String(questionAnswers[fieldKey] ?? "")}
-              onChangeText={(text) =>
-                setQuestionAnswers((prev) => ({ ...prev, [fieldKey]: text }))
+              onChangeText={(text: string) =>
+                setQuestionAnswers((prev: any) => ({ ...prev, [fieldKey]: text }))
               }
               placeholder="Type your answer..."
               placeholderTextColor="#9CA3AF"
@@ -612,38 +665,70 @@ const PostAdDetails = () => {
                   onChange={(v: string) => setData((prev: any) => ({ ...prev, title: v }))}
                 />
                 <View className="flex-row justify-between w-full">
-                  <SelectRow
+                  <InlinePicker
                     label="Category"
                     value={categoryName}
-                    options={categories}
+                    options={categories.map((c: any) => ({
+                      label: c.name || c.label || "",
+                      value: c.id || c._id || c.value || "",
+                    }))}
                     containerStyle={{ width: "48%" }}
                     onSelect={(opt: any) => {
+                      const full = categories.find((c: any) => (c.id || c._id || c.value) === opt.value);
                       setData((prev: any) => ({
                         ...prev,
-                        categoryId:    opt.id || opt._id || opt.value,
-                        category:      opt,
+                        categoryId:    full?.id || full?._id || full?.value || opt.value,
+                        category:      full || opt,
                         subcategoryId: undefined,
                         subcategory:   undefined,
                       }));
                     }}
                   />
-                  <SelectRow
+                  <InlinePicker
                     label="Sub Category"
                     value={subcategoryName}
-                    options={subcategories}
+                    options={subcategories.map((s: any) => ({
+                      label: s.name || s.label || "",
+                      value: s.id || s._id || s.value || "",
+                    }))}
                     isLoading={isLoadingSubcategories}
                     containerStyle={{ width: "48%" }}
                     onSelect={(opt: any) => {
+                      const full = subcategories.find((s: any) => (s.id || s._id || s.value) === opt.value);
                       setData((prev: any) => ({
                         ...prev,
-                        subcategoryId: opt.id || opt._id,
-                        subcategory:   opt,
+                        subcategoryId: full?.id || full?._id || full?.value || opt.value,
+                        subcategory:   full || opt,
                         divisionId:    undefined,
                         division:      undefined,
+                        brandId:       undefined,
+                        brand:         undefined,
                       }));
                     }}
                   />
                 </View>
+                {data.isbrandrequired && (
+                  <View className="mt-4 flex-row justify-between w-full">
+                    <InlinePicker
+                      label="Brand"
+                      value={brandName}
+                      options={brands.map((b: any) => ({
+                        label: b.name || b.label || "",
+                        value: b.id || b._id || b.value || "",
+                      }))}
+                      isLoading={isLoadingBrands}
+                      containerStyle={{ width: "100%" }}
+                      onSelect={(opt: any) => {
+                        const full = brands.find((b: any) => (b.id || b._id || b.value) === opt.value);
+                        setData((prev: any) => ({
+                          ...prev,
+                          brandId: full?.id || full?._id || full?.value || opt.value,
+                          brand:   full || opt,
+                        }));
+                      }}
+                    />
+                  </View>
+                )}
               </>
             )}
           </View>
@@ -702,6 +787,7 @@ const PostAdDetails = () => {
                   <>
                     <PostAdSkeleton className="h-20 w-full rounded-xl mb-3" />
                     <PostAdSkeleton className="h-20 w-full rounded-xl mb-3" />
+                    <PostAdSkeleton className="h-20 w-full rounded-xl mb-3" />
                   </>
                 ) : (
                   questions.map((q, idx) => renderQuestionItem(q, idx))
@@ -730,11 +816,11 @@ const PostAdDetails = () => {
                   <View className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 mr-3">
                     <Text className="text-gray-900 font-bold text-xs">AED</Text>
                   </View>
-                  <TextInput
+                  <LocalTextInput
                     placeholder="0.00"
                     keyboardType="numeric"
                     value={data.price?.toString() || ""}
-                    onChangeText={(v) => setData((prev: any) => ({ ...prev, price: v }))}
+                    onChangeText={(v: string) => setData((prev: any) => ({ ...prev, price: v }))}
                     className="flex-1 text-2xl font-black text-gray-900"
                     placeholderTextColor="#D1D5DB"
                   />
@@ -766,10 +852,10 @@ const PostAdDetails = () => {
                   <AISuggestedTag />
                 </View>
                 <View className="bg-gray-50/50 border border-gray-100 rounded-[24px] p-5">
-                  <TextInput
+                  <LocalTextInput
                     multiline
                     value={data.enhancedDescription}
-                    onChangeText={(v) => setData((prev: any) => ({ ...prev, enhancedDescription: v }))}
+                    onChangeText={(v: string) => setData((prev: any) => ({ ...prev, enhancedDescription: v }))}
                     placeholder="Review the AI enhanced description..."
                     className="text-sm text-gray-800 leading-5 font-medium min-h-[120px]"
                   />

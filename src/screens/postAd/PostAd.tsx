@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   Dimensions,
@@ -29,6 +30,7 @@ import { Api, fetchProfile } from "../../screens/home/Api";
 import { get } from "../../services/api";
 import { getToken } from "../../services/storage/tokenStorage";
 import LocationPicker from "@/src/components/LocationPicker";
+import { API_BASE_URL } from "@/src/constants/env";
 
 const PostAd = () => {
   const router = useRouter();
@@ -42,6 +44,73 @@ const PostAd = () => {
   const [editLoaded, setEditLoaded] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  type UploadStatus = "uploading" | "success" | "error";
+  const [uploadStatuses, setUploadStatuses] = useState<Record<string, { status: UploadStatus; key?: string; progress?: number }>>({});
+
+  const uploadImage = async (uri: string) => {
+    if (!uri.startsWith("file://") && !uri.startsWith("content://")) {
+      setUploadStatuses(prev => ({ ...prev, [uri]: { status: "success", key: uri, progress: 100 } }));
+      return;
+    }
+
+    setUploadStatuses(prev => ({ ...prev, [uri]: { status: "uploading", progress: 0 } }));
+    try {
+      const token = await getToken();
+      const formData = new FormData();
+      const fileName = uri.split("/").pop() || "image.jpg";
+      let ext = fileName.includes(".") ? fileName.split(".").pop()?.toLowerCase() || "jpg" : "jpg";
+      if (!["jpg", "jpeg", "png", "webp", "heic"].includes(ext)) ext = "jpg";
+      
+      formData.append("image", {
+        uri,
+        name: fileName.includes(".") ? fileName : `${fileName}.jpg`,
+        type: `image/${ext === "jpg" ? "jpeg" : ext}`,
+      } as any);
+
+      return new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            let progress = Math.round((event.loaded * 100) / event.total);
+            if (progress > 100) progress = 100;
+            setUploadStatuses(prev => ({ ...prev, [uri]: { status: "uploading", progress } }));
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const result = JSON.parse(xhr.responseText);
+              if (result?.data) {
+                setUploadStatuses(prev => ({ ...prev, [uri]: { status: "success", key: result.data, progress: 100 } }));
+                resolve();
+              } else {
+                reject(new Error("Upload response missing data"));
+              }
+            } catch (e) {
+              reject(e);
+            }
+          } else {
+            reject(new Error("Upload failed"));
+          }
+        });
+
+        xhr.addEventListener("error", () => reject(new Error("Network Error")));
+        xhr.open("POST", `${API_BASE_URL}/product/v1/image/upload`);
+        xhr.setRequestHeader("Accept", "application/json");
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.send(formData);
+      }).catch((e) => {
+        console.log("Image upload failed", e);
+        setUploadStatuses(prev => ({ ...prev, [uri]: { status: "error", progress: 0 } }));
+        Toast.show({ type: "error", text1: "Upload Failed", text2: "Could not upload image." });
+      });
+    } catch (e) {
+      console.log("Image upload setup failed", e);
+      setUploadStatuses(prev => ({ ...prev, [uri]: { status: "error", progress: 0 } }));
+      Toast.show({ type: "error", text1: "Upload Failed", text2: "Could not upload image." });
+    }
+  };
 
   const {
     coordinates,
@@ -148,6 +217,11 @@ const PostAd = () => {
                 (uri: string) => ({ uri }) as ImagePicker.ImagePickerAsset,
               ),
             );
+            const initialStatuses: Record<string, { status: UploadStatus; key?: string; progress?: number }> = {};
+            uris.forEach((uri: string) => {
+              initialStatuses[uri] = { status: "success", key: uri, progress: 100 };
+            });
+            setUploadStatuses(initialStatuses);
           }
         }
       } catch (e) {
@@ -294,18 +368,26 @@ const PostAd = () => {
       }
 
       if (validFiles.length > 0) {
-        setPhotos((prev) => {
-          const newPhotos = [...prev, ...validFiles];
-          if (newPhotos.length > 4) {
-            Toast.show({
-              type: "error",
-              text1: "Limit Reached",
-              text2: "Only first 4 images were added.",
-            });
-            return newPhotos.slice(0, 4);
-          }
-          return newPhotos;
-        });
+        const availableSlots = 4 - photos.length;
+        if (availableSlots <= 0) {
+          Toast.show({ type: "error", text1: "Limit Reached", text2: "Max 4 images." });
+          return;
+        }
+
+        const keptFiles = validFiles.slice(0, availableSlots);
+        if (validFiles.length > availableSlots) {
+          Toast.show({
+            type: "error",
+            text1: "Limit Reached",
+            text2: `Only ${availableSlots} out of ${validFiles.length} extra images were added.`,
+          });
+        }
+
+        setPhotos((prev) => [...prev, ...keptFiles]);
+
+        setTimeout(() => {
+          keptFiles.forEach(file => uploadImage(file.uri));
+        }, 0);
       }
     }
   };
@@ -387,14 +469,21 @@ const PostAd = () => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const isAnyUploading = photos.some(p => uploadStatuses[p.uri]?.status === "uploading");
+  const hasUploadError = photos.some(p => uploadStatuses[p.uri]?.status === "error");
+  const isContinueDisabled = loading || isAnyUploading || hasUploadError || !description.trim() || photos.length < 1;
+
   const handleContinue = async () => {
-    if (photos.length < 1 || !description.trim()) return;
+    if (isContinueDisabled) return;
 
     try {
       setLoading(true);
 
-      // Pass local URIs directly to PostAdDetails
-      const imageUris = photos.map((p) => p.uri);
+      const imageUris = photos.map((p) => {
+        const s = uploadStatuses[p.uri];
+        if (s?.status === "success" && s.key) return s.key;
+        return p.uri;
+      });
 
       const nextParams: Record<string, string> = {
         description,
@@ -442,7 +531,12 @@ const PostAd = () => {
           /* Filled State - Images Inside Box */
           <View className="bg-[#F0F4FF] border-2 border-dashed border-[#1e3a8a] rounded-2xl p-4 min-h-[160px]">
             <View className="flex-row flex-wrap gap-2">
-              {photos.map((photo, index) => (
+              {photos.map((photo, index) => {
+                const statusInfo = uploadStatuses[photo.uri];
+                const isUploading = statusInfo?.status === "uploading";
+                const isError = statusInfo?.status === "error";
+
+                return (
                 <View
                   key={index}
                   className="w-[22%] aspect-square rounded-xl overflow-hidden relative border border-gray-100 bg-white"
@@ -452,9 +546,27 @@ const PostAd = () => {
                     style={{ width: "100%", height: "100%" }}
                     contentFit="cover"
                   />
+                  {isUploading && (
+                    <>
+                      <View className="absolute top-0 bottom-0 left-0 right-0 bg-black/30 items-center justify-center z-20">
+                        <ActivityIndicator color="#FFF" size="small" />
+                      </View>
+                      <View className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/40 z-30">
+                        <View 
+                          className="h-full bg-indigo-500 rounded-r-full" 
+                          style={{ width: `${Math.min(100, statusInfo?.progress || 0)}%` }} 
+                        />
+                      </View>
+                    </>
+                  )}
+                  {isError && (
+                    <View className="absolute top-0 bottom-0 left-0 right-0 bg-red-500/40 items-center justify-center z-20">
+                      <Ionicons name="alert-circle" size={24} color="#FFF" />
+                    </View>
+                  )}
                   <TouchableOpacity
                     onPress={() => removePhoto(index)}
-                    className="absolute top-1 right-1 bg-red-100 rounded-md p-1 z-10 shadow-sm"
+                    className="absolute top-1 right-1 bg-red-100 rounded-md p-1 z-30 shadow-sm"
                   >
                     <Ionicons
                       name="trash-outline"
@@ -463,7 +575,7 @@ const PostAd = () => {
                     />
                   </TouchableOpacity>
                 </View>
-              ))}
+              )})}
 
               {/* Add Button (if less than 4) */}
               {photos.length < 4 && (
@@ -647,19 +759,18 @@ const PostAd = () => {
                     {/* Waveform Icon */}
 
                     <TouchableOpacity
-                      onPress={description.trim() ? handleContinue : () => {}}
-                      disabled={loading}
-                      className={`w-12 h-12 rounded-xl items-center justify-center ${description.trim() && photos.length === 0 ? "bg-gray-200" : "bg-black"}`}
+                      onPress={!isContinueDisabled ? handleContinue : undefined}
+                      disabled={isContinueDisabled}
+                      activeOpacity={0.8}
+                      className={`w-12 h-12 rounded-xl items-center justify-center ${
+                        !description.trim() ? "bg-black" : (!isContinueDisabled ? "bg-black" : "bg-gray-200")
+                      }`}
                     >
                       {description.trim() ? (
                         <Ionicons
                           name="arrow-forward"
                           size={24}
-                          color={
-                            description.trim() && photos.length === 0
-                              ? "#9CA3AF"
-                              : "#FFF"
-                          }
+                          color={!isContinueDisabled ? "#FFF" : "#9CA3AF"}
                         />
                       ) : (
                         /* Waveform Animation (Simulated) inside button */
