@@ -2,16 +2,22 @@ import { get } from "@/src/services/api";
 import { useEffect, useState } from "react";
 import { PostAdApi } from "../screens/postAd/Api";
 
-export const usePostAdData = (categoryId?: string, subcategoryId?: string) => {
+export const usePostAdData = (
+  categoryId?: string,
+  subcategoryId?: string,
+  brandId?: string,
+) => {
   const [categories, setCategories] = useState<any[]>([]);
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [allSubcategories, setAllSubcategories] = useState<any[]>([]);
   const [divisions, setDivisions] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
+  const [models, setModels] = useState<any[]>([]);
 
   const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(false);
   const [isLoadingDivisions, setIsLoadingDivisions] = useState(false);
   const [isLoadingBrands, setIsLoadingBrands] = useState(false);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   useEffect(() => {
     const fetchDropdowns = async () => {
@@ -89,7 +95,8 @@ export const usePostAdData = (categoryId?: string, subcategoryId?: string) => {
         const res = await get(
           `${PostAdApi.brandsBySubcategory}?subcategoryId=${subcategoryId}`,
         );
-        const brandsData = res?.data?.brands || res?.data?.data || res?.data || [];
+        const brandsData =
+          res?.data?.brands || res?.data?.data || res?.data || [];
         setBrands(Array.isArray(brandsData) ? brandsData : []);
       } catch (error) {
         console.error("Failed to fetch brands", error);
@@ -100,13 +107,38 @@ export const usePostAdData = (categoryId?: string, subcategoryId?: string) => {
     fetchBrands();
   }, [subcategoryId]);
 
+  // Fetch models if brand changes
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (!brandId) {
+        setModels([]);
+        return;
+      }
+
+      try {
+        setIsLoadingModels(true);
+        const res = await get(`${PostAdApi.modelsByBrand}/${brandId}`);
+        const modelsData =
+          res?.data?.models || res?.data?.data || res?.data || [];
+        setModels(Array.isArray(modelsData) ? modelsData : []);
+      } catch (error) {
+        console.error("Failed to fetch models", error);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+    fetchModels();
+  }, [brandId]);
+
   return {
     categories,
     subcategories,
     divisions,
     brands,
+    models,
     isLoadingSubcategories,
     isLoadingDivisions,
     isLoadingBrands,
+    isLoadingModels,
   };
 };

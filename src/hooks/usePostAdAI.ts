@@ -5,10 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Toast from "react-native-toast-message";
 import { PostAdApi } from "../screens/postAd/Api";
 
-/* ─────────────────────────────────────────────────────────────
-   TYPES & INTERFACES
-───────────────────────────────────────────────────────────── */
-
 export const GENERATION_STEPS = {
   PREVIEW: 0,
   BASIC_FORM: 1,
@@ -16,7 +12,8 @@ export const GENERATION_STEPS = {
   DONE: 3,
 } as const;
 
-export type GenerationStep = (typeof GENERATION_STEPS)[keyof typeof GENERATION_STEPS];
+export type GenerationStep =
+  (typeof GENERATION_STEPS)[keyof typeof GENERATION_STEPS];
 
 export interface Question {
   key?: string;
@@ -53,6 +50,9 @@ export interface PostAdData {
   isbrandrequired?: boolean;
   brand?: any;
   brandId?: string;
+  isModelrequired?: boolean;
+  model?: any;
+  modelId?: string;
   [key: string]: any;
 }
 
@@ -65,10 +65,6 @@ export interface AmenityItem {
 
 export type AmenitiesData = Record<string, AmenityItem[]>;
 
-/* ─────────────────────────────────────────────────────────────
-   CONSTANTS & CONFIG
-───────────────────────────────────────────────────────────── */
-
 const REDUNDANT_KEY_PATTERNS = [
   /\blocation\b/,
   /\bprice\b/,
@@ -76,10 +72,6 @@ const REDUNDANT_KEY_PATTERNS = [
   /\baddress\b/,
   /\bgps\b/,
 ];
-
-/* ─────────────────────────────────────────────────────────────
-   UTILITIES (Pure Helpers)
-───────────────────────────────────────────────────────────── */
 
 /**
  * Normalizes a field key to a standard format (lowercase, no spaces, alphanumeric).
@@ -96,8 +88,16 @@ export const normalizeFieldKey = (field: any): string =>
 export const getStableKey = (item: any, fallbackKey?: string): string => {
   if (!item) return "";
   const rawIdentifier =
-    item.key || item.slug || item.field || item.label || item.name || fallbackKey || "";
-  return typeof rawIdentifier === "string" ? normalizeFieldKey(rawIdentifier) : "";
+    item.key ||
+    item.slug ||
+    item.field ||
+    item.label ||
+    item.name ||
+    fallbackKey ||
+    "";
+  return typeof rawIdentifier === "string"
+    ? normalizeFieldKey(rawIdentifier)
+    : "";
 };
 
 const normalizeBooleanString = (val: any): any => {
@@ -115,10 +115,6 @@ const hasValidValue = (val: any): boolean => {
 const resolveEntityId = (entity: any): string | undefined =>
   entity?.id || entity?._id || entity?.value || undefined;
 
-/* ─────────────────────────────────────────────────────────────
-   DATA TRANSFORMERS
-───────────────────────────────────────────────────────────── */
-
 /**
  * Extracts and cleans a list of questions from various backend payload fields.
  */
@@ -128,21 +124,27 @@ const transformQuestions = (payload: any): Question[] => {
   const rawQuestions: Question[] = [
     ...(Array.isArray(payload.question) ? payload.question : []),
     ...(Array.isArray(payload.questions) ? payload.questions : []),
-    ...(Array.isArray(payload.dynamicQuestions) ? payload.dynamicQuestions : []),
-    ...(Array.isArray(payload.additionalQuestions) ? payload.additionalQuestions : []),
+    ...(Array.isArray(payload.dynamicQuestions)
+      ? payload.dynamicQuestions
+      : []),
+    ...(Array.isArray(payload.additionalQuestions)
+      ? payload.additionalQuestions
+      : []),
   ];
 
   const seenText = new Set<string>();
 
   return rawQuestions
     .filter((q) => {
-      const text = String(q.question || q.label || q.field || "").toLowerCase().trim();
+      const text = String(q.question || q.label || q.field || "")
+        .toLowerCase()
+        .trim();
       const key = getStableKey(q).toLowerCase();
 
       if (!text || seenText.has(text)) return false;
 
       const isRedundant = REDUNDANT_KEY_PATTERNS.some(
-        (pattern) => pattern.test(key) || pattern.test(text)
+        (pattern) => pattern.test(key) || pattern.test(text),
       );
       if (isRedundant) return false;
 
@@ -165,14 +167,16 @@ const transformQuestions = (payload: any): Question[] => {
 /**
  * Normalizes a complex specifications object or array into a flat Record.
  */
-const transformSpecifications = (specs: Record<string, any> | any[] = {}): Record<string, any> => {
+const transformSpecifications = (
+  specs: Record<string, any> | any[] = {},
+): Record<string, any> => {
   if (!specs || typeof specs !== "object") return {};
 
   if (Array.isArray(specs)) {
     return Object.fromEntries(
       specs
         .filter((s: any) => s && hasValidValue(s.value))
-        .map((s: any) => [getStableKey(s), normalizeBooleanString(s.value)])
+        .map((s: any) => [getStableKey(s), normalizeBooleanString(s.value)]),
     );
   }
 
@@ -181,7 +185,9 @@ const transformSpecifications = (specs: Record<string, any> | any[] = {}): Recor
     if (!spec) return;
 
     const rawValue =
-      typeof spec === "object" && spec !== null && "value" in spec ? spec.value : spec;
+      typeof spec === "object" && spec !== null && "value" in spec
+        ? spec.value
+        : spec;
     const value = normalizeBooleanString(rawValue);
 
     if (!hasValidValue(value)) return;
@@ -197,17 +203,19 @@ const transformSpecifications = (specs: Record<string, any> | any[] = {}): Recor
   return normalized;
 };
 
-/* ─────────────────────────────────────────────────────────────
-   MAIN HOOK
-───────────────────────────────────────────────────────────── */
-
 export const usePostAdAI = () => {
   // --- UI STATE ---
-  const [generationStep, setGenerationStep] = useState<GenerationStep>(GENERATION_STEPS.PREVIEW);
+  const [generationStep, setGenerationStep] = useState<GenerationStep>(
+    GENERATION_STEPS.PREVIEW,
+  );
   const [isFormLoading, setIsFormLoading] = useState(true);
 
   // --- DATA STATE ---
-  const [data, setData] = useState<PostAdData>({ title: "", enhancedDescription: "", price: "" });
+  const [data, setData] = useState<PostAdData>({
+    title: "",
+    enhancedDescription: "",
+    price: "",
+  });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [specMetadata, setSpecMetadata] = useState<Record<string, any>>({});
   const [imageKeys, setImageKeys] = useState<string[]>([]);
@@ -241,84 +249,99 @@ export const usePostAdAI = () => {
   /**
    * Uploads local image URIs to the server and returns their unique keys.
    */
-  const uploadImages = useCallback(async (uris: string[], signal?: AbortSignal): Promise<string[]> => {
-    const uploadedKeys: string[] = [];
-    const token = await getToken();
-    const targetUrl = `${API_BASE_URL}${PostAdApi.uploadImage}`;
+  const uploadImages = useCallback(
+    async (uris: string[], signal?: AbortSignal): Promise<string[]> => {
+      const uploadedKeys: string[] = [];
+      const token = await getToken();
+      const targetUrl = `${API_BASE_URL}${PostAdApi.uploadImage}`;
 
-    const filesToUpload = uris.filter(uri => uri.startsWith('file://') || uri.startsWith('content://'));
-    const alreadyUploaded = uris.filter(uri => !uri.startsWith('file://') && !uri.startsWith('content://'));
-    
-    uploadedKeys.push(...alreadyUploaded);
+      const filesToUpload = uris.filter(
+        (uri) => uri.startsWith("file://") || uri.startsWith("content://"),
+      );
+      const alreadyUploaded = uris.filter(
+        (uri) => !uri.startsWith("file://") && !uri.startsWith("content://"),
+      );
 
-    await Promise.all(
-      filesToUpload.map(async (uri) => {
-        if (signal?.aborted) return;
-        try {
-          const formData = new FormData();
-          const fileName = uri.split("/").pop() || "image.jpg";
-          let ext = fileName.includes(".")
-            ? fileName.split(".").pop()?.toLowerCase() || "jpg"
-            : "jpg";
+      uploadedKeys.push(...alreadyUploaded);
 
-          if (!["jpg", "jpeg", "png", "webp"].includes(ext)) {
-            ext = "jpg";
+      await Promise.all(
+        filesToUpload.map(async (uri) => {
+          if (signal?.aborted) return;
+          try {
+            const formData = new FormData();
+            const fileName = uri.split("/").pop() || "image.jpg";
+            let ext = fileName.includes(".")
+              ? fileName.split(".").pop()?.toLowerCase() || "jpg"
+              : "jpg";
+
+            if (!["jpg", "jpeg", "png", "webp"].includes(ext)) {
+              ext = "jpg";
+            }
+
+            formData.append("image", {
+              uri,
+              name: fileName.includes(".") ? fileName : `${fileName}.jpg`,
+              type: `image/${ext === "jpg" ? "jpeg" : ext}`,
+            } as any);
+
+            const response = await fetch(targetUrl, {
+              method: "POST",
+              body: formData,
+              headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              signal,
+            });
+
+            const result = await response.json();
+            if (!signal?.aborted && result?.data) {
+              uploadedKeys.push(result.data);
+            }
+          } catch (err) {
+            if ((err as any).name !== "AbortError") {
+              console.warn("[uploadImages] Error uploading:", uri, err);
+            }
           }
+        }),
+      );
 
-          formData.append("image", {
-            uri,
-            name: fileName.includes(".") ? fileName : `${fileName}.jpg`,
-            type: `image/${ext === "jpg" ? "jpeg" : ext}`,
-          } as any);
-
-          const response = await fetch(targetUrl, {
-            method: "POST",
-            body: formData,
-            headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-            signal,
-          });
-
-          const result = await response.json();
-          if (!signal?.aborted && result?.data) {
-            uploadedKeys.push(result.data);
-          }
-        } catch (err) {
-          if ((err as any).name !== "AbortError") {
-            console.warn("[uploadImages] Error uploading:", uri, err);
-          }
-        }
-      })
-    );
-
-    return signal?.aborted ? [] : uploadedKeys;
-  }, []);
+      return signal?.aborted ? [] : uploadedKeys;
+    },
+    [],
+  );
 
   /**
    * Fetches nearby highlights (amenities) from the backend based on coordinates.
    */
-  const fetchAmenities = useCallback(async (lat: number, lon: number): Promise<void> => {
-    // Cancel any in-flight amenities requests
-    amenitiesAbortRef.current?.abort();
-    const signal = (amenitiesAbortRef.current = new AbortController()).signal;
+  const fetchAmenities = useCallback(
+    async (lat: number, lon: number): Promise<void> => {
+      // Cancel any in-flight amenities requests
+      amenitiesAbortRef.current?.abort();
+      const signal = (amenitiesAbortRef.current = new AbortController()).signal;
 
-    setIsAmenitiesLoading(true);
-    try {
-      const response = await get(PostAdApi.getLocationHighlights, { params: { lat, lon }, signal });
-
-      if (!signal.aborted && response?.data?.data) {
-        setAmenities(response.data.data);
+      setIsAmenitiesLoading(true);
+      try {
+        const response = await get(PostAdApi.getLocationHighlights, {
+          params: { lat, lon },
+          signal,
+        });
+        if (!signal.aborted && response?.data) {
+          setAmenities(response.data.data || response.data);
+        }
+      } catch (err) {
+        if ((err as any).name !== "AbortError") {
+          console.warn("[fetchAmenities] Failed:", err);
+          setAmenities({});
+        }
+      } finally {
+        if (!signal.aborted) {
+          setIsAmenitiesLoading(false);
+        }
       }
-    } catch (err) {
-      if ((err as any).name !== "AbortError") {
-        console.warn("[fetchAmenities] Failed:", err);
-        setAmenities({});
-      }
-    } finally {
-      if (!signal.aborted) {
-        setIsAmenitiesLoading(false);
-      }
-    }
-  }, []);
+    },
+    [],
+  );
 
   /**
    * Final Step: Enhances description and identifies missing specifications.
@@ -336,7 +359,8 @@ export const usePostAdAI = () => {
       location,
       brandId,
     }: any) => {
-      if (currentGenerationId !== generationIdRef.current || signal?.aborted) return;
+      if (currentGenerationId !== generationIdRef.current || signal?.aborted)
+        return;
 
       try {
         const contextPrefix = `ITEM: ${categoryLabel}${
@@ -344,8 +368,12 @@ export const usePostAdAI = () => {
         }\n\n`;
         const contextualDetails = contextPrefix + descriptionText;
 
-        const rawSpecs = Array.isArray(intermediateData?.specs) ? intermediateData.specs : [];
-        const missingSpecs: Question[] = rawSpecs.filter((s: any) => !hasValidValue(s.value));
+        const rawSpecs = Array.isArray(intermediateData?.specs)
+          ? intermediateData.specs
+          : [];
+        const missingSpecs: Question[] = rawSpecs.filter(
+          (s: any) => !hasValidValue(s.value),
+        );
         const missingSpecKeys: string[] = missingSpecs
           .map((s: any) => getStableKey(s))
           .filter(Boolean);
@@ -354,7 +382,9 @@ export const usePostAdAI = () => {
         const isDivInvalid =
           !intermediateData?.division ||
           (typeof intermediateData.division === "object" &&
-            !hasValidValue(intermediateData.division?.id || intermediateData.division?._id));
+            !hasValidValue(
+              intermediateData.division?.id || intermediateData.division?._id,
+            ));
 
         if (isDivInvalid && !missingSpecKeys.includes("division")) {
           missingSpecKeys.push("division");
@@ -370,7 +400,7 @@ export const usePostAdAI = () => {
             images: imageKeys || [],
             brandId: brandId || null,
           },
-          { signal }
+          { signal },
         );
 
         if (currentGenerationId !== generationIdRef.current) return;
@@ -384,7 +414,9 @@ export const usePostAdAI = () => {
         const additionalFromMissing: Question[] = missingSpecKeys
           .filter((key) => !existingKeys.has(key))
           .map((key) => {
-            const matchedSpec = rawSpecs.find((s: any) => getStableKey(s) === key);
+            const matchedSpec = rawSpecs.find(
+              (s: any) => getStableKey(s) === key,
+            );
             const label = matchedSpec?.name || matchedSpec?.label || key;
             return {
               ...(matchedSpec || {}),
@@ -392,24 +424,31 @@ export const usePostAdAI = () => {
               field: key,
               label,
               question: `Please specify the ${label.toLowerCase()}`,
-              options: Array.isArray(matchedSpec?.options) ? matchedSpec.options : [],
+              options: Array.isArray(matchedSpec?.options)
+                ? matchedSpec.options
+                : [],
               dataType: matchedSpec?.dataType,
             };
           });
 
-        const finalQuestions = [...extractedQs, ...additionalFromMissing].map((q) => {
-          const matchingSpec = rawSpecs.find((s: any) => getStableKey(s) === getStableKey(q));
-          return matchingSpec
-            ? {
-                ...q,
-                options:
-                  Array.isArray(matchingSpec.options) && matchingSpec.options.length > 0
-                    ? matchingSpec.options
-                    : q.options,
-                dataType: matchingSpec.dataType || q.dataType,
-              }
-            : q;
-        });
+        const finalQuestions = [...extractedQs, ...additionalFromMissing].map(
+          (q) => {
+            const matchingSpec = rawSpecs.find(
+              (s: any) => getStableKey(s) === getStableKey(q),
+            );
+            return matchingSpec
+              ? {
+                  ...q,
+                  options:
+                    Array.isArray(matchingSpec.options) &&
+                    matchingSpec.options.length > 0
+                      ? matchingSpec.options
+                      : q.options,
+                  dataType: matchingSpec.dataType || q.dataType,
+                }
+              : q;
+          },
+        );
 
         if (finalQuestions.length > 0) {
           setQuestions(finalQuestions);
@@ -428,20 +467,26 @@ export const usePostAdAI = () => {
 
         const { specs: rawFinalSpecs, ...otherData } = payload;
         const normalizedFinalSpecs =
-          Array.isArray(rawFinalSpecs) && rawFinalSpecs.every((s: any) => typeof s === "string")
+          Array.isArray(rawFinalSpecs) &&
+          rawFinalSpecs.every((s: any) => typeof s === "string")
             ? undefined
             : transformSpecifications(rawFinalSpecs);
 
         setData((prev) => ({
           ...prev,
           ...otherData,
-          enhancedDescription: otherData.enhanced_description || prev.enhancedDescription,
+          enhancedDescription:
+            otherData.enhanced_description || prev.enhancedDescription,
           categoryId: resolveEntityId(otherData.category) || prev.categoryId,
-          subcategoryId: resolveEntityId(otherData.subcategory) || prev.subcategoryId,
+          subcategoryId:
+            resolveEntityId(otherData.subcategory) || prev.subcategoryId,
           divisionId: resolveEntityId(otherData.division) || prev.divisionId,
           brandId: resolveEntityId(otherData.brand) || prev.brandId,
           brand: otherData.brand || prev.brand,
           isbrandrequired: otherData.isbrandrequired ?? prev.isbrandrequired,
+          modelId: resolveEntityId(otherData.model) || prev.modelId,
+          model: otherData.model || prev.model,
+          isModelrequired: otherData.isModelrequired ?? prev.isModelrequired,
           specs: { ...(prev.specs || {}), ...(normalizedFinalSpecs || {}) },
         }));
 
@@ -455,7 +500,7 @@ export const usePostAdAI = () => {
         }
       }
     },
-    [specMetadata]
+    [specMetadata],
   );
 
   /**
@@ -466,14 +511,18 @@ export const usePostAdAI = () => {
       basicData: any,
       currentGenerationId: number,
       signal: AbortSignal,
-      location?: { lat: number; lon: number } | null
+      location?: { lat: number; lon: number } | null,
     ) => {
-      if (currentGenerationId !== generationIdRef.current || signal.aborted) return;
+      if (currentGenerationId !== generationIdRef.current || signal.aborted)
+        return;
 
       try {
-        const subcategoryId = resolveEntityId(basicData?.subcategory) || basicData?.subcategoryId;
+        const subcategoryId =
+          resolveEntityId(basicData?.subcategory) || basicData?.subcategoryId;
         const detailsText =
-          basicData?.details || basicData?.enhanced_description || basicData?.description;
+          basicData?.details ||
+          basicData?.enhanced_description ||
+          basicData?.description;
 
         const response = await post(
           PostAdApi.intermediatePreview,
@@ -482,7 +531,7 @@ export const usePostAdAI = () => {
             details: detailsText,
             images: basicData.images || [],
           },
-          { signal }
+          { signal },
         );
 
         if (currentGenerationId !== generationIdRef.current) return;
@@ -537,13 +586,18 @@ export const usePostAdAI = () => {
         setData((prev) => ({
           ...prev,
           ...intermediate,
-          enhancedDescription: intermediate.enhanced_description || prev.enhancedDescription,
+          enhancedDescription:
+            intermediate.enhanced_description || prev.enhancedDescription,
           categoryId: resolveEntityId(intermediate.category) || prev.categoryId,
-          subcategoryId: resolveEntityId(intermediate.subcategory) || prev.subcategoryId,
+          subcategoryId:
+            resolveEntityId(intermediate.subcategory) || prev.subcategoryId,
           divisionId: resolveEntityId(intermediate.division) || prev.divisionId,
           brandId: resolveEntityId(intermediate.brand) || prev.brandId,
           brand: intermediate.brand || prev.brand,
           isbrandrequired: intermediate.isbrandrequired ?? prev.isbrandrequired,
+          modelId: resolveEntityId(intermediate.model) || prev.modelId,
+          model: intermediate.model || prev.model,
+          isModelrequired: intermediate.isModelrequired ?? prev.isModelrequired,
           specs:
             Object.keys(specsFound).length > 0
               ? transformSpecifications(specsFound)
@@ -596,7 +650,7 @@ export const usePostAdAI = () => {
         }
       }
     },
-    [fetchFinalStep]
+    [fetchFinalStep],
   );
 
   /**
@@ -606,7 +660,7 @@ export const usePostAdAI = () => {
     async (
       description: string,
       images: string[],
-      location?: { lat: number; lon: number } | null
+      location?: { lat: number; lon: number } | null,
     ) => {
       const currentGenerationId = ++generationIdRef.current;
       const signal = createAbortSignal();
@@ -621,10 +675,15 @@ export const usePostAdAI = () => {
         // --- Task 1: Upload Images ---
         const uploadedImageKeys = await uploadImages(images, signal);
 
-        if (signal.aborted || currentGenerationId !== generationIdRef.current) return;
+        if (signal.aborted || currentGenerationId !== generationIdRef.current)
+          return;
 
         if (uploadedImageKeys.length === 0 && images.length > 0) {
-          Toast.show({ type: "error", text1: "Upload Failed", text2: "Could not process images." });
+          Toast.show({
+            type: "error",
+            text1: "Upload Failed",
+            text2: "Could not process images.",
+          });
           setIsFormLoading(false);
           return;
         }
@@ -633,11 +692,12 @@ export const usePostAdAI = () => {
         // --- Task 2: No immediate parallel load (Moved to after AI analysis) ---
 
         // --- Task 3: Primary AI Analysis ---
-        const activeImageSet = uploadedImageKeys.length > 0 ? uploadedImageKeys : images;
+        const activeImageSet =
+          uploadedImageKeys.length > 0 ? uploadedImageKeys : images;
         const response = await post(
           PostAdApi.previewProduct,
           { description, images: activeImageSet },
-          { signal }
+          { signal },
         );
 
         if (currentGenerationId !== generationIdRef.current) return;
@@ -660,6 +720,9 @@ export const usePostAdAI = () => {
           isbrandrequired: basicResult.isbrandrequired ?? false,
           brandId: resolveEntityId(basicResult.brand) || "",
           brand: basicResult.brand,
+          isModelrequired: basicResult.isModelrequired ?? false,
+          modelId: resolveEntityId(basicResult.model) || "",
+          model: basicResult.model,
         });
 
         setGenerationStep(GENERATION_STEPS.BASIC_FORM);
@@ -674,7 +737,7 @@ export const usePostAdAI = () => {
           { ...basicResult, images: activeImageSet },
           currentGenerationId,
           signal,
-          location
+          location,
         );
       } catch (err) {
         if ((err as any).name !== "AbortError") {
@@ -688,7 +751,7 @@ export const usePostAdAI = () => {
         }
       }
     },
-    [uploadImages, fetchIntermediateStep, fetchAmenities]
+    [uploadImages, fetchIntermediateStep, fetchAmenities],
   );
 
   return {

@@ -27,14 +27,18 @@ export const useUserLocation = () => {
         });
         if (addresses && addresses.length > 0) {
           const addr = addresses[0];
-          // Format: city, region (e.g., "kannur,kerala")
-          const parts = [
-            addr.city || addr.district || addr.subregion,
-            addr.region || addr.subregion,
-          ].filter((part): part is string => Boolean(part));
+          // Format: specific, city, region (e.g., "melechovva, kannur, kerala")
+          const specific = addr.name || addr.street || addr.district;
+          const city = addr.city || addr.subregion;
+          const region = addr.region;
 
-          if (parts.length > 0) {
-            return parts.join(", ").toLowerCase();
+          const parts = [specific, city, region].filter(
+            (part): part is string => Boolean(part),
+          );
+          const uniqueParts = [...new Set(parts)];
+
+          if (uniqueParts.length > 0) {
+            return uniqueParts.join(", ").toLowerCase();
           }
 
           // Fallback: try other address components
@@ -111,7 +115,7 @@ export const useUserLocation = () => {
         }
 
         const position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: Location.Accuracy.High,
         });
 
         const lat = position.coords.latitude;
