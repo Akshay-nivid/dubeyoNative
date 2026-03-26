@@ -255,21 +255,24 @@ const PostAdDetails = () => {
 
   const brandName = useMemo(() => {
     if (!data?.brandId || brands.length === 0)
-      return data?.brand?.name || data?.brand?.label || "";
+      return data?.brand?.name || data?.brand?.label || data?.brand || "";
     const brand = brands.find(
       (b) => (b.id || b._id || b.value) === data.brandId,
     );
-    return brand?.name || brand?.label || data?.brand?.name || "";
+    return brand?.name || brand?.label || data?.brand?.name || data?.brand || "";
   }, [brands, data.brandId, data?.brand]);
 
   const modelName = useMemo(() => {
     if (!data?.modelId || models.length === 0)
-      return data?.model?.name || data?.model?.label || "";
+      return data?.model?.name || data?.model?.label || data?.model || "";
     const model = models.find(
       (m) => (m.id || m._id || m.value) === data.modelId,
     );
-    return model?.name || model?.label || data?.model?.name || "";
+    return model?.name || model?.label || data?.model?.name || data?.model || "";
   }, [models, data.modelId, data?.model]);
+
+  const showBrandField = !!(data.isbrandrequired || brands.length > 0 || brandName);
+  const showModelField = !!(data.isModelrequired || models.length > 0 || modelName);
 
   const hasValidSpecs = useMemo(
     () =>
@@ -986,9 +989,9 @@ const PostAdDetails = () => {
                     }}
                   />
                 </View>
-                {(data.isbrandrequired || data.isModelrequired) && (
+                {(showBrandField || showModelField) && (
                   <View className="mt-4 flex-row justify-between w-full">
-                    {data.isbrandrequired && (
+                    {showBrandField && (
                       <InlinePicker
                         label="Brand"
                         value={brandName}
@@ -1003,7 +1006,7 @@ const PostAdDetails = () => {
                           )}
                         isLoading={isLoadingBrands}
                         containerStyle={{
-                          width: data.isModelrequired ? "48%" : "100%",
+                          width: showModelField ? "48%" : "100%",
                         }}
                         onSelect={(opt: any) => {
                           const full = brands.find(
@@ -1021,7 +1024,7 @@ const PostAdDetails = () => {
                         }}
                       />
                     )}
-                    {data.isModelrequired && (
+                    {showModelField && (
                       <InlinePicker
                         label="Model"
                         value={modelName}
@@ -1036,7 +1039,7 @@ const PostAdDetails = () => {
                           )}
                         isLoading={isLoadingModels}
                         containerStyle={{
-                          width: data.isbrandrequired ? "48%" : "100%",
+                          width: showBrandField ? "48%" : "100%",
                         }}
                         onSelect={(opt: any) => {
                           const full = models.find(
