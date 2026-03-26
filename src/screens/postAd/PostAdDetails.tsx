@@ -1,6 +1,6 @@
 import LocationPicker from "@/src/components/LocationPicker";
 import { post } from "@/src/services/api";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { StatusBar } from "expo-status-bar";
 
 import {
   GENERATION_STEPS,
@@ -654,11 +655,11 @@ const PostAdDetails = () => {
     );
 
     return (
-      <View
-        key={item.key || gIdx}
-        className="mb-4 w-full"
-      >
-        <Text className="text-[#111827] font-bold text-[13px] mb-1.5 ml-0.5 flex-wrap leading-5">
+      <View key={item.key || gIdx} className="mb-2 w-full">
+        <Text 
+          className="text-gray-900 font-semibold text-[12px] mb-1.5 ml-1"
+          style={{ flexWrap: 'wrap' }}
+        >
           {String(item.label || item.key || "")}
         </Text>
         <InlineToggle
@@ -785,11 +786,11 @@ const PostAdDetails = () => {
     }
 
     return (
-      <View
-        key={fieldKey}
-        className="mb-4"
-      >
-        <Text className="text-[#111827] font-bold text-[13px] mb-1.5 ml-0.5 flex-wrap leading-5">
+      <View key={fieldKey} className="mb-2">
+        <Text 
+          className="text-gray-900 font-semibold text-[12px] mb-1.5 ml-1"
+          style={{ flexWrap: 'wrap' }}
+        >
           {String(questionLabel)}
         </Text>
         {options.length > 0 ? (
@@ -799,7 +800,7 @@ const PostAdDetails = () => {
             onSelect={handleSelect}
           />
         ) : (
-          <View className="bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 h-[48px] justify-center">
+          <View className="bg-gray-50/50 border border-gray-100 rounded-[8px] px-4 h-12 justify-center shadow-sm shadow-black/[0.02]">
             <LocalTextInput
               value={String(questionAnswers[fieldKey] ?? "")}
               onChangeText={(text: string) =>
@@ -810,12 +811,8 @@ const PostAdDetails = () => {
               }
               placeholder="Type your answer..."
               placeholderTextColor="#9CA3AF"
-              keyboardType={
-                meta?.dataType === "number" || q.dataType === "number"
-                  ? "numeric"
-                  : "default"
-              }
-              className="text-gray-900 text-[14px] font-semibold w-full h-full py-0"
+              keyboardType={meta?.dataType === "number" || q.dataType === "number" ? "numeric" : "default"}
+              className="text-gray-900 text-sm font-semibold w-full h-full py-0"
             />
           </View>
         )}
@@ -826,23 +823,17 @@ const PostAdDetails = () => {
   /* ── 5. Render ── */
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-[#F7F6F3]"
-      edges={["top"]}
-    >
+    <SafeAreaView className="flex-1 bg-[#F7F6F3]" edges={["top"]}>
+      <StatusBar style="dark" backgroundColor="#F7F6F3" />
       <View className="flex-1 bg-[#F7F6F3]">
         {/* ── Header ── */}
-        <View className="px-5 py-4 flex-row items-center justify-between border-b border-gray-100 bg-white">
+        <View className="px-4 py-3 flex-row items-center justify-between border-b border-gray-200 bg-[#F7F6F3] shadow-lg z-10">
           <View className="flex-row items-center flex-1 pr-4">
             <TouchableOpacity
               onPress={() => router.back()}
-              className="w-10 h-10 items-center justify-center bg-white border border-gray-200 rounded-full mr-4"
+              className="w-10 h-10 items-center justify-center bg-white rounded-full mr-4 border border-gray-200 shadow-sm"
             >
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color="#000"
-              />
+              <Feather name="corner-up-left" size={20} color="black" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -868,12 +859,7 @@ const PostAdDetails = () => {
                     Select location
                   </Text>
                 )}
-                <Ionicons
-                  name="chevron-down"
-                  size={14}
-                  color="#6366F1"
-                  className="ml-1"
-                />
+
               </View>
             </TouchableOpacity>
           </View>
@@ -900,7 +886,7 @@ const PostAdDetails = () => {
 
         {/* ── Scroll ── */}
         <ScrollView
-          className="flex-1 px-5 pt-6"
+          className="flex-1 px-4 pt-3"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}
         >
@@ -913,7 +899,7 @@ const PostAdDetails = () => {
           />
 
           {/* ── Basic Details ── */}
-          <View className="bg-white rounded-[16px] p-5 shadow-sm border border-gray-100 mb-5">
+          <View className="bg-white rounded-[16px] p-5 shadow-sm border border-gray-200 mb-3">
             <View className="flex-row justify-between items-center mb-5">
               <Text
                 className="text-xl text-gray-900"
@@ -1075,10 +1061,8 @@ const PostAdDetails = () => {
           {/* ── Specifications ── */}
           {generationStep >= GENERATION_STEPS.BASIC_FORM &&
             (generationStep < GENERATION_STEPS.SPECS_FORM ||
-              hasValidSpecs ||
-              divisions.length > 0 ||
-              !!data.division) && (
-              <View className="bg-white rounded-[16px] p-5 shadow-sm border border-gray-100 mb-5">
+              hasValidSpecs || divisions.length > 0 || !!data.division) && (
+              <View className="bg-white rounded-[16px] p-5 shadow-sm border border-gray-200 mb-3">
                 <View className="flex-row justify-between items-center mb-5">
                   <Text
                     className="text-xl text-gray-900"
@@ -1122,7 +1106,7 @@ const PostAdDetails = () => {
           {/* ── Helpful Details ── */}
           {(generationStep < GENERATION_STEPS.DONE || questions.length > 0) &&
             generationStep >= GENERATION_STEPS.SPECS_FORM && (
-              <View className="bg-white rounded-[16px] p-5 shadow-sm border border-gray-100 mb-5">
+              <View className="bg-white rounded-[16px] p-5 shadow-sm border border-gray-200 mb-3">
                 <View className="flex-row justify-between items-center mb-5">
                   <Text
                     className="text-xl text-gray-900"
@@ -1158,15 +1142,12 @@ const PostAdDetails = () => {
           {generationStep === GENERATION_STEPS.DONE && (
             <>
               {/* Price */}
-              <View className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100 mb-5">
-                <Text
-                  className="text-xl text-gray-900 mb-5"
-                  style={{ fontFamily: "DM Serif Display" }}
-                >
+              <View className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-200 mb-3">
+                <Text className="text-xl text-gray-900 mb-5" style={{ fontFamily: "DM Serif Display" }}>
                   Set Price
                 </Text>
-                <View className="bg-gray-50/50 border border-gray-100 rounded-[18px] px-4 flex-row items-center h-16">
-                  <View className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 mr-3">
+                <View className="bg-gray-50/50 border border-gray-200 rounded-[18px] px-4 flex-row items-center h-16">
+                  <View className="bg-white px-3 py-1.5 rounded-xl border border-gray-200 mr-3">
                     <Text className="text-gray-900 font-bold text-xs">AED</Text>
                   </View>
                   <LocalTextInput
@@ -1209,7 +1190,7 @@ const PostAdDetails = () => {
               </View>
 
               {/* Final Description */}
-              <View className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 mb-8">
+              <View className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-200 mb-3">
                 <View className="flex-row justify-between items-center mb-5">
                   <Text
                     className="text-xl text-gray-900"
@@ -1230,7 +1211,7 @@ const PostAdDetails = () => {
                       }))
                     }
                     placeholder="Review the AI enhanced description..."
-                    className="text-sm text-gray-800 leading-5 font-medium min-h-[120px]"
+                    className="text-sm text-gray-800 leading-5 font-medium"
                   />
                 </View>
               </View>
@@ -1240,7 +1221,7 @@ const PostAdDetails = () => {
                 onPress={handleSubmit}
                 disabled={isPostDisabled}
                 activeOpacity={0.8}
-                className={`mb-10 rounded-[24px] py-5 items-center justify-center flex-row shadow-xl ${
+                className={`mb-2 rounded-[24px] py-5 items-center justify-center flex-row shadow-xl ${
                   isPostDisabled ? "bg-gray-100" : "bg-[#1A1A1A]"
                 }`}
               >

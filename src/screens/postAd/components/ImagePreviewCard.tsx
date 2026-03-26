@@ -238,9 +238,9 @@ const ImagePreviewCard = ({ images, initialImages, onChange }: ImageGridProps) =
             {!initialImages.includes(uri) && (
               <TouchableOpacity
                 onPress={() => removeImage(index)}
-                className="absolute top-1 right-1 bg-red-100/90 rounded-md p-1.5 z-10 shadow-sm"
+                className="absolute top-1 right-1 bg-black rounded-full p-1.5 z-10 shadow-sm"
               >
-                <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                <Ionicons name="trash-outline" size={12} color="white" />
               </TouchableOpacity>
             )}
           </View>

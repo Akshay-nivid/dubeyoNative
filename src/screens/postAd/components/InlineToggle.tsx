@@ -13,7 +13,7 @@ export interface InlineToggleProps {
 }
 
 export const InlineToggle: React.FC<InlineToggleProps> = ({ options, selectedChecker, onSelect }) => (
-  <View className="flex-row flex-wrap items-center bg-gray-50/50 border border-gray-100 rounded-[18px] p-1.5">
+  <View className="flex-row flex-wrap items-center bg-gray-50/50 border border-gray-100 rounded-[8px] p-1.5 shadow-sm shadow-black/[0.02]">
     {options.map((opt) => {
       const selected = selectedChecker(opt);
       const isDuo = options.length <= 2;
@@ -48,7 +48,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
-    borderRadius: 14,
+    borderRadius: 6,
   },
   buttonDuo: {
     flex: 1,

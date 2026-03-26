@@ -1,30 +1,16 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  PanResponder,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator, Alert, Animated, Dimensions, Keyboard, Modal, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAvoidingView, KeyboardStickyView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import GradientText from "../../components/GradientText";
 import { useUserLocation } from "../../hooks/useUserLocation";
 import { Api, fetchProfile } from "../../screens/home/Api";
 import { get } from "../../services/api";
@@ -60,7 +46,7 @@ const PostAd = () => {
       const fileName = uri.split("/").pop() || "image.jpg";
       let ext = fileName.includes(".") ? fileName.split(".").pop()?.toLowerCase() || "jpg" : "jpg";
       if (!["jpg", "jpeg", "png", "webp", "heic"].includes(ext)) ext = "jpg";
-      
+
       formData.append("image", {
         uri,
         name: fileName.includes(".") ? fileName : `${fileName}.jpg`,
@@ -126,28 +112,26 @@ const PostAd = () => {
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      "keyboardDidShow",
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const keyboardShowListener = Keyboard.addListener(
+      showEvent,
       () => {
         setKeyboardVisible(true);
-        // Scroll to bottom to ensure description input is visible
-        // The delay ensures the keyboard is fully up and layout is adjusted
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 100);
       },
     );
 
-    const keyboardDidHideListener = Keyboard.addListener(
-      "keyboardDidHide",
+    const keyboardHideListener = Keyboard.addListener(
+      hideEvent,
       () => {
         setKeyboardVisible(false);
       },
     );
 
     return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
     };
   }, []);
 
@@ -204,10 +188,10 @@ const PostAd = () => {
           const imgs = product.images ?? product.image ?? [];
           const uris = Array.isArray(imgs)
             ? imgs
-                .map((u: any) =>
-                  typeof u === "string" ? u : (u?.url ?? u?.link ?? ""),
-                )
-                .filter(Boolean)
+              .map((u: any) =>
+                typeof u === "string" ? u : (u?.url ?? u?.link ?? ""),
+              )
+              .filter(Boolean)
             : typeof imgs === "string"
               ? [imgs]
               : [];
@@ -241,6 +225,23 @@ const PostAd = () => {
   const [isPickerActive, setIsPickerActive] = useState(false);
   const [showPickerModal, setShowPickerModal] = useState(false);
 
+  // Animation values
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (photos.length > 0) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.05, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [photos.length]);
+
   // Animations
   const panY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -248,6 +249,15 @@ const PostAd = () => {
   const slideAnim = useRef(
     new Animated.Value(Dimensions.get("window").height),
   ).current;
+  const keyboardAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(keyboardAnim, {
+      toValue: keyboardVisible ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [keyboardVisible]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -506,290 +516,233 @@ const PostAd = () => {
   };
 
   const renderImagesSection = () => {
-    return (
-      <View className="mb-8">
-        {photos.length === 0 ? (
-          /* Empty State - Click to Upload */
-          <TouchableOpacity
-            onPress={pickImage}
-            activeOpacity={0.7}
-            className="bg-[#F0F4FF] border-2 border-dashed border-[#1e3a8a] rounded-2xl h-52 items-center justify-center"
-          >
-            <Ionicons
-              name="add-circle-outline"
-              size={32}
-              color="#1e3a8a"
-            />
-            <Text className="text-[#1e3a8a] font-semibold text-lg mt-2">
-              Upload Image
-            </Text>
-            <Text className="text-gray-400 text-xs mt-1">
-              Max 4 images. JPG, PNG, JPEG. Max 5MB.
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          /* Filled State - Images Inside Box */
-          <View className="bg-[#F0F4FF] border-2 border-dashed border-[#1e3a8a] rounded-2xl p-4 min-h-[160px]">
-            <View className="flex-row flex-wrap gap-2">
-              {photos.map((photo, index) => {
-                const statusInfo = uploadStatuses[photo.uri];
-                const isUploading = statusInfo?.status === "uploading";
-                const isError = statusInfo?.status === "error";
+    const totalSlots = 4;
 
-                return (
-                <View
-                  key={index}
-                  className="w-[22%] aspect-square rounded-xl overflow-hidden relative border border-gray-100 bg-white"
-                >
-                  <Image
-                    source={{ uri: photo.uri }}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
-                  />
-                  {isUploading && (
-                    <>
-                      <View className="absolute top-0 bottom-0 left-0 right-0 bg-black/30 items-center justify-center z-20">
+    return (
+      <View className="mb-6">
+        <Animated.View
+          className="mb-6 px-1"
+          style={{
+            opacity: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+            transform: [{ translateY: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }]
+          }}
+        >
+          <Text className="text-[34px] font-bold text-gray-900 leading-[40px]" style={{ fontFamily: "DM Serif Display" }}>
+            Hi, {userName}
+          </Text>
+          <Text className="text-[42px] font-bold text-indigo-600 leading-[42px]" style={{ fontFamily: "DM Serif Display" }}>
+            Sell with AI
+          </Text>
+          <View className="flex-row items-center justify-between mt-3 px-0.5">
+            <View className="flex-row items-center">
+              <Ionicons name="information-circle-outline" size={14} color="#A1A1AA" />
+              <Text className="text-[12px] text-gray-400 font-medium ml-1">At least 1 photo required. Max 4. (Max 5MB each)</Text>
+            </View>
+          </View>
+        </Animated.View>
+
+        <Animated.View
+          className="flex-row flex-wrap justify-between mt-4"
+          style={{
+            opacity: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+            transform: [{ translateY: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }]
+          }}
+        >
+          {Array.from({ length: totalSlots }).map((_, index) => {
+            const photo = photos[index];
+            const isFilled = !!photo;
+
+            if (isFilled) {
+              const statusInfo = uploadStatuses[photo.uri];
+              const isUploading = statusInfo?.status === "uploading";
+              const isError = statusInfo?.status === "error";
+
+              return (
+                <View key={index} className="w-[48.5%] aspect-square mb-3">
+                  <View className="w-full h-full rounded-[24px] overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
+                    <Image
+                      source={{ uri: photo.uri }}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="cover"
+                      transition={200}
+                    />
+
+
+
+                    {isUploading && (
+                      <View className="absolute inset-0 bg-black/40 items-center justify-center">
                         <ActivityIndicator color="#FFF" size="small" />
                       </View>
-                      <View className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/40 z-30">
-                        <View 
-                          className="h-full bg-indigo-500 rounded-r-full" 
-                          style={{ width: `${Math.min(100, statusInfo?.progress || 0)}%` }} 
-                        />
-                      </View>
-                    </>
-                  )}
-                  {isError && (
-                    <View className="absolute top-0 bottom-0 left-0 right-0 bg-red-500/40 items-center justify-center z-20">
-                      <Ionicons name="alert-circle" size={24} color="#FFF" />
-                    </View>
-                  )}
-                  <TouchableOpacity
-                    onPress={() => removePhoto(index)}
-                    className="absolute top-1 right-1 bg-red-100 rounded-md p-1 z-30 shadow-sm"
-                  >
-                    <Ionicons
-                      name="trash-outline"
-                      size={14}
-                      color="#EF4444"
-                    />
-                  </TouchableOpacity>
-                </View>
-              )})}
+                    )}
 
-              {/* Add Button (if less than 4) */}
-              {photos.length < 4 && (
-                <TouchableOpacity
-                  onPress={pickImage}
-                  className="w-[22%] aspect-square rounded-xl border-2 border-dashed border-[#1e3a8a] items-center justify-center bg-white/50"
+                    {isError && (
+                      <View className="absolute inset-0 bg-red-500/20 items-center justify-center">
+                        <Ionicons name="alert-circle" size={24} color="#EF4444" />
+                      </View>
+                    )}
+
+                    <TouchableOpacity
+                      onPress={() => removePhoto(index)}
+                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black items-center justify-center"
+                    >
+                      <Ionicons name="trash-outline" size={16} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            }
+
+            // Labels for placeholders
+            const placeholders = [
+              "Photo 1",
+              "Photo 2",
+              "Photo 3",
+              "Photo 4",
+            ];
+
+            return (
+              <TouchableOpacity
+                key={index}
+                onPress={pickImage}
+                activeOpacity={0.7}
+                className="w-[48.5%] aspect-square mb-3"
+              >
+                <View
+                  className="w-full h-full rounded-[24px] bg-indigo-50/50 border-2 border-dashed border-indigo-100 items-center justify-center"
                 >
-                  <Ionicons
-                    name="add"
-                    size={24}
-                    color="#1e3a8a"
-                  />
-                </TouchableOpacity>
-              )}
-            </View>
-            <Text className="text-gray-400 text-xs mt-4 text-center">
-              Max 4 images. JPG, PNG, JPEG. Max 5MB.
-            </Text>
-          </View>
-        )}
+                  <View className="w-10 h-10 rounded-full items-center justify-center mb-1 bg-indigo-50">
+                    <Ionicons
+                      name="camera-outline"
+                      size={20}
+                      color="#6366F1"
+                    />
+                  </View>
+                  <Text className="text-[11px] font-bold text-indigo-400">
+                    {placeholders[index]}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </Animated.View>
 
         {imageError ? (
-          <Text className="text-red-500 text-xs mt-2">{imageError}</Text>
+          <Text className="text-red-500 text-[11px] mt-1 ml-1 font-medium">{imageError}</Text>
         ) : null}
       </View>
     );
   };
 
   return (
-    <LinearGradient
-      colors={["#f7e2fbff", "#d8ecf9ff", "#d7d1f3ff"]} // Very light Pink, Blue, Purple
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ flex: 1 }}
-    >
-      <SafeAreaView
-        className="flex-1 bg-transparent"
-        edges={["top"]}
-      >
-        <View className="px-4 py-2 flex-row items-center justify-between">
-          <View className="flex-row items-center flex-1 pr-4">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100 mr-4"
-            >
-              <Ionicons
-                name="arrow-back"
-                size={24}
-                color="#000"
-              />
-            </TouchableOpacity>
+    <View style={{ flex: 1, backgroundColor: '#F7F6F3' }}>
+      {/* STATIC BACKGROUND LAYER */}
+      <View style={{ flex: 1 }}>
+        <SafeAreaView className="flex-1 bg-[#F7F6F3]" edges={["top"]}>
+          <Animated.View
+            className="px-4 py-3 flex-row items-center justify-between z-10 bg-[#F7F6F3] border-b border-gray-200 shadow-lg"
+            style={{
+              opacity: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+              transform: [{ translateY: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }]
+            }}
+          >
+            <View className="flex-row items-center flex-1 pr-4">
+              <TouchableOpacity
+                onPress={() => router.back()}
+                className="w-10 h-10 bg-white rounded-full items-center justify-center mr-4 border border-gray-200 shadow-sm"
+              >
+                <Feather name="corner-up-left" size={22} color="black" />
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setShowLocationPicker(true)}
-              className="flex-1 justify-center"
-            >
-              <Text className="text-xl font-bold text-gray-900">Post ad</Text>
-              <View className="flex-row items-center">
-                <Ionicons
-                  name="location-outline"
-                  size={12}
-                  color="#6B7280"
-                />
-                <Text
-                  className="text-xs text-gray-500 font-medium ml-1"
-                  numberOfLines={1}
-                >
-                  {place || "Select location"}
-                </Text>
-                <Ionicons
-                  name="chevron-down"
-                  size={12}
-                  color="#6366F1"
-                  style={{ marginLeft: 4 }}
-                />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
+              <TouchableOpacity
+                onPress={() => setShowLocationPicker(true)}
+                className="flex-1 justify-center"
+              >
+                <Text className="text-xl font-bold text-gray-900">Post ad</Text>
+                <View className="flex-row items-center">
+                  <Ionicons name="location-outline" size={12} color="#6B7280" />
+                  <Text className="text-xs text-gray-500 font-medium ml-1" numberOfLines={1}>
+                    {place || "Select location"}
+                  </Text>
+                  <Ionicons name="chevron-down" size={12} color="#6366F1" style={{ marginLeft: 4 }} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
 
-        {/* New Gradient Header */}
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0} // Small offset
-        >
           <ScrollView
             ref={scrollViewRef}
-            className="flex-1 px-4 pt-4"
+            className="flex-1 px-4 pt-4 bg-[#F7F6F3]"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: keyboardVisible ? 24 : 0 }} // Only pad when keyboard is open
-            keyboardShouldPersistTaps="handled" // Allow taps
-            bounces={false} // Prevent bouncing when content fits
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 20 }}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
           >
-            {/* New Gradient Header Moved Here */}
-            <View className="px-5 mb-2 mt-10">
-              <View className="items-center mb-4">
-                <Image
-                  source={require("@/assets/images/ai_modal_icon.png")}
-                  style={{ width: 60, height: 60 }}
-                  contentFit="contain"
-                />
-              </View>
-              <View className="mb-2">
-                {/* Full Gradient Line 1 */}
-                <View style={{ height: 44, width: "100%" }}>
-                  <GradientText
-                    text={`Hi there, ${userName}`}
-                    colors={["#14B8A6", "#3B82F6", "#8B5CF6"]} // Teal -> Blue -> Violet
-                    style={{ fontSize: 36, fontWeight: "800" }}
-                    textAnchor="middle"
-                    x="50%"
-                  />
-                </View>
-              </View>
-
-              <View className="mb-1">
-                {/* Full Gradient Line 2 */}
-                <View style={{ height: 44, width: "100%" }}>
-                  <GradientText
-                    text="Sell with AI"
-                    colors={["#14B8A6", "#3B82F6", "#8B5CF6"]} // Teal -> Blue -> Violet
-                    style={{ fontSize: 36, fontWeight: "800" }}
-                    textAnchor="middle"
-                    x="50%"
-                  />
-                </View>
-              </View>
-
-              <Text className="text-gray-500 text-sm mt-3 font-medium leading-5 w-full text-center">
-                Post ads effortlessly with our exclusive AI-powered AI
-                experience
-              </Text>
-            </View>
-
-            <View className="pb-8 mt-6">
+            <View>
               {renderImagesSection()}
-
-              <View className="bg-white rounded-[22px] overflow-hidden border border-gray-200 shadow-sm">
-                {/* Inner Shadow Effect */}
-                <LinearGradient
-                  colors={["rgba(0,0,0,0.06)", "rgba(0,0,0,0)"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 0.3 }}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 20,
-                    zIndex: 1,
-                  }}
-                  pointerEvents="none"
-                />
-                <View className="p-5">
-                  <View className="flex-row">
-                    {!description && (
-                      <View className="mr-2 mt-1 z-10">
-                        <Ionicons
-                          name="sparkles"
-                          size={18}
-                          color="#9CA3AF"
-                        />
-                      </View>
-                    )}
-                    <TextInput
-                      placeholder="Type the Description...."
-                      className="flex-1 text-base text-gray-900 min-h-[80px] pt-0.5"
-                      value={description}
-                      onChangeText={setDescription}
-                      placeholderTextColor="#9CA3AF"
-                      multiline
-                      textAlignVertical="top"
-                      returnKeyType="done"
-                      blurOnSubmit={true}
-                      onSubmitEditing={() => Keyboard.dismiss()}
-                    />
-                  </View>
-                  <View className="flex-row items-center justify-end mt-2 px-1">
-                    {/* Waveform Icon */}
-
-                    <TouchableOpacity
-                      onPress={!isContinueDisabled ? handleContinue : undefined}
-                      disabled={isContinueDisabled}
-                      activeOpacity={0.8}
-                      className={`w-12 h-12 rounded-xl items-center justify-center ${
-                        !description.trim() ? "bg-black" : (!isContinueDisabled ? "bg-black" : "bg-gray-200")
-                      }`}
-                    >
-                      {description.trim() ? (
-                        <Ionicons
-                          name="arrow-forward"
-                          size={24}
-                          color={!isContinueDisabled ? "#FFF" : "#9CA3AF"}
-                        />
-                      ) : (
-                        /* Waveform Animation (Simulated) inside button */
-                        <View className="flex-row items-center gap-[2px]">
-                          <View className="w-[2px] h-2 bg-white rounded-full" />
-                          <View className="w-[2px] h-3 bg-white rounded-full" />
-                          <View className="w-[2px] h-4 bg-white rounded-full" />
-                          <View className="w-[2px] h-3 bg-white rounded-full" />
-                          <View className="w-[2px] h-2 bg-white rounded-full" />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
             </View>
           </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
+
+      {/* FULL SCREEN BLUR OVERLAY */}
+      <Animated.View
+        pointerEvents={keyboardVisible ? "auto" : "none"}
+        style={[StyleSheet.absoluteFill, { opacity: keyboardAnim, zIndex: 50 }]}
+      >
+        <TouchableOpacity activeOpacity={1} style={{ flex: 1 }} onPress={() => Keyboard.dismiss()}>
+          <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* AI COMMAND BAR */}
+      <KeyboardStickyView
+        offset={{ opened: 0, closed: 0 }}
+        style={{ zIndex: 100 }}
+      >
+        <SafeAreaView edges={["bottom"]}>
+          <View className="px-4 pb-4">
+            <View 
+              className="rounded-[28px] overflow-hidden border border-gray-200 shadow-lg bg-[#F7F6F3]"
+            >
+              <View className="flex-row items-center px-4 py-3 min-h-[80px]">
+                {!description.trim() && (
+                  <View className="items-center justify-center pl-1">
+                    <Ionicons name="sparkles" size={18} color="#6366F1" />
+                  </View>
+                )}
+
+                <TextInput
+                  placeholder="Sell with AI"
+                  className="flex-1 text-[16px] text-gray-900 mx-3 max-h-[120px]"
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholderTextColor="#A1A1AA"
+                  multiline
+                  textAlignVertical="center"
+                  returnKeyType="done"
+                  blurOnSubmit={false}
+                />
+
+                <TouchableOpacity
+                  onPress={!isContinueDisabled ? handleContinue : undefined}
+                  disabled={isContinueDisabled && !!description.trim()}
+                  activeOpacity={0.8}
+                  className={`w-11 h-11 rounded-full items-center justify-center mb-0.5 shadow-sm ${!description.trim() ? "bg-white" : (!isContinueDisabled ? "bg-indigo-600" : "bg-gray-100")
+                    }`}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : description.trim() ? (
+                    <Ionicons name="arrow-up" size={22} color={!isContinueDisabled ? "#FFF" : "#9CA3AF"} />
+                  ) : (
+                    <Ionicons name="mic-outline" size={20} color="#4B5563" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </SafeAreaView>
+      </KeyboardStickyView>
 
       {/* Custom Image Picker Modal */}
       <Modal
@@ -900,7 +853,7 @@ const PostAd = () => {
         getPlaceName={getPlaceName}
         getCoordinatesFromName={getCoordinatesFromName}
       />
-    </LinearGradient>
+    </View>
   );
 };
 

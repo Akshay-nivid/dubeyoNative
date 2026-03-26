@@ -30,20 +30,25 @@ export const InlinePicker: React.FC<InlinePickerProps> = ({
   const hasValue = !!(value && value !== "Select" && value !== "Select Option");
 
   return (
-    <View className="mb-[14px]" style={containerStyle}>
-      <Text className="text-[#111827] font-bold text-[13px] mb-1.5 ml-1">{label}</Text>
+    <View className="mb-2" style={containerStyle}>
+      <Text 
+        className="text-gray-900 font-semibold text-[12px] mb-1.5 ml-1"
+        style={{ flexWrap: 'wrap' }}
+      >
+        {label}
+      </Text>
 
       <TouchableOpacity
         onPress={() => !isLoading && setOpen(true)}
         activeOpacity={0.7}
-        className="bg-gray-50/50 border border-gray-100 rounded-[18px] h-[48px] px-[14px] flex-row items-center justify-between"
+        className="bg-gray-50/50 border border-gray-100 rounded-[8px] h-12 px-4 flex-row items-center justify-between shadow-sm shadow-black/[0.02]"
       >
         {isLoading ? (
           <ActivityIndicator size="small" color="#6366F1" />
         ) : (
           <>
             <Text
-              className={`text-[13px] font-semibold flex-1 ${hasValue ? "text-gray-900" : "text-gray-400"}`}
+              className={`text-sm font-semibold flex-1 ${hasValue ? "text-gray-900" : "text-gray-400"}`}
               numberOfLines={1}
             >
               {value || "Select"}

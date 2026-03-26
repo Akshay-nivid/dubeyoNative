@@ -3,8 +3,8 @@
     "name": "dubeyoApp",
     "slug": "dubeyoApp",
     "extra": {
-      // "API_BASE_URL": "http://192.168.68.58:5000",
-      "API_BASE_URL": "http://192.168.68.100:5000",
+      "API_BASE_URL": "http://192.168.68.54:5000",
+      // "API_BASE_URL": "http://192.168.68.100:5000",
       "googleAndroidClientId": "1032691163168-nhdbrls8e71rmqfuu2eabcams9tmt9c3.apps.googleusercontent.com",
       "googleIosClientId": "",
       "googleWebClientId": "1032691163168-ksroc7lmpepegin39dv3sa2od5mdrnka.apps.googleusercontent.com",

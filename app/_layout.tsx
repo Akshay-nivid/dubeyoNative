@@ -1,4 +1,5 @@
 import "react-native-css-interop/jsx-runtime";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import "../global.css";
 
 import BottomNavigationBar from "@/src/components/BottomNavigationBar";
@@ -130,54 +131,56 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar
-        backgroundColor="transparent"
-        barStyle="dark-content"
-        translucent
-      />
-      <ThemedBackground style={{ flex: 1 }}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "transparent" },
-            animation: "none",
-          }}
-        >
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="home" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="login"
-            options={{
+      <KeyboardProvider statusBarTranslucent={true} navigationBarTranslucent={true}>
+        <StatusBar
+          backgroundColor="transparent"
+          barStyle="dark-content"
+          translucent
+        />
+        <ThemedBackground style={{ flex: 1 }}>
+          <Stack
+            screenOptions={{
               headerShown: false,
-              animation: "slide_from_left",
+              contentStyle: { backgroundColor: "transparent" },
+              animation: "none",
             }}
-          />
-          <Stack.Screen
-            name="signup"
-            options={{
-              headerShown: false,
-              animation: "slide_from_right",
-            }}
-          />
-          <Stack.Screen
-            name="search-drag"
-            options={{
-              presentation: "modal",
-              animation: "slide_from_bottom",
-            }}
-          />
-        </Stack>
-        {showBottomBar && <BottomNavigationBar />}
-      </ThemedBackground>
-      <Toast
-        config={toastConfig}
-        position="top"
-        topOffset={60}
-        bottomOffset={100}
-        visibilityTime={4000}
-        autoHide={true}
-        keyboardOffset={0}
-      />
+          >
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="home" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="login"
+              options={{
+                headerShown: false,
+                animation: "slide_from_left",
+              }}
+            />
+            <Stack.Screen
+              name="signup"
+              options={{
+                headerShown: false,
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="search-drag"
+              options={{
+                presentation: "modal",
+                animation: "slide_from_bottom",
+              }}
+            />
+          </Stack>
+          {showBottomBar && <BottomNavigationBar />}
+        </ThemedBackground>
+        <Toast
+          config={toastConfig}
+          position="top"
+          topOffset={60}
+          bottomOffset={100}
+          visibilityTime={4000}
+          autoHide={true}
+          keyboardOffset={0}
+        />
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }
