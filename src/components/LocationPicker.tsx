@@ -1,20 +1,27 @@
 import { colors } from "@/theme";
-import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
-import { useEffect, useRef, useState } from "react";
+import { Ionicons, Feather } from "@expo/vector-icons";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
-  Dimensions,
   Modal,
-  PanResponder,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  Dimensions,
 } from "react-native";
+import MapView, { Marker, Region, Circle } from "react-native-maps";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { get } from "../services/api";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  runOnJS,
+} from "react-native-reanimated";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface LocationPickerProps {
   visible: boolean;
@@ -48,108 +55,79 @@ export default function LocationPicker({
   const [usingCurrent, setUsingCurrent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const panY = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const slideAnim = useRef(
-    new Animated.Value(Dimensions.get("window").height),
-  ).current;
+  const [region, setRegion] = useState<Region>({
+    latitude: currentLocation.coordinates.lat || 12.9716,
+    longitude: currentLocation.coordinates.lon || 77.5946,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  });
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        const isVerticalSwipe =
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
-        return isVerticalSwipe && Math.abs(gestureState.dy) > 10;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          panY.setValue(gestureState.dy);
-          const newOpacity = Math.max(
-            0,
-            1 - gestureState.dy / (Dimensions.get("window").height * 0.5),
-          );
-          fadeAnim.setValue(newOpacity);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 150 || gestureState.vy > 0.5) {
-          Animated.parallel([
-            Animated.timing(panY, {
-              toValue: Dimensions.get("window").height,
-              duration: 250,
-              useNativeDriver: true,
-            }),
-            Animated.timing(fadeAnim, {
-              toValue: 0,
-              duration: 250,
-              useNativeDriver: true,
-            }),
-          ]).start(onClose);
-        } else {
-          Animated.spring(panY, {
-            toValue: 0,
-            bounciness: 4,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    }),
-  ).current;
+  const [selectedAddress, setSelectedAddress] = useState(currentLocation.place);
+  const mapRef = useRef<MapView>(null);
+  const isInitialMount = useRef(true);
+  const [nearbyProducts, setNearbyProducts] = useState<any[]>([]);
+
+  // Animation values
+  const opacity = useSharedValue(0);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  const triggerClose = () => {
+    opacity.value = withTiming(0, { duration: 250 }, () => {
+      runOnJS(onClose)();
+    });
+  };
 
   useEffect(() => {
     if (visible) {
-      panY.setValue(0);
-      // Opening Animation
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          tension: 80,
-          friction: 12,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 80,
-          friction: 12,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      opacity.value = withTiming(1, { duration: 300 });
     } else {
-      fadeAnim.setValue(0);
-      slideAnim.setValue(Dimensions.get("window").height);
-      scaleAnim.setValue(0.9);
+      opacity.value = 0;
     }
   }, [visible]);
 
-  const handleClose = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: Dimensions.get("window").height,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onClose();
-    });
+  const fetchNearbyProducts = async (lat: number, lon: number) => {
+    try {
+      const response = await get("/product/nearest", {
+        params: { latitude: lat, longitude: lon, limit: 15 },
+      });
+      if (response.data && Array.isArray(response.data)) {
+        setNearbyProducts(response.data);
+      }
+    } catch (err) {
+      console.log("Error fetching nearby products:", err);
+    }
+  };
+
+  // Sync region when currentLocation changes (e.g. from parent)
+  useEffect(() => {
+    if (visible) {
+      const newRegion = {
+        latitude: currentLocation.coordinates.lat,
+        longitude: currentLocation.coordinates.lon,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      };
+      setRegion(newRegion);
+      setSelectedAddress(currentLocation.place);
+      mapRef.current?.animateToRegion(newRegion, 1000);
+      fetchNearbyProducts(newRegion.latitude, newRegion.longitude);
+    }
+  }, [visible, currentLocation.coordinates.lat, currentLocation.coordinates.lon]);
+
+  const handleRegionChangeComplete = async (newRegion: Region) => {
+    setRegion(newRegion);
+    // Eliminated all automatic API hits on move.
+    // Data is now only refreshed on Search, Current Location, or Modal Open.
   };
 
   const handleUseCurrentLocation = async () => {
     setUsingCurrent(true);
     try {
       await onUseCurrentLocation();
-      handleClose();
+      // The parent will update currentLocation, which triggers the useEffect above
     } catch (error) {
       console.error("Error using current location:", error);
     } finally {
@@ -157,170 +135,192 @@ export default function LocationPicker({
     }
   };
 
-  const handleManualInput = async () => {
-    if (!locationName.trim()) {
-      setError("Please enter a location name");
-      return;
-    }
-
+  const handleManualSearch = async () => {
+    if (!locationName.trim()) return;
     setLoading(true);
     setError(null);
     try {
       const result = await getCoordinatesFromName(locationName.trim());
       if (result) {
-        onSelectLocation({
-          coordinates: { lat: result.lat, lon: result.lon },
-          place: result.place,
-        });
+        const newRegion = {
+          latitude: result.lat,
+          longitude: result.lon,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        };
+        mapRef.current?.animateToRegion(newRegion, 1000);
+        setSelectedAddress(result.place);
+        fetchNearbyProducts(result.lat, result.lon);
         setLocationName("");
-        handleClose();
       } else {
-        setError("Location not found. Please try a different location name.");
+        setError("Location not found.");
       }
-    } catch (error) {
-      console.error("Error getting coordinates from location name:", error);
-      setError("Unable to find location. Please try again.");
+    } catch (err) {
+      setError("Search failed.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleConfirmSelection = () => {
+    onSelectLocation({
+      coordinates: { lat: region.latitude, lon: region.longitude },
+      place: selectedAddress,
+    });
+    triggerClose();
+  };
+
   return (
     <Modal
       visible={visible}
-      transparent
       animationType="none"
-      onRequestClose={handleClose}
+      onRequestClose={triggerClose}
       statusBarTranslucent={true}
+      transparent={true}
     >
-      <View className="flex-1 justify-end" style={{ zIndex: 10000 }}>
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
-          <Pressable className="flex-1" onPress={handleClose}>
-            <BlurView
-              intensity={70}
-              tint="dark"
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: "rgba(0,0,0,0.3)" },
-              ]}
-            />
-          </Pressable>
-        </Animated.View>
-        <Animated.View
-          className="rounded-t-3xl max-h-[80%] bg-bg_white overflow-hidden"
-          style={{
-            transform: [
-              { translateY: Animated.add(slideAnim, panY) },
-              { scale: scaleAnim },
-            ],
-          }}
-          {...panResponder.panHandlers}
-        >
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <View className="py-4 px-6 border-b border-border_primary flex-row justify-between items-center">
-              <Pressable onPress={handleClose}>
-                <Text className="text-base text-primary">Cancel</Text>
-              </Pressable>
-
-              <Text className="text-lg font-semibold text-text_primary">
-                Select Location
-              </Text>
-              <View className="w-16" />
-            </View>
-
-            <ScrollView className="px-6 py-4">
-              {/* Current Location */}
-              <View className="mb-6">
-                <Text className="text-sm font-medium mb-2 text-text_secondary">
-                  Current Location
-                </Text>
-                <View className="p-4 rounded-lg flex-row items-center justify-between bg-bg_secondary">
-                  <View className="flex-1">
-                    <View className="flex-row items-center mb-1">
-                      <Ionicons
-                        name="location-sharp"
-                        size={18}
-                        color={colors.icon_primary}
-                      />
-                      <Text className="ml-2 text-base font-medium text-text_primary">
-                        {currentLocation.place}
-                      </Text>
-                    </View>
-                    <Text className="text-xs ml-6 text-text_secondary">
-                      {currentLocation.coordinates.lat.toFixed(4)},{" "}
-                      {currentLocation.coordinates.lon.toFixed(4)}
-                    </Text>
+      <Animated.View style={[{ flex: 1, backgroundColor: "white" }, animatedStyle]}>
+        {/* Full Screen Map Container */}
+        <View style={StyleSheet.absoluteFillObject}>
+          <MapView
+            ref={mapRef}
+            style={StyleSheet.absoluteFillObject}
+            initialRegion={region}
+            onRegionChangeComplete={handleRegionChangeComplete}
+            showsUserLocation={true}
+            showsMyLocationButton={false}
+            showsCompass={false}
+          >
+            {nearbyProducts.map((product) => (
+              <Marker
+                key={product.id}
+                coordinate={{
+                  latitude: product.latitude || product.location?.coordinates[1],
+                  longitude: product.longitude || product.location?.coordinates[0],
+                }}
+                tracksViewChanges={false}
+              >
+                <View className="items-center justify-center">
+                  <View className="w-6 h-6 bg-blue-500/20 rounded-full items-center justify-center shadow-sm">
+                    <View className="w-2.5 h-2.5 bg-blue-500 rounded-full border-1.5 border-white shadow-md" />
                   </View>
-                  <Pressable
-                    onPress={handleUseCurrentLocation}
-                    disabled={usingCurrent}
-                    className={`px-4 py-2 rounded-lg ${usingCurrent ? "bg-bg_gray_400" : "bg-primary"}`}
-                  >
-                    {usingCurrent ? (
-                      <ActivityIndicator
-                        size="small"
-                        color={colors.text_white}
-                      />
-                    ) : (
-                      <Text className="text-sm font-medium text-text_white">
-                        Use Current
-                      </Text>
-                    )}
-                  </Pressable>
                 </View>
+              </Marker>
+            ))}
+          </MapView>
+
+          {/* Minimal Focal Point (Replaces Pick Here Pin) */}
+          <View
+            pointerEvents="none"
+            style={styles.markerFixed}
+            className="items-center justify-center rounded-full"
+          >
+            <View className="w-8 h-8 rounded-full items-center justify-center">
+              <View className="w-3 h-3 bg-[#1A1A1A] rounded-full border-2 border-white shadow-xl" />
+              <View className="absolute w-6 h-6 border-[1.5px] border-[#1A1A1A]/30 rounded-full" />
+            </View>
+          </View>
+        </View>
+
+        {/* Floating Command-Bar Style Header */}
+        <SafeAreaView edges={["top"]} className="absolute top-0 left-0 right-0 z-20">
+          <View className="px-4 py-3 flex-row items-center">
+            {/* Signature Floating Back Button - Corrected Size */}
+            <Pressable
+              onPress={triggerClose}
+              className="w-14 h-14 bg-white rounded-full items-center justify-center mr-3 border border-gray-200 shadow-lg"
+            >
+              <Feather name="corner-up-left" size={24} color="black" />
+            </Pressable>
+
+            {/* Floating Search Input - Corrected Size & Perfect Symmetry */}
+            <View className="flex-1 relative bg-white rounded-[28px] shadow-xl border border-gray-100 flex-row items-center px-4 h-14">
+              <View className="mr-2.5">
+                <Ionicons name="search" size={20} color="#9CA3AF" />
               </View>
-
-              {/* Manual Input */}
-              <View>
-                <Text className="text-sm font-medium mb-2 text-text_secondary">
-                  Enter Location Name
-                </Text>
-
-                <View className="mb-3">
-                  <TextInput
-                    value={locationName}
-                    onChangeText={(text) => {
-                      setLocationName(text);
-                      setError(null);
-                    }}
-                    placeholder="e.g., kannur, kerala"
-                    className={`px-4 py-3 rounded-lg border bg-bg_white text-text_primary ${error ? "border-error" : "border-border_primary"}`}
-                    placeholderTextColor={colors.text_tertiary}
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                  />
-                  {error && (
-                    <Text className="text-xs mt-1 text-error">{error}</Text>
-                  )}
-                  <Text className="text-xs mt-1 text-text_tertiary">
-                    Enter city name, city and state, or full address
-                  </Text>
+              <TextInput
+                value={locationName}
+                onChangeText={(text) => {
+                  setLocationName(text);
+                  setError(null);
+                }}
+                placeholder="Search location..."
+                className="flex-1 text-gray-900 font-medium text-[15px]"
+                placeholderTextColor="#9CA3AF"
+                autoCapitalize="words"
+                autoCorrect={false}
+                returnKeyType="search"
+                onSubmitEditing={handleManualSearch}
+              />
+              {loading ? (
+                <View className="ml-2">
+                  <ActivityIndicator size="small" color="#1A1A1A" />
                 </View>
-
+              ) : locationName.trim() ? (
                 <Pressable
-                  onPress={handleManualInput}
-                  disabled={loading || !locationName.trim()}
-                  className={`py-3 rounded-lg items-center ${
-                    loading || !locationName.trim()
-                      ? "bg-bg_gray_400"
-                      : "bg-primary"
-                  }`}
+                  onPress={() => setLocationName("")}
+                  className="ml-2 w-6 h-6 rounded-full items-center justify-center bg-gray-100"
                 >
-                  {loading ? (
-                    <ActivityIndicator size="small" color={colors.text_white} />
-                  ) : (
-                    <Text className="text-base font-medium text-text_white">
-                      Set Location
-                    </Text>
-                  )}
+                  <Ionicons name="close" size={14} color="#6B7280" />
                 </Pressable>
-              </View>
+              ) : null}
+            </View>
+          </View>
 
-              <View className="h-6" />
-            </ScrollView>
+          {error && (
+            <View className="mx-4 mt-1 px-3 py-1.5 bg-red-50 rounded-lg border border-red-100 self-start shadow-sm">
+              <Text className="text-[10px] text-red-600 font-bold uppercase">{error}</Text>
+            </View>
+          )}
+        </SafeAreaView>
+
+        {/* Bottom Confirmation Sheet-Style Panel */}
+        <View className="absolute bottom-0 left-0 right-0 z-20 bg-white rounded-t-[32px] shadow-2xl border-t border-gray-100 pt-3 pb-12 px-6">
+          {/* Drag Handle for Sheet Feel */}
+          <View className="w-12 h-1 bg-gray-200 rounded-full self-center mb-6" />
+
+          {/* Highlighted Selection Summary Card */}
+          <View className="flex-row items-center mb-6 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/30">
+            <View className="w-11 h-11 bg-blue-100/50 rounded-full items-center justify-center mr-3.5 shadow-sm">
+              <Ionicons name="location" size={24} color="#3B82F6" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[14px] font-bold text-gray-900 leading-tight" numberOfLines={2}>
+                {selectedAddress || "Pinpointing location..."}
+              </Text>
+            </View>
+            <Pressable
+              onPress={handleUseCurrentLocation}
+              disabled={usingCurrent}
+              className="w-11 h-11 bg-white rounded-full items-center justify-center border border-gray-100 shadow-md active:bg-gray-50"
+            >
+              {usingCurrent ? (
+                <ActivityIndicator size="small" color="#3B82F6" />
+              ) : (
+                <Ionicons name="locate" size={24} color="#3B82F6" />
+              )}
+            </Pressable>
+          </View>
+
+          {/* Primary Action Button - Modern & Non-Complex */}
+          <Pressable
+            onPress={handleConfirmSelection}
+            className="h-14 bg-[#1A1A1A] rounded-[20px] items-center justify-center shadow-md active:opacity-90"
+          >
+            <Text className="text-white font-bold text-[17px]">Confirm Selection</Text>
           </Pressable>
-        </Animated.View>
-      </View>
+        </View>
+      </Animated.View>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  markerFixed: {
+    left: '50%',
+    marginLeft: -24,
+    marginTop: -48,
+    position: 'absolute',
+    top: '50%',
+    zIndex: 15,
+  },
+});

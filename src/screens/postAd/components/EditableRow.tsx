@@ -28,7 +28,7 @@ const EditableRow = ({
   return (
     <View className="mb-2" style={containerStyle}>
       <Text 
-        className="text-gray-900 font-semibold text-[12px] mb-1.5 ml-1"
+        className="text-gray-900 font-bold text-[12px] mb-1.5 ml-1"
         style={{ flexWrap: 'wrap' }}
       >
         {label}

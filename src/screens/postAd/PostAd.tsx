@@ -11,10 +11,20 @@ import {
 import { KeyboardAvoidingView, KeyboardStickyView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import AnimatedRE, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  runOnJS,
+  interpolate,
+  withTiming
+} from "react-native-reanimated";
 import { useUserLocation } from "../../hooks/useUserLocation";
 import { Api, fetchProfile } from "../../screens/home/Api";
 import { get } from "../../services/api";
 import { getToken } from "../../services/storage/tokenStorage";
+import * as ImageManipulator from "expo-image-manipulator";
 import LocationPicker from "@/src/components/LocationPicker";
 import { API_BASE_URL } from "@/src/constants/env";
 
@@ -26,6 +36,7 @@ const PostAd = () => {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [cycleOffset, setCycleOffset] = useState(0);
   const [imageError, setImageError] = useState("");
   const [editLoaded, setEditLoaded] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -41,16 +52,23 @@ const PostAd = () => {
 
     setUploadStatuses(prev => ({ ...prev, [uri]: { status: "uploading", progress: 0 } }));
     try {
+      // Professional Image Optimization
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1200 } }], // Professional resize for ads
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // High quality but optimized size
+      );
+
+      const optimizedUri = manipulatedImage.uri;
       const token = await getToken();
       const formData = new FormData();
-      const fileName = uri.split("/").pop() || "image.jpg";
-      let ext = fileName.includes(".") ? fileName.split(".").pop()?.toLowerCase() || "jpg" : "jpg";
-      if (!["jpg", "jpeg", "png", "webp", "heic"].includes(ext)) ext = "jpg";
+      const fileName = optimizedUri.split("/").pop() || "image.jpg";
+      let ext = "jpg"; // We forced JPEG above
 
       formData.append("image", {
-        uri,
+        uri: optimizedUri,
         name: fileName.includes(".") ? fileName : `${fileName}.jpg`,
-        type: `image/${ext === "jpg" ? "jpeg" : ext}`,
+        type: `image/jpeg`,
       } as any);
 
       return new Promise<void>((resolve, reject) => {
@@ -420,7 +438,10 @@ const PostAd = () => {
         selectionLimit: 4 - photos.length,
         quality: 1,
       });
-      await processPickedImages(result);
+      if (!result.canceled) {
+        setCycleOffset(0); // Reset cycling when adding
+        await processPickedImages(result);
+      }
     } catch (err) {
       console.error("Image picker error", err);
       Toast.show({
@@ -444,10 +465,13 @@ const PostAd = () => {
       setIsPickerActive(true);
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ["images"],
-        allowsEditing: false, // Usually camera allows 1 at a time, but we can just add it
+        allowsEditing: false,
         quality: 1,
       });
-      await processPickedImages(result);
+      if (!result.canceled) {
+        setCycleOffset(0); // Reset cycling when adding
+        await processPickedImages(result);
+      }
     } catch (err) {
       console.error("Camera error", err);
       Toast.show({
@@ -462,21 +486,11 @@ const PostAd = () => {
 
   const pickImage = async () => {
     if (isPickerActive) return;
-
     if (photos.length >= 4) {
-      Toast.show({
-        type: "error",
-        text1: "Limit Reached",
-        text2: "You can upload up to 4 images only",
-      });
+      Toast.show({ type: "error", text1: "Limit Reached", text2: "Max 4 images." });
       return;
     }
-
     setShowPickerModal(true);
-  };
-
-  const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const isAnyUploading = photos.some(p => uploadStatuses[p.uri]?.status === "uploading");
@@ -485,16 +499,13 @@ const PostAd = () => {
 
   const handleContinue = async () => {
     if (isContinueDisabled) return;
-
     try {
       setLoading(true);
-
       const imageUris = photos.map((p) => {
         const s = uploadStatuses[p.uri];
         if (s?.status === "success" && s.key) return s.key;
         return p.uri;
       });
-
       const nextParams: Record<string, string> = {
         description,
         images: JSON.stringify(imageUris),
@@ -505,69 +516,121 @@ const PostAd = () => {
         params: nextParams,
       });
     } catch (err) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Something went wrong",
-      });
+      Toast.show({ type: "error", text1: "Error", text2: "Something went wrong" });
     } finally {
       setLoading(false);
     }
   };
 
+  const removePhoto = (indexInStack: number) => {
+    // We need to find the actual photo in the stack because they cycle
+    const totalSlots = 4;
+    const baseStack = [...Array(totalSlots - photos.length).fill(null), ...photos];
+    const itemIndex = (indexInStack + cycleOffset) % totalSlots;
+    const photoToRemove = baseStack[itemIndex];
+
+    if (photoToRemove) {
+      setPhotos((prev) => prev.filter((p) => p.uri !== photoToRemove.uri));
+      setCycleOffset(0); // Reset cycling when removing for predictability
+    }
+  };
+
   const renderImagesSection = () => {
     const totalSlots = 4;
+    const translateX = useSharedValue(0);
+    const translateY = useSharedValue(0);
+
+    const cyclePhotos = () => {
+      // Increment offset to cycle ALL slots (0-3)
+      setCycleOffset((prev) => (prev + 1) % totalSlots);
+      translateX.value = 0;
+      translateY.value = 0;
+    };
+
+    const gesture = Gesture.Pan()
+      .onUpdate((e) => {
+        translateX.value = e.translationX;
+        translateY.value = e.translationY;
+      })
+      .onEnd((e) => {
+        if (Math.abs(e.translationX) > 100 || Math.abs(e.translationY) > 100) {
+          runOnJS(cyclePhotos)();
+        } else {
+          translateX.value = withSpring(0);
+          translateY.value = withSpring(0);
+        }
+      });
+
+    const animatedTopCard = useAnimatedStyle(() => ({
+      transform: [
+        { rotate: '-8deg' },
+        { translateX: translateX.value - 15 },
+        { translateY: translateY.value + 5 },
+      ],
+      zIndex: 100,
+    }));
 
     return (
       <View className="mb-6">
         <Animated.View
-          className="mb-6 px-1"
+          className="mb-8 px-4 items-center"
           style={{
             opacity: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
             transform: [{ translateY: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }]
           }}
         >
-          <Text className="text-[34px] font-bold text-gray-900 leading-[40px]" style={{ fontFamily: "DM Serif Display" }}>
+          <Text className="text-[34px] font-bold text-gray-900 leading-[40px] text-center" style={{ fontFamily: "DM Serif Display" }}>
             Hi, {userName}
           </Text>
-          <Text className="text-[42px] font-bold text-indigo-600 leading-[42px]" style={{ fontFamily: "DM Serif Display" }}>
+          <Text className="text-[42px] font-bold text-indigo-600 leading-[42px] text-center mt-1" style={{ fontFamily: "DM Serif Display" }}>
             Sell with AI
           </Text>
-          <View className="flex-row items-center justify-between mt-3 px-0.5">
-            <View className="flex-row items-center">
-              <Ionicons name="information-circle-outline" size={14} color="#A1A1AA" />
-              <Text className="text-[12px] text-gray-400 font-medium ml-1">At least 1 photo required. Max 4. (Max 5MB each)</Text>
-            </View>
+          <View className="flex-row items-center justify-center mt-4 px-2">
+            <Ionicons name="information-circle-outline" size={14} color="#A1A1AA" />
+            <Text className="text-[12px] text-gray-400 font-medium ml-1.5 text-center">At least 1 photo required. Max 4. (Max 5MB each)</Text>
           </View>
         </Animated.View>
 
         <Animated.View
-          className="flex-row flex-wrap justify-between mt-4"
+          className="mt-6 mb-12 items-center justify-center relative"
           style={{
+            height: 320,
             opacity: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
             transform: [{ translateY: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }]
           }}
         >
           {Array.from({ length: totalSlots }).map((_, index) => {
-            const photo = photos[index];
+            // Priority list: placeholders first [null, null], then images [A, B]
+            const baseStack = [...Array(totalSlots - photos.length).fill(null), ...photos];
+            
+            // Apply cycleOffset: shift whole stack right (last becomes first)
+            // If offset 1: [B, null, null, A]
+            const itemIndex = (index + cycleOffset) % totalSlots;
+            const photo = baseStack[itemIndex];
             const isFilled = !!photo;
 
-            if (isFilled) {
-              const statusInfo = uploadStatuses[photo.uri];
-              const isUploading = statusInfo?.status === "uploading";
-              const isError = statusInfo?.status === "error";
+            // Alternating pattern: index 0 (R), 1 (L), 2 (R), 3 (L-front)
+            const slotStyles: any = [
+              { transform: [{ rotate: '15deg' }, { translateX: 35 }, { translateY: 15 }], zIndex: 10 },
+              { transform: [{ rotate: '-15deg' }, { translateX: -35 }, { translateY: 15 }], zIndex: 20 },
+              { transform: [{ rotate: '8deg' }, { translateX: 15 }, { translateY: 5 }], zIndex: 30 },
+              { transform: [{ rotate: '-8deg' }, { translateX: -15 }, { translateY: 5 }], zIndex: 40 }
+            ][index];
 
-              return (
-                <View key={index} className="w-[48.5%] aspect-square mb-3">
-                  <View className="w-full h-full rounded-[24px] overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
+            const renderCardContent = () => {
+              if (photo) {
+                const statusInfo = uploadStatuses[photo.uri];
+                const isUploading = statusInfo?.status === "uploading";
+                const isError = statusInfo?.status === "error";
+
+                return (
+                  <View className="w-full h-full rounded-[32px] overflow-hidden bg-white border border-gray-100 shadow-xl">
                     <Image
                       source={{ uri: photo.uri }}
                       style={{ width: '100%', height: '100%' }}
                       contentFit="cover"
                       transition={200}
                     />
-
-
 
                     {isUploading && (
                       <View className="absolute inset-0 bg-black/40 items-center justify-center">
@@ -583,45 +646,52 @@ const PostAd = () => {
 
                     <TouchableOpacity
                       onPress={() => removePhoto(index)}
-                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black items-center justify-center"
+                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 items-center justify-center"
                     >
-                      <Ionicons name="trash-outline" size={16} color="white" />
+                      <Ionicons name="close" size={18} color="white" />
                     </TouchableOpacity>
                   </View>
-                </View>
+                );
+              }
+
+              return (
+                <TouchableOpacity
+                  onPress={pickImage}
+                  activeOpacity={0.8}
+                  className="w-full h-full"
+                >
+                  <View
+                    className="w-full h-full rounded-[32px] bg-white border border-gray-100 shadow-lg items-center justify-center"
+                  >
+                    <View className="w-12 h-12 rounded-full items-center justify-center bg-indigo-50 border border-indigo-100">
+                      <Ionicons
+                        name="add-outline"
+                        size={32}
+                        color="#6366F1"
+                      />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            };
+
+            if (index === 3) {
+              return (
+                <GestureDetector key={index} gesture={gesture}>
+                  <AnimatedRE.View 
+                    className="absolute w-[60%] aspect-[3/4]"
+                    style={animatedTopCard}
+                  >
+                    {renderCardContent()}
+                  </AnimatedRE.View>
+                </GestureDetector>
               );
             }
 
-            // Labels for placeholders
-            const placeholders = [
-              "Photo 1",
-              "Photo 2",
-              "Photo 3",
-              "Photo 4",
-            ];
-
             return (
-              <TouchableOpacity
-                key={index}
-                onPress={pickImage}
-                activeOpacity={0.7}
-                className="w-[48.5%] aspect-square mb-3"
-              >
-                <View
-                  className="w-full h-full rounded-[24px] bg-indigo-50/50 border-2 border-dashed border-indigo-100 items-center justify-center"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mb-1 bg-indigo-50">
-                    <Ionicons
-                      name="camera-outline"
-                      size={20}
-                      color="#6366F1"
-                    />
-                  </View>
-                  <Text className="text-[11px] font-bold text-indigo-400">
-                    {placeholders[index]}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+              <View key={index} className="absolute w-[60%] aspect-[3/4]" style={slotStyles}>
+                {renderCardContent()}
+              </View>
             );
           })}
         </Animated.View>
@@ -634,10 +704,11 @@ const PostAd = () => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F7F6F3' }}>
-      {/* STATIC BACKGROUND LAYER */}
-      <View style={{ flex: 1 }}>
-        <SafeAreaView className="flex-1 bg-[#F7F6F3]" edges={["top"]}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: '#F7F6F3' }}>
+        {/* STATIC BACKGROUND LAYER */}
+        <View style={{ flex: 1 }}>
+          <SafeAreaView className="flex-1 bg-[#F7F6F3]" edges={["top"]}>
           <Animated.View
             className="px-4 py-3 flex-row items-center justify-between z-10 bg-[#F7F6F3] border-b border-gray-200 shadow-lg"
             style={{
@@ -658,12 +729,21 @@ const PostAd = () => {
                 className="flex-1 justify-center"
               >
                 <Text className="text-xl font-bold text-gray-900">Post ad</Text>
-                <View className="flex-row items-center">
-                  <Ionicons name="location-outline" size={12} color="#6B7280" />
-                  <Text className="text-xs text-gray-500 font-medium ml-1" numberOfLines={1}>
-                    {place || "Select location"}
+                <View className="flex-row items-center mt-0.5">
+                  <Ionicons name="location-outline" size={12} color="#9CA3AF" />
+                  <Text
+                    className="text-[11px] text-gray-400 font-medium ml-1 shrink"
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {place ? place.split(',')[0] : "Select location"}
                   </Text>
-                  <Ionicons name="chevron-down" size={12} color="#6366F1" style={{ marginLeft: 4 }} />
+                  <Ionicons
+                    name="chevron-down"
+                    size={10}
+                    color="#6366F1"
+                    style={{ marginLeft: 4 }}
+                  />
                 </View>
               </TouchableOpacity>
             </View>
@@ -853,7 +933,8 @@ const PostAd = () => {
         getPlaceName={getPlaceName}
         getCoordinatesFromName={getCoordinatesFromName}
       />
-    </View>
+      </View>
+    </GestureHandlerRootView>
   );
 };
 

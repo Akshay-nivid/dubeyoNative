@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
   Text,
@@ -35,7 +34,7 @@ export const AmenitiesSection: React.FC<AmenitiesSectionProps> = ({
   if (generationStep !== 3 || !isAmenitiesRequired) return null; // 3 = GENERATION_STEPS.DONE
 
   return (
-    <View className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100 mb-5">
+    <View className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-200 mb-5">
       <View className="flex-row justify-between items-center mb-5">
         <Text 
           className="text-xl text-gray-900" 

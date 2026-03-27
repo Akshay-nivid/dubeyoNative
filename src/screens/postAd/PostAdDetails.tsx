@@ -1078,32 +1078,14 @@ const PostAdDetails = () => {
               <Feather name="corner-up-left" size={20} color="black" />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setLocationPickerVisible(true)}
-              className="flex-1 justify-center"
-            >
+            <View className="flex-1 justify-center">
               <Text
-                className="text-[15px] font-normal text-[#333333] leading-5 mb-0.5"
+                className="text-[17px] font-bold text-gray-900"
                 style={{ fontFamily: "DM Serif Display" }}
               >
                 Ad Details
               </Text>
-              <View className="flex-row items-center">
-                {place ? (
-                  <Text
-                    className="text-[14px] text-gray-500 font-medium max-w-[180px]"
-                    numberOfLines={1}
-                  >
-                    {place}
-                  </Text>
-                ) : (
-                  <Text className="text-[14px] text-gray-400 font-medium">
-                    Select location
-                  </Text>
-                )}
-
-              </View>
-            </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -1227,7 +1209,7 @@ const PostAdDetails = () => {
                         setData((prev: any) => ({
                           ...prev,
                           subcategoryId:
-                            full?.id || full?._id || full?.value || opt.value,
+                            full?.id || full?._id || full?._id || opt.value,
                           subcategory: full || opt,
                           divisionId: undefined,
                           division: undefined,
@@ -1390,13 +1372,13 @@ const PostAdDetails = () => {
             )}
 
           {/* ── Nearby Amenities ── */}
-          <AmenitiesSection
+          {/* <AmenitiesSection
             generationStep={generationStep}
             isAmenitiesRequired={data.isAmenitiesRequired || false}
             amenities={amenities}
             isAmenitiesLoading={isAmenitiesLoading}
             showAmenities={showAmenities}
-          />
+          /> */}
 
           {/* ── Price + Description + Submit ── */}
           {generationStep === GENERATION_STEPS.DONE && (
