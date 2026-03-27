@@ -53,6 +53,9 @@ export interface PostAdData {
   isModelrequired?: boolean;
   model?: any;
   modelId?: string;
+  /** Set from preview API: whether AI returned category / subcategory. */
+  aiExtractedCategory?: boolean;
+  aiExtractedSubcategory?: boolean;
   [key: string]: any;
 }
 
@@ -114,6 +117,17 @@ const hasValidValue = (val: any): boolean => {
 
 const resolveEntityId = (entity: any): string | undefined =>
   entity?.id || entity?._id || entity?.value || undefined;
+
+/** True when preview AI returned a category/subcategory (id or labeled object). */
+const wasAiPreviewEntityPresent = (entity: any): boolean => {
+  if (entity == null) return false;
+  if (resolveEntityId(entity)) return true;
+  if (typeof entity === "object" && !Array.isArray(entity)) {
+    const label = entity.name || entity.label;
+    if (typeof label === "string" && label.trim().length > 0) return true;
+  }
+  return false;
+};
 
 /**
  * Extracts and cleans a list of questions from various backend payload fields.
@@ -395,14 +409,13 @@ export const usePostAdAI = () => {
           {
             details: contextualDetails,
             specs: missingSpecs,
-            location,
+            location: [location.lat, location.lon],
             subcategoryId: subcategoryId || null,
             images: imageKeys || [],
             brandId: brandId || null,
           },
           { signal },
         );
-
         if (currentGenerationId !== generationIdRef.current) return;
 
         const payload = response?.data ?? response ?? {};
@@ -723,6 +736,10 @@ export const usePostAdAI = () => {
           isModelrequired: basicResult.isModelrequired ?? false,
           modelId: resolveEntityId(basicResult.model) || "",
           model: basicResult.model,
+          aiExtractedCategory: wasAiPreviewEntityPresent(basicResult.category),
+          aiExtractedSubcategory: wasAiPreviewEntityPresent(
+            basicResult.subcategory,
+          ),
         });
 
         setGenerationStep(GENERATION_STEPS.BASIC_FORM);

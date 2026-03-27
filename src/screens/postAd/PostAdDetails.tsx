@@ -3,6 +3,7 @@ import { post } from "@/src/services/api";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
+import type { DimensionValue } from "react-native";
 import {
   ActivityIndicator,
   ScrollView,
@@ -17,6 +18,7 @@ import { StatusBar } from "expo-status-bar";
 
 import {
   GENERATION_STEPS,
+  getStableKey,
   normalizeFieldKey,
   usePostAdAI,
 } from "../../hooks/usePostAdAI";
@@ -36,6 +38,34 @@ import SuccessModal from "./components/SuccessModal";
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS & LOCAL COMPONENTS
 ───────────────────────────────────────────────────────────────────────────── */
+
+/** Shown when AI already filled category/subcategory — matches InlinePicker layout */
+const ReadOnlyCategoryRow = ({
+  label,
+  value,
+  width,
+}: {
+  label: string;
+  value: string;
+  width: DimensionValue;
+}) => (
+  <View className="mb-2" style={{ width }}>
+    <Text
+      className="text-gray-900 font-semibold text-[12px] mb-1.5 ml-1"
+      style={{ flexWrap: "wrap" }}
+    >
+      {label}
+    </Text>
+    <View className="bg-gray-50/50 border border-gray-100 rounded-[8px] px-4 h-12 justify-center shadow-sm shadow-black/[0.02]">
+      <Text
+        className="text-gray-900 text-sm font-semibold"
+        numberOfLines={1}
+      >
+        {value?.trim() ? value : "—"}
+      </Text>
+    </View>
+  </View>
+);
 
 const LocalTextInput = ({ value, onChangeText, ...props }: any) => {
   const [local, setLocal] = useState(value?.toString() || "");
@@ -68,6 +98,170 @@ const buildSpecsPayload = (
   return out;
 };
 
+const resolveSpecMeta = (
+  key: string,
+  specMetadata: Record<string, any>,
+  questions: { key?: string; slug?: string; field?: string; label?: string; dataType?: string; options?: any[]; id?: string; specId?: string; _id?: string; [k: string]: any }[],
+): any => {
+  if (specMetadata[key]) return specMetadata[key];
+  const nk = normalizeFieldKey(key);
+  if (specMetadata[nk]) return specMetadata[nk];
+  for (const [k, v] of Object.entries(specMetadata)) {
+    if (normalizeFieldKey(k) === nk) return v;
+  }
+  return questions.find(
+    (q) =>
+      getStableKey(q) === key ||
+      q.key === key ||
+      normalizeFieldKey(String(q.field || q.label || "")) === nk,
+  );
+};
+
+const resolveSpecId = (meta: any): string | undefined => {
+  if (!meta || typeof meta !== "object") return undefined;
+  return (
+    meta.specId ||
+    meta.id ||
+    meta._id ||
+    (typeof meta.spec_id === "string" ? meta.spec_id : undefined)
+  );
+};
+
+const inferSpecDataType = (
+  rawVal: any,
+  meta: any,
+): "string" | "number" | "boolean" | "select" => {
+  const raw = meta?.dataType;
+  const dt =
+    typeof raw === "string" ? raw.trim().toLowerCase() : String(raw || "");
+  if (dt === "string" || dt === "text" || dt === "varchar") return "string";
+  if (dt === "number" || dt === "integer" || dt === "float") return "number";
+  if (dt === "boolean" || dt === "bool") return "boolean";
+  if (dt === "select" || dt === "enum" || dt === "dropdown") return "select";
+  if (typeof rawVal === "boolean") return "boolean";
+  if (typeof rawVal === "number" && !Number.isNaN(rawVal)) return "number";
+  if (Array.isArray(meta?.options) && meta.options.length > 0) return "select";
+  return "string";
+};
+
+/** PG enum_spec_values_dataType rejects "string"; catalog uses "text". */
+const specDataTypeForDb = (
+  internal: "string" | "number" | "boolean" | "select",
+): string =>
+  internal === "string" ? "text" : internal;
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const isUuidLike = (s: string): boolean => UUID_RE.test(String(s).trim());
+
+const normOptStr = (v: any): string =>
+  String(v ?? "")
+    .trim()
+    .toLowerCase();
+
+/**
+ * DB column valueOptionId is UUID. UI often stores the label (e.g. "Petrol");
+ * map through meta.options to the real option row id.
+ */
+const resolveSelectOptionUuid = (rawVal: any, meta: any): string | null => {
+  if (rawVal === undefined || rawVal === null || rawVal === "") return null;
+  const want = String(rawVal).trim();
+  if (isUuidLike(want)) return want;
+
+  const opts = Array.isArray(meta?.options) ? meta.options : [];
+  for (const o of opts) {
+    if (o == null) continue;
+    if (typeof o === "string") {
+      if (normOptStr(o) === normOptStr(rawVal) && isUuidLike(o)) return o.trim();
+      continue;
+    }
+    const idCandidates = [o.id, o._id, o.optionId].filter(
+      (x) => x != null && String(x).length > 0,
+    ) as string[];
+    const labelCandidates = [o.value, o.name, o.label, o.title].filter(
+      (x) => x != null,
+    );
+
+    const matchesId = idCandidates.some((id) => String(id) === want);
+    const matchesLabel = labelCandidates.some(
+      (c) => normOptStr(c) === normOptStr(rawVal),
+    );
+
+    if (!matchesId && !matchesLabel) continue;
+
+    for (const id of idCandidates) {
+      if (isUuidLike(String(id))) return String(id);
+    }
+  }
+  return null;
+};
+
+type BackendSpecRow = {
+  key: string;
+  specId: string;
+  dataType: string;
+  value: any;
+  optionId?: string | null;
+};
+
+/** Shape expected by product create API: spec rows for SpecValue + key/value for Product.attributes */
+const buildBackendSpecsArray = (
+  flat: Record<string, any>,
+  specMetadata: Record<string, any>,
+  questions: any[],
+): { rows: BackendSpecRow[]; unresolvedSelectKeys: string[] } => {
+  const rows: BackendSpecRow[] = [];
+  const unresolvedSelectKeys: string[] = [];
+
+  for (const [key, rawVal] of Object.entries(flat)) {
+    if (rawVal === undefined || rawVal === null || rawVal === "") continue;
+
+    const meta = resolveSpecMeta(key, specMetadata, questions);
+    const specId = resolveSpecId(meta);
+    if (!specId) continue;
+
+    const dataType = inferSpecDataType(rawVal, meta);
+    let value: any = rawVal;
+    let optionId: string | null | undefined;
+
+    if (dataType === "boolean") {
+      if (rawVal === true || rawVal === false) value = rawVal;
+      else {
+        const s = String(rawVal).toLowerCase();
+        if (s === "yes" || s === "true") value = true;
+        else if (s === "no" || s === "false") value = false;
+        else value = Boolean(rawVal);
+      }
+    } else if (dataType === "number") {
+      const n = Number(rawVal);
+      if (Number.isNaN(n)) continue;
+      value = n;
+    } else if (dataType === "select") {
+      const resolved = resolveSelectOptionUuid(rawVal, meta);
+      if (!resolved) {
+        unresolvedSelectKeys.push(key);
+        continue;
+      }
+      optionId = resolved;
+      value = rawVal;
+    } else {
+      value = rawVal == null ? "" : String(rawVal);
+    }
+
+    const row: BackendSpecRow = {
+      key,
+      specId,
+      dataType: specDataTypeForDb(dataType),
+      value,
+    };
+    if (dataType === "select" && optionId != null) row.optionId = optionId;
+    rows.push(row);
+  }
+
+  return { rows, unresolvedSelectKeys };
+};
+
 /* ─────────────────────────────────────────────────────────────────────────────
    MAIN SCREEN
 ───────────────────────────────────────────────────────────────────────────── */
@@ -91,6 +285,7 @@ const PostAdDetails = () => {
   const {
     coordinates,
     place,
+    loading: isLocationLoading,
     updateLocation,
     useCurrentLocation,
     getPlaceName,
@@ -139,18 +334,25 @@ const PostAdDetails = () => {
   // AI pipeline start
   useEffect(() => {
     if (
+      isLocationLoading ||
       !initialDescription ||
       initialImages.length === 0 ||
       hasInitialized.current
     )
       return;
     hasInitialized.current = true;
+    const hasValidCoords =
+      !!coordinates &&
+      Number.isFinite(coordinates.lat) &&
+      Number.isFinite(coordinates.lon) &&
+      coordinates.lat !== 0 &&
+      coordinates.lon !== 0;
     fetchPreview(
       initialDescription,
       initialImages,
-      coordinates ? { lat: coordinates.lat, lon: coordinates.lon } : null,
+      hasValidCoords ? { lat: coordinates.lat, lon: coordinates.lon } : null,
     );
-  }, [initialDescription, initialImages]);
+  }, [initialDescription, initialImages, isLocationLoading]);
 
   // Fetch amenities when location changes, if required by the category
   useEffect(() => {
@@ -253,6 +455,11 @@ const PostAdDetails = () => {
     return sub?.name || sub?.label || data?.subcategory?.name || "";
   }, [subcategories, data.subcategoryId, data?.subcategory]);
 
+  /** Pickers only when preview AI did not extract that field (otherwise read-only). */
+  const showCategoryFilter = data.aiExtractedCategory !== true;
+  const showSubcategoryFilter = data.aiExtractedSubcategory !== true;
+  const categoryColWidth = "48%";
+
   const brandName = useMemo(() => {
     if (!data?.brandId || brands.length === 0)
       return data?.brand?.name || data?.brand?.label || data?.brand || "";
@@ -293,6 +500,11 @@ const PostAdDetails = () => {
       Object.keys(amenities).length > 0,
     [data.isAmenitiesRequired, amenities],
   );
+
+  const resolvedCurrency = useMemo(() => {
+    const raw = String(data?.currency || "").trim().toUpperCase();
+    return raw.length >= 2 && raw.length <= 5 ? raw : "AED";
+  }, [data?.currency]);
 
   const isPostDisabled = clicked || isFormLoading || !data.title;
 
@@ -446,7 +658,35 @@ const PostAdDetails = () => {
       const normalizedPrice = isNaN(Number(data.price))
         ? 0
         : Number(data.price);
-      const formattedSpecs = buildSpecsPayload(data.specs, questionAnswers);
+        const formattedSpecs = buildSpecsPayload(data.specs, questionAnswers);
+        const { rows: specsForApi, unresolvedSelectKeys } =
+          buildBackendSpecsArray(formattedSpecs, specMetadata, questions);
+
+        if (unresolvedSelectKeys.length > 0) {
+          Toast.show({
+            type: "error",
+            text1: "Choice list error",
+            text2:
+              "Re-select each dropdown using the list (options must sync with the server).",
+          });
+          setClicked(false);
+          return;
+        }
+
+        if (
+          Object.keys(formattedSpecs).length > 0 &&
+          specsForApi.length === 0
+        ) {
+          Toast.show({
+            type: "error",
+            text1: "Specifications error",
+            text2:
+              "Could not resolve spec IDs for this category. Re-run the listing flow or check your connection.",
+          });
+          setClicked(false);
+          return;
+        }
+
       const submissionImages =
         imageKeys.length > 0
           ? imageKeys
@@ -470,13 +710,12 @@ const PostAdDetails = () => {
         isModelrequired: undefined,
         enhancedDescription: undefined,
         price: normalizedPrice,
-        specs: formattedSpecs,
-        negotiate: isNegotiable,
+        specs: specsForApi,
+        currency: resolvedCurrency,
+        negotiation: isNegotiable,
+        negotiationPrice: 0,
         description: data.enhancedDescription,
-        location: {
-          type: "Point",
-          coordinates: [coordinates.lon, coordinates.lat],
-        },
+        location: [coordinates.lat, coordinates.lon],
         images: submissionImages,
       };
 
@@ -929,65 +1168,83 @@ const PostAdDetails = () => {
                   }
                 />
                 <View className="flex-row justify-between w-full">
-                  <InlinePicker
-                    label="Category"
-                    value={categoryName}
-                    options={categories
-                      .map((c: any) => ({
-                        label: c.name || c.label || "",
-                        value: c.id || c._id || c.value || "",
-                      }))
-                      .filter(
-                        (v, i, a) =>
-                          a.findIndex((t) => t.value === v.value) === i,
-                      )}
-                    containerStyle={{ width: "48%" }}
-                    onSelect={(opt: any) => {
-                      const full = categories.find(
-                        (c: any) => (c.id || c._id || c.value) === opt.value,
-                      );
-                      setData((prev: any) => ({
-                        ...prev,
-                        categoryId:
-                          full?.id || full?._id || full?.value || opt.value,
-                        category: full || opt,
-                        subcategoryId: undefined,
-                        subcategory: undefined,
-                      }));
-                    }}
-                  />
-                  <InlinePicker
-                    label="Sub Category"
-                    value={subcategoryName}
-                    options={subcategories
-                      .map((s: any) => ({
-                        label: s.name || s.label || "",
-                        value: s.id || s._id || s.value || "",
-                      }))
-                      .filter(
-                        (v, i, a) =>
-                          a.findIndex((t) => t.value === v.value) === i,
-                      )}
-                    isLoading={isLoadingSubcategories}
-                    containerStyle={{ width: "48%" }}
-                    onSelect={(opt: any) => {
-                      const full = subcategories.find(
-                        (s: any) => (s.id || s._id || s.value) === opt.value,
-                      );
-                      setData((prev: any) => ({
-                        ...prev,
-                        subcategoryId:
-                          full?.id || full?._id || full?.value || opt.value,
-                        subcategory: full || opt,
-                        divisionId: undefined,
-                        division: undefined,
-                        brandId: undefined,
-                        brand: undefined,
-                        modelId: undefined,
-                        model: undefined,
-                      }));
-                    }}
-                  />
+                  {showCategoryFilter ? (
+                    <InlinePicker
+                      label="Category"
+                      value={categoryName}
+                      options={categories
+                        .map((c: any) => ({
+                          label: c.name || c.label || "",
+                          value: c.id || c._id || c.value || "",
+                        }))
+                        .filter(
+                          (v, i, a) =>
+                            a.findIndex((t) => t.value === v.value) === i,
+                        )}
+                      containerStyle={{ width: categoryColWidth }}
+                      onSelect={(opt: any) => {
+                        const full = categories.find(
+                          (c: any) =>
+                            (c.id || c._id || c.value) === opt.value,
+                        );
+                        setData((prev: any) => ({
+                          ...prev,
+                          categoryId:
+                            full?.id || full?._id || full?.value || opt.value,
+                          category: full || opt,
+                          subcategoryId: undefined,
+                          subcategory: undefined,
+                        }));
+                      }}
+                    />
+                  ) : (
+                    <ReadOnlyCategoryRow
+                      label="Category"
+                      value={categoryName}
+                      width={categoryColWidth}
+                    />
+                  )}
+                  {showSubcategoryFilter ? (
+                    <InlinePicker
+                      label="Sub Category"
+                      value={subcategoryName}
+                      options={subcategories
+                        .map((s: any) => ({
+                          label: s.name || s.label || "",
+                          value: s.id || s._id || s.value || "",
+                        }))
+                        .filter(
+                          (v, i, a) =>
+                            a.findIndex((t) => t.value === v.value) === i,
+                        )}
+                      isLoading={isLoadingSubcategories}
+                      containerStyle={{ width: categoryColWidth }}
+                      onSelect={(opt: any) => {
+                        const full = subcategories.find(
+                          (s: any) =>
+                            (s.id || s._id || s.value) === opt.value,
+                        );
+                        setData((prev: any) => ({
+                          ...prev,
+                          subcategoryId:
+                            full?.id || full?._id || full?.value || opt.value,
+                          subcategory: full || opt,
+                          divisionId: undefined,
+                          division: undefined,
+                          brandId: undefined,
+                          brand: undefined,
+                          modelId: undefined,
+                          model: undefined,
+                        }));
+                      }}
+                    />
+                  ) : (
+                    <ReadOnlyCategoryRow
+                      label="Sub Category"
+                      value={subcategoryName}
+                      width={categoryColWidth}
+                    />
+                  )}
                 </View>
                 {(showBrandField || showModelField) && (
                   <View className="mt-4 flex-row justify-between w-full">
@@ -1151,7 +1408,7 @@ const PostAdDetails = () => {
                 </Text>
                 <View className="bg-gray-50/50 border border-gray-200 rounded-[18px] px-4 flex-row items-center h-16">
                   <View className="bg-white px-3 py-1.5 rounded-xl border border-gray-200 mr-3">
-                    <Text className="text-gray-900 font-bold text-xs">AED</Text>
+                    <Text className="text-gray-900 font-bold text-xs">{resolvedCurrency}</Text>
                   </View>
                   <LocalTextInput
                     placeholder="0.00"
