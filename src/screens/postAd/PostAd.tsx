@@ -3,9 +3,9 @@ import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator, Alert, Animated, Dimensions, Keyboard, Modal, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity,
+  ActivityIndicator, Alert, Animated, Dimensions, DimensionValue, Keyboard, Modal, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity,
   View,
 } from "react-native";
 import { KeyboardAvoidingView, KeyboardStickyView } from "react-native-keyboard-controller";
@@ -27,6 +27,40 @@ import { getToken } from "../../services/storage/tokenStorage";
 import * as ImageManipulator from "expo-image-manipulator";
 import LocationPicker from "@/src/components/LocationPicker";
 import { API_BASE_URL } from "@/src/constants/env";
+import { GENERATION_STEPS, usePostAdAI, normalizeFieldKey } from "../../hooks/usePostAdAI";
+import { usePostAdData } from "../../hooks/usePostAdData";
+import EditableRow from "./components/EditableRow";
+import { InlinePicker } from "./components/InlinePicker";
+import PostAdSkeleton from "./components/PostAdSkeleton";
+
+/** Shown when AI already filled category/subcategory — matches InlinePicker layout */
+const ReadOnlyCategoryRow = ({
+  label,
+  value,
+  width,
+}: {
+  label: string;
+  value: string;
+  width: DimensionValue;
+}) => (
+  <View className="mb-2" style={{ width }}>
+    <Text
+      className="text-gray-900 font-bold text-[12px] mb-1.5 ml-1"
+      style={{ flexWrap: "wrap" }}
+    >
+      {label}
+    </Text>
+    <View className="bg-gray-50/50 border border-gray-100 rounded-[8px] px-4 h-12 justify-center shadow-sm shadow-black/[0.02]">
+      <Text
+        className="text-gray-900 text-sm font-semibold"
+        numberOfLines={1}
+      >
+        {value?.trim() ? value : "—"}
+      </Text>
+    </View>
+  </View>
+);
+import AISuggestedTag from "./components/AISuggestedTag";
 
 const PostAd = () => {
   const router = useRouter();
@@ -43,6 +77,49 @@ const PostAd = () => {
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   type UploadStatus = "uploading" | "success" | "error";
   const [uploadStatuses, setUploadStatuses] = useState<Record<string, { status: UploadStatus; key?: string; progress?: number }>>({});
+  const [showBasicDetails, setShowBasicDetails] = useState(false);
+
+  const {
+    generationStep,
+    isFormLoading,
+    data,
+    setData,
+    fetchPreview,
+    specMetadata,
+  } = usePostAdAI();
+
+  const {
+    categories,
+    subcategories,
+    brands,
+    models,
+    isLoadingSubcategories,
+    isLoadingBrands,
+    isLoadingModels,
+  } = usePostAdData(data.categoryId, data.subcategoryId, data.brandId);
+
+  const categoryName = useMemo(() => {
+    if (!data?.categoryId || categories.length === 0)
+      return data?.category?.name || data?.category?.label || "";
+    const cat = categories.find(
+      (c) => (c.id || c._id || c.value) === data.categoryId,
+    );
+    return cat?.name || cat?.label || data?.category?.name || "";
+  }, [categories, data.categoryId, data?.category]);
+
+  const subcategoryName = useMemo(() => {
+    if (!data?.subcategoryId || subcategories.length === 0)
+      return data?.subcategory?.name || data?.subcategory?.label || "";
+    const sub = subcategories.find(
+      (s) => (s.id || s._id || s.value) === data.subcategoryId,
+    );
+    return sub?.name || sub?.label || data?.subcategory?.name || "";
+  }, [subcategories, data.subcategoryId, data?.subcategory]);
+
+  /** Pickers only when preview AI did not extract that field (otherwise read-only). */
+  const showCategoryFilter = data.aiExtractedCategory !== true;
+  const showSubcategoryFilter = data.aiExtractedSubcategory !== true;
+  const categoryColWidth = "48%";
 
   const uploadImage = async (uri: string) => {
     if (!uri.startsWith("file://") && !uri.startsWith("content://")) {
@@ -499,6 +576,30 @@ const PostAd = () => {
 
   const handleContinue = async () => {
     if (isContinueDisabled) return;
+    
+    if (!showBasicDetails) {
+      setShowBasicDetails(true);
+      const hasValidCoords =
+        !!coordinates &&
+        Number.isFinite(coordinates.lat) &&
+        Number.isFinite(coordinates.lon) &&
+        coordinates.lat !== 0 &&
+        coordinates.lon !== 0;
+      
+      const imageUris = photos.map((p) => {
+        const s = uploadStatuses[p.uri];
+        if (s?.status === "success" && s.key) return s.key;
+        return p.uri;
+      });
+
+      fetchPreview(
+        description,
+        imageUris,
+        hasValidCoords ? { lat: coordinates.lat, lon: coordinates.lon } : null,
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       const imageUris = photos.map((p) => {
@@ -506,10 +607,18 @@ const PostAd = () => {
         if (s?.status === "success" && s.key) return s.key;
         return p.uri;
       });
+      
       const nextParams: Record<string, string> = {
-        description,
+        description: data.enhancedDescription || description,
         images: JSON.stringify(imageUris),
+        title: data.title || "",
+        categoryId: data.categoryId || "",
+        subcategoryId: data.subcategoryId || "",
+        brandId: data.brandId || "",
+        modelId: data.modelId || "",
+        aiData: JSON.stringify(data), // Pass the full AI data to avoid re-fetching
       };
+      
       if (editProductId) nextParams.edit = editProductId;
       router.push({
         pathname: "/postAdDetails",
@@ -753,13 +862,194 @@ const PostAd = () => {
             ref={scrollViewRef}
             className="flex-1 px-4 pt-4 bg-[#F7F6F3]"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 20 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
             keyboardShouldPersistTaps="handled"
             bounces={false}
           >
             <View>
               {renderImagesSection()}
             </View>
+
+            {showBasicDetails && (
+              <View className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-200 mb-6">
+                <View className="flex-row justify-between items-center mb-5">
+                  <Text
+                    className="text-xl text-gray-900"
+                    style={{ fontFamily: Dimensions.get('window').fontScale > 1 ? undefined : "DM Serif Display" }}
+                  >
+                    Basic Details
+                  </Text>
+                  <AISuggestedTag />
+                </View>
+
+                {generationStep < GENERATION_STEPS.BASIC_FORM ? (
+                  <>
+                    <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
+                    <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
+                    <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
+                  </>
+                ) : (
+                  <>
+                    <EditableRow
+                      label="Title"
+                      value={data.title}
+                      onChange={(v: string) =>
+                        setData((prev: any) => ({ ...prev, title: v }))
+                      }
+                    />
+                    
+                    <View className="flex-row justify-between w-full">
+                      {showCategoryFilter ? (
+                        <InlinePicker
+                          label="Category"
+                          value={data.category?.name || data.category?.label || "Select Category"}
+                          options={categories.map((c: any) => ({
+                            label: c.name || c.label || "",
+                            value: c.id || c._id || c.value || "",
+                          }))}
+                          containerStyle={{ width: categoryColWidth }}
+                          onSelect={(opt: any) => {
+                            const full = categories.find((c: any) => (c.id || c._id || c.value) === opt.value);
+                            setData((prev: any) => ({
+                              ...prev,
+                              categoryId: full?.id || full?._id || opt.value,
+                              category: full || opt,
+                              subcategoryId: undefined,
+                              subcategory: undefined,
+                            }));
+                          }}
+                        />
+                      ) : (
+                        <ReadOnlyCategoryRow
+                          label="Category"
+                          value={categoryName}
+                          width={categoryColWidth}
+                        />
+                      )}
+
+                      {showSubcategoryFilter ? (
+                        <InlinePicker
+                          label="Sub Category"
+                          value={data.subcategory?.name || data.subcategory?.label || "Select Sub Category"}
+                          options={subcategories.map((s: any) => ({
+                            label: s.name || s.label || "",
+                            value: s.id || s._id || s.value || "",
+                          }))}
+                          isLoading={isLoadingSubcategories}
+                          containerStyle={{ width: categoryColWidth }}
+                          onSelect={(opt: any) => {
+                            const full = subcategories.find((s: any) => (s.id || s._id || s.value) === opt.value);
+                            setData((prev: any) => ({
+                              ...prev,
+                              subcategoryId: full?.id || full?._id || opt.value,
+                              subcategory: full || opt,
+                              brandId: undefined,
+                              brand: undefined,
+                              modelId: undefined,
+                              model: undefined,
+                            }));
+                          }}
+                        />
+                      ) : (
+                        <ReadOnlyCategoryRow
+                          label="Sub Category"
+                          value={subcategoryName}
+                          width={categoryColWidth}
+                        />
+                      )}
+                    </View>
+
+                    {(brands.length > 0 || data.brandId || data.isbrandrequired || data.is_brand_required) && (
+                      <View className="mt-4 flex-row justify-between w-full">
+                        <InlinePicker
+                          label="Brand"
+                          value={data.brand?.name || data.brand?.label || data.brand || "Select Brand"}
+                          options={brands.map((b: any) => ({
+                            label: b.name || b.label || "",
+                            value: b.id || b._id || b.value || "",
+                          }))}
+                          isLoading={isLoadingBrands}
+                          containerStyle={{ 
+                            width: (data.brandId || models.length > 0 || data.modelId || data.isModelrequired || data.is_model_required) ? "48%" : "100%" 
+                          }}
+                          onSelect={(opt: any) => {
+                            const full = brands.find((b: any) => (b.id || b._id || b.value) === opt.value);
+                            setData((prev: any) => ({
+                              ...prev,
+                              brandId: full?.id || full?._id || opt.value,
+                              brand: full || opt,
+                              modelId: undefined,
+                              model: undefined,
+                            }));
+                          }}
+                        />
+
+                        {(data.brandId || models.length > 0 || data.modelId || data.isModelrequired || data.is_model_required) && (
+                          <InlinePicker
+                            label="Model"
+                            value={data.model?.name || data.model?.label || data.model || "Select Model"}
+                            options={models.map((m: any) => ({
+                              label: m.name || m.label || "",
+                              value: m.id || m._id || m.value || "",
+                            }))}
+                            isLoading={isLoadingModels}
+                            containerStyle={{ width: "48%" }}
+                            onSelect={(opt: any) => {
+                              const full = models.find((m: any) => (m.id || m._id || m.value) === opt.value);
+                              setData((prev: any) => ({
+                                ...prev,
+                                modelId: full?.id || full?._id || opt.value,
+                                model: full || opt,
+                              }));
+                            }}
+                          />
+                        )}
+                      </View>
+                    )}
+
+                    <View className="mt-4">
+                      <Text 
+                        className="text-gray-900 font-bold text-[12px] mb-1.5 ml-1"
+                      >
+                        Location
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => setShowLocationPicker(true)}
+                        activeOpacity={0.7}
+                        className="bg-gray-50/50 border border-gray-100 rounded-[8px] h-12 px-4 flex-row items-center justify-between shadow-sm shadow-black/[0.02]"
+                      >
+                        <View className="flex-row items-center flex-1 mr-2">
+                          <Ionicons name="location-sharp" size={14} color="#6366F1" className="mr-2" />
+                          <Text 
+                            className={`text-sm font-semibold flex-1 ${place ? "text-gray-900" : "text-gray-400"}`}
+                            numberOfLines={1}
+                          >
+                            {place || "Select location"}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </View>
+            )}
+
+            {showBasicDetails && (
+              <TouchableOpacity
+                onPress={handleContinue}
+                disabled={loading || isFormLoading || !data.title}
+                className={`h-14 rounded-[20px] items-center justify-center shadow-lg active:opacity-90 mb-10 ${loading || isFormLoading || !data.title ? "bg-gray-100" : "bg-[#1A1A1A]"}`}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text className={`font-bold text-[17px] ${loading || isFormLoading || !data.title ? "text-gray-400" : "text-white"}`}>
+                    Next
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </SafeAreaView>
       </View>
@@ -775,54 +1065,56 @@ const PostAd = () => {
       </Animated.View>
 
       {/* AI COMMAND BAR */}
-      <KeyboardStickyView
-        offset={{ opened: 0, closed: 0 }}
-        style={{ zIndex: 100 }}
-      >
-        <SafeAreaView edges={["bottom"]}>
-          <View className="px-4 pb-4">
-            <View 
-              className="rounded-[28px] overflow-hidden border border-gray-200 shadow-lg bg-[#F7F6F3]"
-            >
-              <View className="flex-row items-center px-4 py-3 min-h-[80px]">
-                {!description.trim() && (
-                  <View className="items-center justify-center pl-1">
-                    <Ionicons name="sparkles" size={18} color="#6366F1" />
-                  </View>
-                )}
-
-                <TextInput
-                  placeholder="Sell with AI"
-                  className="flex-1 text-[16px] text-gray-900 mx-3 max-h-[120px]"
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholderTextColor="#A1A1AA"
-                  multiline
-                  textAlignVertical="center"
-                  returnKeyType="done"
-                  blurOnSubmit={false}
-                />
-
-                <TouchableOpacity
-                  onPress={!isContinueDisabled ? handleContinue : undefined}
-                  disabled={isContinueDisabled && !!description.trim()}
-                  activeOpacity={0.8}
-                  className={`w-11 h-11 rounded-full items-center justify-center mb-0.5 shadow-sm ${!description.trim() ? "bg-white" : (!isContinueDisabled ? "bg-indigo-600" : "bg-gray-100")
-                    }`}
-                >
-                  {loading ? (
-                    <ActivityIndicator size="small" color="#FFF" />
-                  ) : description.trim() ? (
-                    <Ionicons name="arrow-up" size={22} color={!isContinueDisabled ? "#FFF" : "#9CA3AF"} />
-                  ) : (
-                    <Ionicons name="mic-outline" size={20} color="#4B5563" />
+      {!showBasicDetails && (
+        <KeyboardStickyView
+          offset={{ opened: 0, closed: 0 }}
+          style={{ zIndex: 100 }}
+        >
+          <SafeAreaView edges={["bottom"]}>
+            <View className="px-4 pb-4">
+              <View 
+                className="rounded-[28px] overflow-hidden border border-gray-200 shadow-lg bg-[#F7F6F3]"
+              >
+                <View className="flex-row items-center px-4 py-3 min-h-[80px]">
+                  {!description.trim() && (
+                    <View className="items-center justify-center pl-1">
+                      <Ionicons name="sparkles" size={18} color="#6366F1" />
+                    </View>
                   )}
-                </TouchableOpacity>
+
+                  <TextInput
+                    placeholder="Sell with AI"
+                    className="flex-1 text-[16px] text-gray-900 mx-3 max-h-[120px]"
+                    value={description}
+                    onChangeText={setDescription}
+                    placeholderTextColor="#A1A1AA"
+                    multiline
+                    textAlignVertical="center"
+                    returnKeyType="done"
+                    blurOnSubmit={false}
+                  />
+
+                  <TouchableOpacity
+                    onPress={!isContinueDisabled ? handleContinue : undefined}
+                    disabled={isContinueDisabled && !!description.trim()}
+                    activeOpacity={0.8}
+                    className={`w-11 h-11 rounded-full items-center justify-center mb-0.5 shadow-sm ${!description.trim() ? "bg-white" : (!isContinueDisabled ? "bg-indigo-600" : "bg-gray-100")
+                      }`}
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : description.trim() ? (
+                      <Ionicons name="arrow-up" size={22} color={!isContinueDisabled ? "#FFF" : "#9CA3AF"} />
+                    ) : (
+                      <Ionicons name="mic-outline" size={20} color="#4B5563" />
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        </SafeAreaView>
-      </KeyboardStickyView>
+          </SafeAreaView>
+        </KeyboardStickyView>
+      )}
 
       {/* Custom Image Picker Modal */}
       <Modal

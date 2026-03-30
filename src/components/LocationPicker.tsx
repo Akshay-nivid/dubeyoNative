@@ -66,6 +66,8 @@ export default function LocationPicker({
   const mapRef = useRef<MapView>(null);
   const isInitialMount = useRef(true);
   const [nearbyProducts, setNearbyProducts] = useState<any[]>([]);
+  const [isMoving, setIsMoving] = useState(false);
+
 
   // Animation values
   const opacity = useSharedValue(0);
@@ -119,8 +121,12 @@ export default function LocationPicker({
 
   const handleRegionChangeComplete = async (newRegion: Region) => {
     setRegion(newRegion);
-    // Eliminated all automatic API hits on move.
-    // Data is now only refreshed on Search, Current Location, or Modal Open.
+    try {
+      const name = await getPlaceName(newRegion.latitude, newRegion.longitude);
+      setSelectedAddress(name);
+    } catch (err) {
+      console.error("Error fetching place name:", err);
+    }
   };
 
   const handleUseCurrentLocation = async () => {
@@ -185,7 +191,11 @@ export default function LocationPicker({
             ref={mapRef}
             style={StyleSheet.absoluteFillObject}
             initialRegion={region}
-            onRegionChangeComplete={handleRegionChangeComplete}
+            onRegionChange={() => setIsMoving(true)}
+            onRegionChangeComplete={(newRegion) => {
+              setIsMoving(false);
+              handleRegionChangeComplete(newRegion);
+            }}
             showsUserLocation={true}
             showsMyLocationButton={false}
             showsCompass={false}
@@ -208,12 +218,28 @@ export default function LocationPicker({
             ))}
           </MapView>
 
-          {/* Minimal Focal Point (Replaces Pick Here Pin) */}
+          {/* Minimal Focal Point with Hint Label */}
           <View
-            pointerEvents="none"
+            pointerEvents="box-none"
             style={styles.markerFixed}
-            className="items-center justify-center rounded-full"
+            className="items-center justify-center"
           >
+            {/* "Select the location" Hint Label - Premium Pill Design */}
+            {!isMoving && (
+              <Pressable 
+                onPress={handleConfirmSelection}
+                className="absolute bottom-12 items-center z-20 w-[160px] left-[-56px] active:opacity-70"
+              >
+                <View className="bg-black/95 px-4 py-2 rounded-full shadow-2xl flex-row items-center border border-white/10 justify-center">
+                  <Text className="text-white text-[11px] font-bold tracking-wide" numberOfLines={1}>
+                    Select the location
+                  </Text>
+                </View>
+                {/* Refined Pointer Arrow */}
+                <View className="w-2 h-2 bg-black/95 rotate-45 -mt-1 border-r border-b border-white/5" />
+              </Pressable>
+            )}
+
             <View className="w-8 h-8 rounded-full items-center justify-center">
               <View className="w-3 h-3 bg-[#1A1A1A] rounded-full border-2 border-white shadow-xl" />
               <View className="absolute w-6 h-6 border-[1.5px] border-[#1A1A1A]/30 rounded-full" />
@@ -275,6 +301,19 @@ export default function LocationPicker({
 
         {/* Bottom Confirmation Sheet-Style Panel */}
         <View className="absolute bottom-0 left-0 right-0 z-20 bg-white rounded-t-[32px] shadow-2xl border-t border-gray-100 pt-3 pb-12 px-6">
+          {/* Floating Current Location Button - Outside Top Right */}
+          <Pressable
+            onPress={handleUseCurrentLocation}
+            disabled={usingCurrent}
+            className="absolute -top-20 right-6 w-14 h-14 bg-white rounded-full items-center justify-center shadow-xl border border-black/5 active:opacity-80"
+          >
+            {usingCurrent ? (
+              <ActivityIndicator size="small" color="#3B82F6" />
+            ) : (
+              <Ionicons name="locate" size={28} color="#3B82F6" />
+            )}
+          </Pressable>
+
           {/* Drag Handle for Sheet Feel */}
           <View className="w-12 h-1 bg-gray-200 rounded-full self-center mb-6" />
 
@@ -288,17 +327,7 @@ export default function LocationPicker({
                 {selectedAddress || "Pinpointing location..."}
               </Text>
             </View>
-            <Pressable
-              onPress={handleUseCurrentLocation}
-              disabled={usingCurrent}
-              className="w-11 h-11 bg-white rounded-full items-center justify-center border border-gray-100 shadow-md active:bg-gray-50"
-            >
-              {usingCurrent ? (
-                <ActivityIndicator size="small" color="#3B82F6" />
-              ) : (
-                <Ionicons name="locate" size={24} color="#3B82F6" />
-              )}
-            </Pressable>
+            {/* Removed Current Location Icon for repositioning */}
           </View>
 
           {/* Primary Action Button - Modern & Non-Complex */}
@@ -322,5 +351,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     zIndex: 15,
+    width: 48,
+    height: 48,
   },
 });

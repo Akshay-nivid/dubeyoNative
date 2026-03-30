@@ -282,6 +282,16 @@ const PostAdDetails = () => {
     }
   }, [params.images]);
 
+  const passedAIData = useMemo(() => {
+    try {
+      return params.aiData
+        ? (JSON.parse(params.aiData as string))
+        : null;
+    } catch {
+      return null;
+    }
+  }, [params.aiData]);
+
   const {
     coordinates,
     place,
@@ -305,6 +315,21 @@ const PostAdDetails = () => {
     fetchPreview,
     fetchAmenities,
   } = usePostAdAI();
+
+  // Initialize data from PostAd screen if available
+  useEffect(() => {
+    if (passedAIData) {
+      setData((prev: any) => ({
+        ...prev,
+        ...passedAIData,
+        title: params.title || passedAIData.title || prev.title,
+        categoryId: params.categoryId || passedAIData.categoryId || prev.categoryId,
+        subcategoryId: params.subcategoryId || passedAIData.subcategoryId || prev.subcategoryId,
+        brandId: params.brandId || passedAIData.brandId || prev.brandId,
+        modelId: params.modelId || passedAIData.modelId || prev.modelId,
+      }));
+    }
+  }, [passedAIData]);
 
   const {
     categories,
@@ -337,7 +362,8 @@ const PostAdDetails = () => {
       isLocationLoading ||
       !initialDescription ||
       initialImages.length === 0 ||
-      hasInitialized.current
+      hasInitialized.current ||
+      passedAIData // Don't re-run preview if we already have data from the previous screen
     )
       return;
     hasInitialized.current = true;
@@ -352,7 +378,7 @@ const PostAdDetails = () => {
       initialImages,
       hasValidCoords ? { lat: coordinates.lat, lon: coordinates.lon } : null,
     );
-  }, [initialDescription, initialImages, isLocationLoading]);
+  }, [initialDescription, initialImages, isLocationLoading, passedAIData]);
 
   // Fetch amenities when location changes, if required by the category
   useEffect(() => {
@@ -1122,183 +1148,6 @@ const PostAdDetails = () => {
             }
           />
 
-          {/* ── Basic Details ── */}
-          <View className="bg-white rounded-[16px] p-5 shadow-sm border border-gray-200 mb-3">
-            <View className="flex-row justify-between items-center mb-5">
-              <Text
-                className="text-xl text-gray-900"
-                style={{ fontFamily: "DM Serif Display" }}
-              >
-                Basic Details
-              </Text>
-              <AISuggestedTag />
-            </View>
-
-            {generationStep < GENERATION_STEPS.BASIC_FORM ? (
-              <>
-                <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
-                <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
-                <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
-              </>
-            ) : (
-              <>
-                <EditableRow
-                  label="Title"
-                  value={data.title}
-                  onChange={(v: string) =>
-                    setData((prev: any) => ({ ...prev, title: v }))
-                  }
-                />
-                <View className="flex-row justify-between w-full">
-                  {showCategoryFilter ? (
-                    <InlinePicker
-                      label="Category"
-                      value={categoryName}
-                      options={categories
-                        .map((c: any) => ({
-                          label: c.name || c.label || "",
-                          value: c.id || c._id || c.value || "",
-                        }))
-                        .filter(
-                          (v, i, a) =>
-                            a.findIndex((t) => t.value === v.value) === i,
-                        )}
-                      containerStyle={{ width: categoryColWidth }}
-                      onSelect={(opt: any) => {
-                        const full = categories.find(
-                          (c: any) =>
-                            (c.id || c._id || c.value) === opt.value,
-                        );
-                        setData((prev: any) => ({
-                          ...prev,
-                          categoryId:
-                            full?.id || full?._id || full?.value || opt.value,
-                          category: full || opt,
-                          subcategoryId: undefined,
-                          subcategory: undefined,
-                        }));
-                      }}
-                    />
-                  ) : (
-                    <ReadOnlyCategoryRow
-                      label="Category"
-                      value={categoryName}
-                      width={categoryColWidth}
-                    />
-                  )}
-                  {showSubcategoryFilter ? (
-                    <InlinePicker
-                      label="Sub Category"
-                      value={subcategoryName}
-                      options={subcategories
-                        .map((s: any) => ({
-                          label: s.name || s.label || "",
-                          value: s.id || s._id || s.value || "",
-                        }))
-                        .filter(
-                          (v, i, a) =>
-                            a.findIndex((t) => t.value === v.value) === i,
-                        )}
-                      isLoading={isLoadingSubcategories}
-                      containerStyle={{ width: categoryColWidth }}
-                      onSelect={(opt: any) => {
-                        const full = subcategories.find(
-                          (s: any) =>
-                            (s.id || s._id || s.value) === opt.value,
-                        );
-                        setData((prev: any) => ({
-                          ...prev,
-                          subcategoryId:
-                            full?.id || full?._id || full?._id || opt.value,
-                          subcategory: full || opt,
-                          divisionId: undefined,
-                          division: undefined,
-                          brandId: undefined,
-                          brand: undefined,
-                          modelId: undefined,
-                          model: undefined,
-                        }));
-                      }}
-                    />
-                  ) : (
-                    <ReadOnlyCategoryRow
-                      label="Sub Category"
-                      value={subcategoryName}
-                      width={categoryColWidth}
-                    />
-                  )}
-                </View>
-                {(showBrandField || showModelField) && (
-                  <View className="mt-4 flex-row justify-between w-full">
-                    {showBrandField && (
-                      <InlinePicker
-                        label="Brand"
-                        value={brandName}
-                        options={brands
-                          .map((b: any) => ({
-                            label: b.name || b.label || "",
-                            value: b.id || b._id || b.value || "",
-                          }))
-                          .filter(
-                            (v, i, a) =>
-                              a.findIndex((t) => t.label === v.label) === i,
-                          )}
-                        isLoading={isLoadingBrands}
-                        containerStyle={{
-                          width: showModelField ? "48%" : "100%",
-                        }}
-                        onSelect={(opt: any) => {
-                          const full = brands.find(
-                            (b: any) =>
-                              (b.id || b._id || b.value) === opt.value,
-                          );
-                          setData((prev: any) => ({
-                            ...prev,
-                            brandId:
-                              full?.id || full?._id || full?.value || opt.value,
-                            brand: full || opt,
-                            modelId: undefined,
-                            model: undefined,
-                          }));
-                        }}
-                      />
-                    )}
-                    {showModelField && (
-                      <InlinePicker
-                        label="Model"
-                        value={modelName}
-                        options={models
-                          .map((m: any) => ({
-                            label: m.name || m.label || "",
-                            value: m.id || m._id || m.value || "",
-                          }))
-                          .filter(
-                            (v, i, a) =>
-                              a.findIndex((t) => t.label === v.label) === i,
-                          )}
-                        isLoading={isLoadingModels}
-                        containerStyle={{
-                          width: showBrandField ? "48%" : "100%",
-                        }}
-                        onSelect={(opt: any) => {
-                          const full = models.find(
-                            (m: any) =>
-                              (m.id || m._id || m.value) === opt.value,
-                          );
-                          setData((prev: any) => ({
-                            ...prev,
-                            modelId:
-                              full?.id || full?._id || full?.value || opt.value,
-                            model: full || opt,
-                          }));
-                        }}
-                      />
-                    )}
-                  </View>
-                )}
-              </>
-            )}
-          </View>
 
           {/* ── Specifications ── */}
           {generationStep >= GENERATION_STEPS.BASIC_FORM &&
