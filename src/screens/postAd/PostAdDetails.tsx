@@ -29,7 +29,6 @@ import { PostAdApi } from "./Api";
 import AISuggestedTag from "./components/AISuggestedTag";
 import { AmenitiesSection } from "./components/AmenitiesSection";
 import EditableRow from "./components/EditableRow";
-import ImagePreviewCard from "./components/ImagePreviewCard";
 import { InlinePicker } from "./components/InlinePicker";
 import { InlineToggle } from "./components/InlineToggle";
 import PostAdSkeleton from "./components/PostAdSkeleton";
@@ -1140,13 +1139,6 @@ const PostAdDetails = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}
         >
-          <ImagePreviewCard
-            images={currentImages}
-            initialImages={initialImages}
-            onChange={(imgs) =>
-              setData((prev: any) => ({ ...prev, images: imgs }))
-            }
-          />
 
 
           {/* ── Specifications ── */}
