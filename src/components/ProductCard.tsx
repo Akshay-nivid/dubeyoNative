@@ -82,8 +82,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 result.name;
               setAddress(
                 place ||
-                  item.locationName ||
-                  `${lat.toFixed(2)}, ${lon.toFixed(2)}`,
+                item.locationName ||
+                `${lat.toFixed(2)}, ${lon.toFixed(2)}`,
               );
             } else {
               setAddress(
@@ -96,7 +96,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           if (isMounted) {
             setAddress(
               item.locationName ||
-                `${item.location.coordinates[1].toFixed(2)}, ${item.location.coordinates[0].toFixed(2)}`,
+              `${item.location.coordinates[1].toFixed(2)}, ${item.location.coordinates[0].toFixed(2)}`,
             );
           }
         }

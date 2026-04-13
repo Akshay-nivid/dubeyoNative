@@ -100,7 +100,7 @@ const buildSpecsPayload = (
 const resolveSpecMeta = (
   key: string,
   specMetadata: Record<string, any>,
-  questions: { key?: string; slug?: string; field?: string; label?: string; dataType?: string; options?: any[]; id?: string; specId?: string; _id?: string; [k: string]: any }[],
+  questions: { key?: string; slug?: string; field?: string; label?: string; dataType?: string; options?: any[]; id?: string; specId?: string; _id?: string;[k: string]: any }[],
 ): any => {
   if (specMetadata[key]) return specMetadata[key];
   const nk = normalizeFieldKey(key);
@@ -562,15 +562,15 @@ const PostAdDetails = () => {
               typeof o === "string"
                 ? { label: o, value: o }
                 : {
-                    label: o.name || o.label || String(o),
-                    value:
-                      o.id ||
-                      o._id ||
-                      o.value ||
-                      o.name ||
-                      o.label ||
-                      String(o),
-                  },
+                  label: o.name || o.label || String(o),
+                  value:
+                    o.id ||
+                    o._id ||
+                    o.value ||
+                    o.name ||
+                    o.label ||
+                    String(o),
+                },
             );
 
           if (dataType === "boolean" && options.length === 0) {
@@ -683,34 +683,34 @@ const PostAdDetails = () => {
       const normalizedPrice = isNaN(Number(data.price))
         ? 0
         : Number(data.price);
-        const formattedSpecs = buildSpecsPayload(data.specs, questionAnswers);
-        const { rows: specsForApi, unresolvedSelectKeys } =
-          buildBackendSpecsArray(formattedSpecs, specMetadata, questions);
+      const formattedSpecs = buildSpecsPayload(data.specs, questionAnswers);
+      const { rows: specsForApi, unresolvedSelectKeys } =
+        buildBackendSpecsArray(formattedSpecs, specMetadata, questions);
 
-        if (unresolvedSelectKeys.length > 0) {
-          Toast.show({
-            type: "error",
-            text1: "Choice list error",
-            text2:
-              "Re-select each dropdown using the list (options must sync with the server).",
-          });
-          setClicked(false);
-          return;
-        }
+      if (unresolvedSelectKeys.length > 0) {
+        Toast.show({
+          type: "error",
+          text1: "Choice list error",
+          text2:
+            "Re-select each dropdown using the list (options must sync with the server).",
+        });
+        setClicked(false);
+        return;
+      }
 
-        if (
-          Object.keys(formattedSpecs).length > 0 &&
-          specsForApi.length === 0
-        ) {
-          Toast.show({
-            type: "error",
-            text1: "Specifications error",
-            text2:
-              "Could not resolve spec IDs for this category. Re-run the listing flow or check your connection.",
-          });
-          setClicked(false);
-          return;
-        }
+      if (
+        Object.keys(formattedSpecs).length > 0 &&
+        specsForApi.length === 0
+      ) {
+        Toast.show({
+          type: "error",
+          text1: "Specifications error",
+          text2:
+            "Could not resolve spec IDs for this category. Re-run the listing flow or check your connection.",
+        });
+        setClicked(false);
+        return;
+      }
 
       const submissionImages =
         imageKeys.length > 0
@@ -788,9 +788,9 @@ const PostAdDetails = () => {
     const displayValue =
       item.options.length > 0
         ? item.options.find((o: any) => o.value === itemValId)?.label ||
-          (typeof item.val === "object"
-            ? item.val?.name || item.val?.label || ""
-            : item.val)
+        (typeof item.val === "object"
+          ? item.val?.name || item.val?.label || ""
+          : item.val)
         : item.val;
 
     const safeDisplay = String(displayValue ?? "");
@@ -923,7 +923,7 @@ const PostAdDetails = () => {
 
     return (
       <View key={item.key || gIdx} className="mb-2 w-full">
-        <Text 
+        <Text
           className="text-gray-900 font-semibold text-[12px] mb-1.5 ml-1"
           style={{ flexWrap: 'wrap' }}
         >
@@ -1054,7 +1054,7 @@ const PostAdDetails = () => {
 
     return (
       <View key={fieldKey} className="mb-2">
-        <Text 
+        <Text
           className="text-gray-900 font-semibold text-[12px] mb-1.5 ml-1"
           style={{ flexWrap: 'wrap' }}
         >
@@ -1250,11 +1250,10 @@ const PostAdDetails = () => {
                   activeOpacity={0.7}
                 >
                   <View
-                    className={`w-6 h-6 rounded-lg border-2 items-center justify-center mr-3 ${
-                      isNegotiable
+                    className={`w-6 h-6 rounded-lg border-2 items-center justify-center mr-3 ${isNegotiable
                         ? "bg-indigo-600 border-indigo-600"
                         : "bg-gray-50 border-gray-200"
-                    }`}
+                      }`}
                   >
                     {isNegotiable && (
                       <Ionicons
@@ -1304,9 +1303,8 @@ const PostAdDetails = () => {
                 onPress={handleSubmit}
                 disabled={isPostDisabled}
                 activeOpacity={0.8}
-                className={`mb-2 rounded-[24px] py-5 items-center justify-center flex-row shadow-xl ${
-                  isPostDisabled ? "bg-gray-100" : "bg-[#1A1A1A]"
-                }`}
+                className={`mb-2 rounded-[24px] py-5 items-center justify-center flex-row shadow-xl ${isPostDisabled ? "bg-gray-100" : "bg-[#1A1A1A]"
+                  }`}
               >
                 {clicked ? (
                   <ActivityIndicator color="#fff" />

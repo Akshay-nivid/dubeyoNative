@@ -1,7 +1,8 @@
 import * as Location from "expo-location";
 import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useState } from "react";
-import { Platform } from "react-native";
+import { Alert, Linking, Platform } from "react-native";
+import Toast from "react-native-toast-message";
 
 const LOCATION_STORAGE_KEY = "dubeyo_selected_location";
 
@@ -95,27 +96,55 @@ export const useUserLocation = () => {
       try {
         const servicesEnabled = await Location.hasServicesEnabledAsync();
         if (!servicesEnabled) {
-          if (__DEV__) {
-            console.warn("Dev Log: Location services disabled");
-          }
+          Alert.alert(
+            "Location Services Disabled",
+            "Please turn on location services in your device settings to use this feature.",
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Settings",
+                onPress: () => {
+                  if (Platform.OS === "ios") {
+                    Linking.openURL("App-Prefs:root=Privacy&path=LOCATION");
+                  } else {
+                    Linking.sendIntent("android.settings.LOCATION_SOURCE_SETTINGS");
+                  }
+                },
+              },
+            ],
+          );
           return null;
         }
 
-        let { status } = await Location.getForegroundPermissionsAsync();
+        let { status, canAskAgain } = await Location.getForegroundPermissionsAsync();
         if (status !== "granted") {
           const response = await Location.requestForegroundPermissionsAsync();
           status = response.status;
+          canAskAgain = response.canAskAgain;
         }
 
         if (status !== "granted") {
-          if (__DEV__) {
-            console.warn("Dev Log: Location permission denied");
+          if (!canAskAgain) {
+            Alert.alert(
+              "Location Permission Denied",
+              "You have permanently denied location permissions. Please enable them in app settings.",
+              [
+                { text: "Cancel", style: "cancel" },
+                { text: "Open Settings", onPress: () => Linking.openSettings() },
+              ],
+            );
+          } else {
+            Toast.show({
+              type: "error",
+              text1: "Permission Denied",
+              text2: "Location permission is required to find your current address.",
+            });
           }
           return null;
         }
 
         const position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
+          accuracy: Location.Accuracy.Balanced,
         });
 
         const lat = position.coords.latitude;
@@ -127,9 +156,12 @@ export const useUserLocation = () => {
           place,
         };
       } catch (error) {
-        if (__DEV__) {
-          console.warn("Dev Log: Location fetch suppressed");
-        }
+        console.error("Location error:", error);
+        Toast.show({
+          type: "error",
+          text1: "Location Error",
+          text2: "Could not fetch your current location. Please check your signal.",
+        });
         return null;
       }
     }, [getPlaceName]);

@@ -12,10 +12,10 @@ import { KeyboardAvoidingView, KeyboardStickyView } from "react-native-keyboard-
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import AnimatedRE, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
+import AnimatedRE, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
   runOnJS,
   interpolate,
   withTiming
@@ -576,7 +576,7 @@ const PostAd = () => {
 
   const handleContinue = async () => {
     if (isContinueDisabled) return;
-    
+
     if (!showBasicDetails) {
       setShowBasicDetails(true);
       const hasValidCoords =
@@ -585,7 +585,7 @@ const PostAd = () => {
         Number.isFinite(coordinates.lon) &&
         coordinates.lat !== 0 &&
         coordinates.lon !== 0;
-      
+
       const imageUris = photos.map((p) => {
         const s = uploadStatuses[p.uri];
         if (s?.status === "success" && s.key) return s.key;
@@ -607,7 +607,7 @@ const PostAd = () => {
         if (s?.status === "success" && s.key) return s.key;
         return p.uri;
       });
-      
+
       const nextParams: Record<string, string> = {
         description: data.enhancedDescription || description,
         images: JSON.stringify(imageUris),
@@ -618,7 +618,7 @@ const PostAd = () => {
         modelId: data.modelId || "",
         aiData: JSON.stringify(data), // Pass the full AI data to avoid re-fetching
       };
-      
+
       if (editProductId) nextParams.edit = editProductId;
       router.push({
         pathname: "/postAdDetails",
@@ -672,9 +672,9 @@ const PostAd = () => {
 
     const animatedTopCard = useAnimatedStyle(() => ({
       transform: [
-        { rotate: '-8deg' },
-        { translateX: translateX.value - 15 },
-        { translateY: translateY.value + 5 },
+        { rotate: '0deg' },
+        { translateX: translateX.value },
+        { translateY: translateY.value },
       ],
       zIndex: 100,
     }));
@@ -683,10 +683,6 @@ const PostAd = () => {
       <View className="mb-6">
         <Animated.View
           className="mb-8 px-4 items-center"
-          style={{
-            opacity: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-            transform: [{ translateY: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }]
-          }}
         >
           <Text className="text-[34px] font-bold text-gray-900 leading-[40px] text-center" style={{ fontFamily: "DM Serif Display" }}>
             Hi, {userName}
@@ -704,26 +700,26 @@ const PostAd = () => {
           className="mt-6 mb-12 items-center justify-center relative"
           style={{
             height: 320,
-            opacity: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-            transform: [{ translateY: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }]
           }}
         >
           {Array.from({ length: totalSlots }).map((_, index) => {
             // Priority list: placeholders first [null, null], then images [A, B]
             const baseStack = [...Array(totalSlots - photos.length).fill(null), ...photos];
-            
+
             // Apply cycleOffset: shift whole stack right (last becomes first)
-            // If offset 1: [B, null, null, A]
             const itemIndex = (index + cycleOffset) % totalSlots;
             const photo = baseStack[itemIndex];
-            const isFilled = !!photo;
 
-            // Alternating pattern: index 0 (R), 1 (L), 2 (R), 3 (L-front)
+            // Professional Symmetrical Layout:
+            // index 3 (Front): Straight
+            // index 2 (Right): 15 deg
+            // index 1 (Left): -15 deg
+            // index 0 (Back): Straight, offset up
             const slotStyles: any = [
-              { transform: [{ rotate: '15deg' }, { translateX: 35 }, { translateY: 15 }], zIndex: 10 },
-              { transform: [{ rotate: '-15deg' }, { translateX: -35 }, { translateY: 15 }], zIndex: 20 },
-              { transform: [{ rotate: '8deg' }, { translateX: 15 }, { translateY: 5 }], zIndex: 30 },
-              { transform: [{ rotate: '-8deg' }, { translateX: -15 }, { translateY: 5 }], zIndex: 40 }
+              { transform: [{ rotate: '0deg' }, { translateX: 0 }, { translateY: 20 }], zIndex: 10 },
+              { transform: [{ rotate: '-15deg' }, { translateX: -40 }, { translateY: 10 }], zIndex: 20 },
+              { transform: [{ rotate: '15deg' }, { translateX: 40 }, { translateY: 10 }], zIndex: 30 },
+              { transform: [{ rotate: '0deg' }, { translateX: 0 }, { translateY: 0 }], zIndex: 40 }
             ][index];
 
             const renderCardContent = () => {
@@ -787,7 +783,7 @@ const PostAd = () => {
             if (index === 3) {
               return (
                 <GestureDetector key={index} gesture={gesture}>
-                  <AnimatedRE.View 
+                  <AnimatedRE.View
                     className="absolute w-[60%] aspect-[3/4]"
                     style={animatedTopCard}
                   >
@@ -818,413 +814,410 @@ const PostAd = () => {
         {/* STATIC BACKGROUND LAYER */}
         <View style={{ flex: 1 }}>
           <SafeAreaView className="flex-1 bg-[#F7F6F3]" edges={["top"]}>
-          <Animated.View
-            className="px-4 py-3 flex-row items-center justify-between z-10 bg-[#F7F6F3] border-b border-gray-200 shadow-lg"
-            style={{
-              opacity: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-              transform: [{ translateY: keyboardAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }]
-            }}
-          >
-            <View className="flex-row items-center flex-1 pr-4">
-              <TouchableOpacity
-                onPress={() => router.back()}
-                className="w-10 h-10 bg-white rounded-full items-center justify-center mr-4 border border-gray-200 shadow-sm"
-              >
-                <Feather name="corner-up-left" size={22} color="black" />
-              </TouchableOpacity>
+            <Animated.View
+              className="px-4 py-3 flex-row items-center justify-between z-10 bg-[#F7F6F3] border-b border-gray-200 shadow-lg"
+            >
+              <View className="flex-row items-center flex-1 pr-4">
+                <TouchableOpacity
+                  onPress={() => router.back()}
+                  className="w-10 h-10 bg-white rounded-full items-center justify-center mr-4 border border-gray-200 shadow-sm"
+                >
+                  <Feather name="corner-up-left" size={22} color="black" />
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={() => setShowLocationPicker(true)}
-                className="flex-1 justify-center"
-              >
-                <Text className="text-xl font-bold text-gray-900">Post ad</Text>
-                <View className="flex-row items-center mt-0.5">
-                  <Ionicons name="location-outline" size={12} color="#9CA3AF" />
-                  <Text
-                    className="text-[11px] text-gray-400 font-medium ml-1 shrink"
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {place ? place.split(',')[0] : "Select location"}
-                  </Text>
-                  <Ionicons
-                    name="chevron-down"
-                    size={10}
-                    color="#6366F1"
-                    style={{ marginLeft: 4 }}
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-
-          <ScrollView
-            ref={scrollViewRef}
-            className="flex-1 px-4 pt-4 bg-[#F7F6F3]"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
-            keyboardShouldPersistTaps="handled"
-            bounces={false}
-          >
-            <View>
-              {renderImagesSection()}
-            </View>
-
-            {showBasicDetails && (
-              <View className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-200 mb-6">
-                <View className="flex-row justify-between items-center mb-5">
-                  <Text
-                    className="text-xl text-gray-900"
-                    style={{ fontFamily: Dimensions.get('window').fontScale > 1 ? undefined : "DM Serif Display" }}
-                  >
-                    Basic Details
-                  </Text>
-                  <AISuggestedTag />
-                </View>
-
-                {generationStep < GENERATION_STEPS.BASIC_FORM ? (
-                  <>
-                    <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
-                    <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
-                    <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
-                  </>
-                ) : (
-                  <>
-                    <EditableRow
-                      label="Title"
-                      value={data.title}
-                      onChange={(v: string) =>
-                        setData((prev: any) => ({ ...prev, title: v }))
-                      }
+                <TouchableOpacity
+                  onPress={() => setShowLocationPicker(true)}
+                  className="flex-1 justify-center"
+                >
+                  <Text className="text-xl font-bold text-gray-900">Post ad</Text>
+                  <View className="flex-row items-center mt-0.5">
+                    <Ionicons name="location-outline" size={12} color="#9CA3AF" />
+                    <Text
+                      className="text-[11px] text-gray-400 font-medium ml-1 shrink"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {place ? place.split(',')[0] : "Select location"}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={10}
+                      color="#6366F1"
+                      style={{ marginLeft: 4 }}
                     />
-                    
-                    <View className="flex-row justify-between w-full">
-                      {showCategoryFilter ? (
-                        <InlinePicker
-                          label="Category"
-                          value={data.category?.name || data.category?.label || "Select Category"}
-                          options={categories.map((c: any) => ({
-                            label: c.name || c.label || "",
-                            value: c.id || c._id || c.value || "",
-                          }))}
-                          containerStyle={{ width: categoryColWidth }}
-                          onSelect={(opt: any) => {
-                            const full = categories.find((c: any) => (c.id || c._id || c.value) === opt.value);
-                            setData((prev: any) => ({
-                              ...prev,
-                              categoryId: full?.id || full?._id || opt.value,
-                              category: full || opt,
-                              subcategoryId: undefined,
-                              subcategory: undefined,
-                            }));
-                          }}
-                        />
-                      ) : (
-                        <ReadOnlyCategoryRow
-                          label="Category"
-                          value={categoryName}
-                          width={categoryColWidth}
-                        />
-                      )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
 
-                      {showSubcategoryFilter ? (
-                        <InlinePicker
-                          label="Sub Category"
-                          value={data.subcategory?.name || data.subcategory?.label || "Select Sub Category"}
-                          options={subcategories.map((s: any) => ({
-                            label: s.name || s.label || "",
-                            value: s.id || s._id || s.value || "",
-                          }))}
-                          isLoading={isLoadingSubcategories}
-                          containerStyle={{ width: categoryColWidth }}
-                          onSelect={(opt: any) => {
-                            const full = subcategories.find((s: any) => (s.id || s._id || s.value) === opt.value);
-                            setData((prev: any) => ({
-                              ...prev,
-                              subcategoryId: full?.id || full?._id || opt.value,
-                              subcategory: full || opt,
-                              brandId: undefined,
-                              brand: undefined,
-                              modelId: undefined,
-                              model: undefined,
-                            }));
-                          }}
-                        />
-                      ) : (
-                        <ReadOnlyCategoryRow
-                          label="Sub Category"
-                          value={subcategoryName}
-                          width={categoryColWidth}
-                        />
-                      )}
-                    </View>
+            <ScrollView
+              ref={scrollViewRef}
+              className="flex-1 px-4 pt-14 bg-[#F7F6F3]"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ flexGrow: 1, paddingBottom: showBasicDetails ? 100 : 0 }}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+              scrollEnabled={showBasicDetails}
+            >
+              <View>
+                {renderImagesSection()}
+              </View>
 
-                    {(brands.length > 0 || data.brandId || data.isbrandrequired || data.is_brand_required) && (
-                      <View className="mt-4 flex-row justify-between w-full">
-                        <InlinePicker
-                          label="Brand"
-                          value={data.brand?.name || data.brand?.label || data.brand || "Select Brand"}
-                          options={brands.map((b: any) => ({
-                            label: b.name || b.label || "",
-                            value: b.id || b._id || b.value || "",
-                          }))}
-                          isLoading={isLoadingBrands}
-                          containerStyle={{ 
-                            width: (data.brandId || models.length > 0 || data.modelId || data.isModelrequired || data.is_model_required) ? "48%" : "100%" 
-                          }}
-                          onSelect={(opt: any) => {
-                            const full = brands.find((b: any) => (b.id || b._id || b.value) === opt.value);
-                            setData((prev: any) => ({
-                              ...prev,
-                              brandId: full?.id || full?._id || opt.value,
-                              brand: full || opt,
-                              modelId: undefined,
-                              model: undefined,
-                            }));
-                          }}
-                        />
+              {showBasicDetails && (
+                <View className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-200 mb-6">
+                  <View className="flex-row justify-between items-center mb-5">
+                    <Text
+                      className="text-xl text-gray-900"
+                      style={{ fontFamily: Dimensions.get('window').fontScale > 1 ? undefined : "DM Serif Display" }}
+                    >
+                      Basic Details
+                    </Text>
+                    <AISuggestedTag />
+                  </View>
 
-                        {(data.brandId || models.length > 0 || data.modelId || data.isModelrequired || data.is_model_required) && (
+                  {generationStep < GENERATION_STEPS.BASIC_FORM ? (
+                    <>
+                      <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
+                      <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
+                      <PostAdSkeleton className="h-12 w-full rounded-xl mb-3" />
+                    </>
+                  ) : (
+                    <>
+                      <EditableRow
+                        label="Title"
+                        value={data.title}
+                        onChange={(v: string) =>
+                          setData((prev: any) => ({ ...prev, title: v }))
+                        }
+                      />
+
+                      <View className="flex-row justify-between w-full">
+                        {showCategoryFilter ? (
                           <InlinePicker
-                            label="Model"
-                            value={data.model?.name || data.model?.label || data.model || "Select Model"}
-                            options={models.map((m: any) => ({
-                              label: m.name || m.label || "",
-                              value: m.id || m._id || m.value || "",
+                            label="Category"
+                            value={data.category?.name || data.category?.label || "Select Category"}
+                            options={categories.map((c: any) => ({
+                              label: c.name || c.label || "",
+                              value: c.id || c._id || c.value || "",
                             }))}
-                            isLoading={isLoadingModels}
-                            containerStyle={{ width: "48%" }}
+                            containerStyle={{ width: categoryColWidth }}
                             onSelect={(opt: any) => {
-                              const full = models.find((m: any) => (m.id || m._id || m.value) === opt.value);
+                              const full = categories.find((c: any) => (c.id || c._id || c.value) === opt.value);
                               setData((prev: any) => ({
                                 ...prev,
-                                modelId: full?.id || full?._id || opt.value,
-                                model: full || opt,
+                                categoryId: full?.id || full?._id || opt.value,
+                                category: full || opt,
+                                subcategoryId: undefined,
+                                subcategory: undefined,
                               }));
                             }}
                           />
+                        ) : (
+                          <ReadOnlyCategoryRow
+                            label="Category"
+                            value={categoryName}
+                            width={categoryColWidth}
+                          />
                         )}
+
+                        {showSubcategoryFilter ? (
+                          <InlinePicker
+                            label="Sub Category"
+                            value={data.subcategory?.name || data.subcategory?.label || "Select Sub Category"}
+                            options={subcategories.map((s: any) => ({
+                              label: s.name || s.label || "",
+                              value: s.id || s._id || s.value || "",
+                            }))}
+                            isLoading={isLoadingSubcategories}
+                            containerStyle={{ width: categoryColWidth }}
+                            onSelect={(opt: any) => {
+                              const full = subcategories.find((s: any) => (s.id || s._id || s.value) === opt.value);
+                              setData((prev: any) => ({
+                                ...prev,
+                                subcategoryId: full?.id || full?._id || opt.value,
+                                subcategory: full || opt,
+                                brandId: undefined,
+                                brand: undefined,
+                                modelId: undefined,
+                                model: undefined,
+                              }));
+                            }}
+                          />
+                        ) : (
+                          <ReadOnlyCategoryRow
+                            label="Sub Category"
+                            value={subcategoryName}
+                            width={categoryColWidth}
+                          />
+                        )}
+                      </View>
+
+                      {(brands.length > 0 || data.brandId || data.isbrandrequired || data.is_brand_required) && (
+                        <View className="mt-4 flex-row justify-between w-full">
+                          <InlinePicker
+                            label="Brand"
+                            value={data.brand?.name || data.brand?.label || data.brand || "Select Brand"}
+                            options={brands.map((b: any) => ({
+                              label: b.name || b.label || "",
+                              value: b.id || b._id || b.value || "",
+                            }))}
+                            isLoading={isLoadingBrands}
+                            containerStyle={{
+                              width: (data.brandId || models.length > 0 || data.modelId || data.isModelrequired || data.is_model_required) ? "48%" : "100%"
+                            }}
+                            onSelect={(opt: any) => {
+                              const full = brands.find((b: any) => (b.id || b._id || b.value) === opt.value);
+                              setData((prev: any) => ({
+                                ...prev,
+                                brandId: full?.id || full?._id || opt.value,
+                                brand: full || opt,
+                                modelId: undefined,
+                                model: undefined,
+                              }));
+                            }}
+                          />
+
+                          {(data.brandId || models.length > 0 || data.modelId || data.isModelrequired || data.is_model_required) && (
+                            <InlinePicker
+                              label="Model"
+                              value={data.model?.name || data.model?.label || data.model || "Select Model"}
+                              options={models.map((m: any) => ({
+                                label: m.name || m.label || "",
+                                value: m.id || m._id || m.value || "",
+                              }))}
+                              isLoading={isLoadingModels}
+                              containerStyle={{ width: "48%" }}
+                              onSelect={(opt: any) => {
+                                const full = models.find((m: any) => (m.id || m._id || m.value) === opt.value);
+                                setData((prev: any) => ({
+                                  ...prev,
+                                  modelId: full?.id || full?._id || opt.value,
+                                  model: full || opt,
+                                }));
+                              }}
+                            />
+                          )}
+                        </View>
+                      )}
+
+                      <View className="mt-4">
+                        <Text
+                          className="text-gray-900 font-bold text-[12px] mb-1.5 ml-1"
+                        >
+                          Location
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => setShowLocationPicker(true)}
+                          activeOpacity={0.7}
+                          className="bg-gray-50/50 border border-gray-100 rounded-[8px] h-12 px-4 flex-row items-center justify-between shadow-sm shadow-black/[0.02]"
+                        >
+                          <View className="flex-row items-center flex-1 mr-2">
+                            <Ionicons name="location-sharp" size={14} color="#6366F1" className="mr-2" />
+                            <Text
+                              className={`text-sm font-semibold flex-1 ${place ? "text-gray-900" : "text-gray-400"}`}
+                              numberOfLines={1}
+                            >
+                              {place || "Select location"}
+                            </Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                </View>
+              )}
+
+              {showBasicDetails && (
+                <TouchableOpacity
+                  onPress={handleContinue}
+                  disabled={loading || isFormLoading || !data.title}
+                  className={`h-14 rounded-[20px] items-center justify-center shadow-lg active:opacity-90 mb-10 ${loading || isFormLoading || !data.title ? "bg-gray-100" : "bg-[#1A1A1A]"}`}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text className={`font-bold text-[17px] ${loading || isFormLoading || !data.title ? "text-gray-400" : "text-white"}`}>
+                      Next
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+          </SafeAreaView>
+        </View>
+
+        {/* FULL SCREEN BLUR OVERLAY */}
+        <Animated.View
+          pointerEvents={keyboardVisible ? "auto" : "none"}
+          style={[StyleSheet.absoluteFill, { opacity: keyboardAnim, zIndex: 50 }]}
+        >
+          <TouchableOpacity activeOpacity={1} style={{ flex: 1 }} onPress={() => Keyboard.dismiss()}>
+            <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* AI COMMAND BAR */}
+        {!showBasicDetails && (
+          <KeyboardStickyView
+            offset={{ opened: 0, closed: 0 }}
+            style={{ zIndex: 100 }}
+          >
+            <SafeAreaView edges={["bottom"]}>
+              <View className="px-4 pb-4">
+                <View
+                  className="rounded-[28px] overflow-hidden border border-gray-200 shadow-lg bg-[#F7F6F3]"
+                >
+                  <View className="flex-row items-center px-4 py-3 min-h-[80px]">
+                    {!description.trim() && (
+                      <View className="items-center justify-center pl-1">
+                        <Ionicons name="sparkles" size={18} color="#6366F1" />
                       </View>
                     )}
 
-                    <View className="mt-4">
-                      <Text 
-                        className="text-gray-900 font-bold text-[12px] mb-1.5 ml-1"
-                      >
-                        Location
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => setShowLocationPicker(true)}
-                        activeOpacity={0.7}
-                        className="bg-gray-50/50 border border-gray-100 rounded-[8px] h-12 px-4 flex-row items-center justify-between shadow-sm shadow-black/[0.02]"
-                      >
-                        <View className="flex-row items-center flex-1 mr-2">
-                          <Ionicons name="location-sharp" size={14} color="#6366F1" className="mr-2" />
-                          <Text 
-                            className={`text-sm font-semibold flex-1 ${place ? "text-gray-900" : "text-gray-400"}`}
-                            numberOfLines={1}
-                          >
-                            {place || "Select location"}
-                          </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                )}
-              </View>
-            )}
+                    <TextInput
+                      placeholder="Sell with AI"
+                      className="flex-1 text-[16px] text-gray-900 mx-3 max-h-[120px]"
+                      value={description}
+                      onChangeText={setDescription}
+                      placeholderTextColor="#A1A1AA"
+                      multiline
+                      textAlignVertical="center"
+                      returnKeyType="done"
+                      blurOnSubmit={false}
+                    />
 
-            {showBasicDetails && (
-              <TouchableOpacity
-                onPress={handleContinue}
-                disabled={loading || isFormLoading || !data.title}
-                className={`h-14 rounded-[20px] items-center justify-center shadow-lg active:opacity-90 mb-10 ${loading || isFormLoading || !data.title ? "bg-gray-100" : "bg-[#1A1A1A]"}`}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text className={`font-bold text-[17px] ${loading || isFormLoading || !data.title ? "text-gray-400" : "text-white"}`}>
-                    Next
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </View>
-
-      {/* FULL SCREEN BLUR OVERLAY */}
-      <Animated.View
-        pointerEvents={keyboardVisible ? "auto" : "none"}
-        style={[StyleSheet.absoluteFill, { opacity: keyboardAnim, zIndex: 50 }]}
-      >
-        <TouchableOpacity activeOpacity={1} style={{ flex: 1 }} onPress={() => Keyboard.dismiss()}>
-          <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
-        </TouchableOpacity>
-      </Animated.View>
-
-      {/* AI COMMAND BAR */}
-      {!showBasicDetails && (
-        <KeyboardStickyView
-          offset={{ opened: 0, closed: 0 }}
-          style={{ zIndex: 100 }}
-        >
-          <SafeAreaView edges={["bottom"]}>
-            <View className="px-4 pb-4">
-              <View 
-                className="rounded-[28px] overflow-hidden border border-gray-200 shadow-lg bg-[#F7F6F3]"
-              >
-                <View className="flex-row items-center px-4 py-3 min-h-[80px]">
-                  {!description.trim() && (
-                    <View className="items-center justify-center pl-1">
-                      <Ionicons name="sparkles" size={18} color="#6366F1" />
-                    </View>
-                  )}
-
-                  <TextInput
-                    placeholder="Sell with AI"
-                    className="flex-1 text-[16px] text-gray-900 mx-3 max-h-[120px]"
-                    value={description}
-                    onChangeText={setDescription}
-                    placeholderTextColor="#A1A1AA"
-                    multiline
-                    textAlignVertical="center"
-                    returnKeyType="done"
-                    blurOnSubmit={false}
-                  />
-
-                  <TouchableOpacity
-                    onPress={!isContinueDisabled ? handleContinue : undefined}
-                    disabled={isContinueDisabled && !!description.trim()}
-                    activeOpacity={0.8}
-                    className={`w-11 h-11 rounded-full items-center justify-center mb-0.5 shadow-sm ${!description.trim() ? "bg-white" : (!isContinueDisabled ? "bg-indigo-600" : "bg-gray-100")
-                      }`}
-                  >
-                    {loading ? (
-                      <ActivityIndicator size="small" color="#FFF" />
-                    ) : description.trim() ? (
-                      <Ionicons name="arrow-up" size={22} color={!isContinueDisabled ? "#FFF" : "#9CA3AF"} />
-                    ) : (
-                      <Ionicons name="mic-outline" size={20} color="#4B5563" />
-                    )}
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={!isContinueDisabled ? handleContinue : undefined}
+                      disabled={isContinueDisabled && !!description.trim()}
+                      activeOpacity={0.8}
+                      className={`w-11 h-11 rounded-full items-center justify-center mb-0.5 shadow-sm ${!description.trim() ? "bg-white" : (!isContinueDisabled ? "bg-indigo-600" : "bg-gray-100")
+                        }`}
+                    >
+                      {loading ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : description.trim() ? (
+                        <Ionicons name="arrow-up" size={22} color={!isContinueDisabled ? "#FFF" : "#9CA3AF"} />
+                      ) : (
+                        <Ionicons name="mic-outline" size={20} color="#4B5563" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
-          </SafeAreaView>
-        </KeyboardStickyView>
-      )}
+            </SafeAreaView>
+          </KeyboardStickyView>
+        )}
 
-      {/* Custom Image Picker Modal */}
-      <Modal
-        transparent={true}
-        visible={showPickerModal}
-        animationType="none"
-        onRequestClose={handleCloseModal}
-        statusBarTranslucent={true}
-      >
-        <View
-          className="flex-1 justify-end"
-          style={{ zIndex: 10000 }}
+        {/* Custom Image Picker Modal */}
+        <Modal
+          transparent={true}
+          visible={showPickerModal}
+          animationType="none"
+          onRequestClose={handleCloseModal}
+          statusBarTranslucent={true}
         >
-          <Animated.View
-            style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}
+          <View
+            className="flex-1 justify-end"
+            style={{ zIndex: 10000 }}
           >
-            <TouchableOpacity
-              className="flex-1"
-              style={{ flex: 1 }}
-              onPress={handleCloseModal}
-              activeOpacity={1}
+            <Animated.View
+              style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}
             >
-              <BlurView
-                intensity={70}
-                tint="dark"
-                style={[
-                  StyleSheet.absoluteFill,
-                  { backgroundColor: "rgba(0,0,0,0.3)" },
-                ]}
-              />
-            </TouchableOpacity>
-          </Animated.View>
-
-          <Animated.View
-            className="rounded-t-[25px] w-full overflow-hidden bg-white pb-10"
-            style={{
-              maxHeight: "75%",
-              zIndex: 10001,
-              transform: [
-                { translateY: Animated.add(slideAnim, panY) },
-                { scale: scaleAnim },
-              ],
-            }}
-            {...panResponder.panHandlers}
-          >
-            {/* Drag Handle */}
-            <View className="pt-3 pb-2 items-center">
-              <View className="w-10 h-1 bg-gray-300 rounded-full" />
-            </View>
-
-            <Text className="text-xl font-bold text-gray-900 text-center mb-8 mt-2">
-              Upload Photo
-            </Text>
-
-            <View className="flex-row justify-around mb-8 px-4">
-              {/* Camera Option */}
               <TouchableOpacity
-                onPress={() => {
-                  handleCloseModal();
-                  setTimeout(pickImageFromCamera, 100);
-                }}
-                className="items-center"
-                activeOpacity={0.7}
+                className="flex-1"
+                style={{ flex: 1 }}
+                onPress={handleCloseModal}
+                activeOpacity={1}
               >
-                <View className="w-20 h-20 bg-blue-50 rounded-2xl items-center justify-center mb-3 border border-blue-100 shadow-sm">
-                  <Ionicons
-                    name="camera"
-                    size={32}
-                    color="#3B82F6"
-                  />
-                </View>
-                <Text className="font-semibold text-gray-700 text-base">
-                  Camera
-                </Text>
+                <BlurView
+                  intensity={70}
+                  tint="dark"
+                  style={[
+                    StyleSheet.absoluteFill,
+                    { backgroundColor: "rgba(0,0,0,0.3)" },
+                  ]}
+                />
               </TouchableOpacity>
+            </Animated.View>
 
-              {/* Gallery Option */}
-              <TouchableOpacity
-                onPress={() => {
-                  handleCloseModal();
-                  setTimeout(pickImageFromLibrary, 100);
-                }}
-                className="items-center"
-                activeOpacity={0.7}
-              >
-                <View className="w-20 h-20 bg-purple-50 rounded-2xl items-center justify-center mb-3 border border-purple-100 shadow-sm">
-                  <Ionicons
-                    name="images"
-                    size={32}
-                    color="#8B5CF6"
-                  />
-                </View>
-                <Text className="font-semibold text-gray-700 text-base">
-                  Gallery
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
+            <Animated.View
+              className="rounded-t-[25px] w-full overflow-hidden bg-white pb-10"
+              style={{
+                maxHeight: "75%",
+                zIndex: 10001,
+                transform: [
+                  { translateY: Animated.add(slideAnim, panY) },
+                  { scale: scaleAnim },
+                ],
+              }}
+              {...panResponder.panHandlers}
+            >
+              {/* Drag Handle */}
+              <View className="pt-3 pb-2 items-center">
+                <View className="w-10 h-1 bg-gray-300 rounded-full" />
+              </View>
 
-      <LocationPicker
-        visible={showLocationPicker}
-        onClose={() => setShowLocationPicker(false)}
-        currentLocation={{ coordinates, place }}
-        onSelectLocation={updateLocation}
-        onUseCurrentLocation={useCurrentLocation}
-        getPlaceName={getPlaceName}
-        getCoordinatesFromName={getCoordinatesFromName}
-      />
+              <Text className="text-xl font-bold text-gray-900 text-center mb-8 mt-2">
+                Upload Photo
+              </Text>
+
+              <View className="flex-row justify-around mb-8 px-4">
+                {/* Camera Option */}
+                <TouchableOpacity
+                  onPress={() => {
+                    handleCloseModal();
+                    setTimeout(pickImageFromCamera, 100);
+                  }}
+                  className="items-center"
+                  activeOpacity={0.7}
+                >
+                  <View className="w-20 h-20 bg-blue-50 rounded-2xl items-center justify-center mb-3 border border-blue-100 shadow-sm">
+                    <Ionicons
+                      name="camera"
+                      size={32}
+                      color="#3B82F6"
+                    />
+                  </View>
+                  <Text className="font-semibold text-gray-700 text-base">
+                    Camera
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Gallery Option */}
+                <TouchableOpacity
+                  onPress={() => {
+                    handleCloseModal();
+                    setTimeout(pickImageFromLibrary, 100);
+                  }}
+                  className="items-center"
+                  activeOpacity={0.7}
+                >
+                  <View className="w-20 h-20 bg-purple-50 rounded-2xl items-center justify-center mb-3 border border-purple-100 shadow-sm">
+                    <Ionicons
+                      name="images"
+                      size={32}
+                      color="#8B5CF6"
+                    />
+                  </View>
+                  <Text className="font-semibold text-gray-700 text-base">
+                    Gallery
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
+
+        <LocationPicker
+          visible={showLocationPicker}
+          onClose={() => setShowLocationPicker(false)}
+          currentLocation={{ coordinates, place }}
+          onSelectLocation={updateLocation}
+          onUseCurrentLocation={useCurrentLocation}
+          getPlaceName={getPlaceName}
+          getCoordinatesFromName={getCoordinatesFromName}
+        />
       </View>
     </GestureHandlerRootView>
   );

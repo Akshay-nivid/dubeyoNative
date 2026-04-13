@@ -305,12 +305,12 @@ export default function LocationPicker({
           <Pressable
             onPress={handleUseCurrentLocation}
             disabled={usingCurrent}
-            className="absolute -top-20 right-6 w-14 h-14 bg-white rounded-full items-center justify-center shadow-xl border border-black/5 active:opacity-80"
+            className="absolute -top-20 right-6 w-14 h-14 bg-[#3B82F6] rounded-full items-center justify-center shadow-xl border border-white/10 active:opacity-80"
           >
             {usingCurrent ? (
-              <ActivityIndicator size="small" color="#3B82F6" />
+              <ActivityIndicator size="small" color="white" />
             ) : (
-              <Ionicons name="locate" size={28} color="#3B82F6" />
+              <Ionicons name="locate" size={28} color="white" />
             )}
           </Pressable>
 
@@ -319,8 +319,8 @@ export default function LocationPicker({
 
           {/* Highlighted Selection Summary Card */}
           <View className="flex-row items-center mb-6 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/30">
-            <View className="w-11 h-11 bg-blue-100/50 rounded-full items-center justify-center mr-3.5 shadow-sm">
-              <Ionicons name="location" size={24} color="#3B82F6" />
+            <View className="w-11 h-11 bg-[#3B82F6] rounded-full items-center justify-center mr-3.5 shadow-sm">
+              <Ionicons name="location" size={24} color="white" />
             </View>
             <View className="flex-1">
               <Text className="text-[14px] font-bold text-gray-900 leading-tight" numberOfLines={2}>

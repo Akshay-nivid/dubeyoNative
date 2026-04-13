@@ -61,7 +61,7 @@ export const useHomeData = () => {
           if (imageUrl) {
             result[id] = imageUrl;
           }
-        } catch {}
+        } catch { }
       }),
     );
 
@@ -145,7 +145,7 @@ export const useHomeData = () => {
         setNearest(nearestData);
         loadImages(nearestData, "nearest");
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [coordinates]);
 
   useEffect(() => {
